@@ -6,6 +6,8 @@ test_that("test_groups recommends ANOVA and returns posthoc and effect size", {
   expect_equal(x$recommended$test, "One-way ANOVA")
   expect_true(!is.null(x$posthoc))
   expect_true(nrow(x$effect_size) >= 1)
+  z <- test_groups(y ~ g, data = dat)
+  expect_s3_class(z, "testflow_groups")
 })
 
 test_that("test_groups can recommend Kruskal", {
