@@ -32,3 +32,10 @@ test_one_sample(
 \description{
 Test one numeric sample against a reference value
 }
+\references{
+Gosset, W. S. (1908). The probable error of a mean. \emph{Biometrika},
+6(1), 1-25.
+
+Wilcoxon, F. (1945). Individual comparisons by ranking methods.
+\emph{Biometrics Bulletin}, 1(6), 80-83.
+}

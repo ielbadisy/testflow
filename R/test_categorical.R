@@ -6,6 +6,17 @@
 #' @param fisher_threshold Expected-count threshold for Fisher's exact test.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @references
+#' Pearson, K. (1900). On the criterion that a given system of deviations from
+#' the probable in the case of a correlated system of variables is such that it
+#' can be reasonably supposed to have arisen from random sampling.
+#' \emph{Philosophical Magazine}, 50(302), 157-175.
+#'
+#' Fisher, R. A. (1922). On the interpretation of chi-square from contingency
+#' tables, and the calculation of P. \emph{Journal of the Royal Statistical
+#' Society}, 85(1), 87-94.
+#'
+#' Cramer, H. (1946). \emph{Mathematical Methods of Statistics}. Princeton.
 #' @export
 test_categorical <- function(formula, data, y = NULL, alpha = 0.05, fisher_threshold = 5, plot = TRUE, na.rm = TRUE) {
   vars <- resolve_formula_pair(substitute(formula), substitute(data), substitute(y), missing(y), rhs_label = "y")

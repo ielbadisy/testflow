@@ -32,3 +32,8 @@ test_proportion(
 \description{
 Test a one-sample proportion
 }
+\references{
+Clopper, C. J., & Pearson, E. S. (1934). The use of confidence or fiducial
+limits illustrated in the case of the binomial. \emph{Biometrika},
+26(4), 404-413.
+}

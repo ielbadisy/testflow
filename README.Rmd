@@ -67,3 +67,24 @@ confidence interval when available, appropriate effect size, report text, and pl
 | Correlation | `test_correlation(sbp_3m ~ age, data = cardio)` | Pearson, Spearman, Kendall |
 | Correlation matrix | `test_correlation_matrix(cardio, c(age, sbp_3m, ldl))` | matrix of Pearson/Spearman/Kendall correlations |
 | Outliers | `test_outliers(cardio, c(sbp_3m, ldl, crp))` | IQR outliers, Mahalanobis distance |
+
+## References
+
+- Fisher, R. A. (1925). \emph{Statistical Methods for Research Workers}.
+- Gosset, W. S. (1908). The probable error of a mean.
+- Welch, B. L. (1947). Generalization of Student's problem with unequal variances.
+- Wilcoxon, F. (1945). Individual comparisons by ranking methods.
+- Mann, H. B., & Whitney, D. R. (1947). On a test of whether one of two random variables is stochastically larger than the other.
+- Levene, H. (1960). Robust tests for equality of variances.
+- Kruskal, W. H., & Wallis, W. A. (1952). Use of ranks in one-criterion variance analysis.
+- Tukey, J. W. (1949). Comparing individual means in the analysis of variance.
+- Dunn, O. J. (1964). Multiple comparisons using rank sums.
+- Friedman, M. (1937). The use of ranks to avoid the assumption of normality implicit in the analysis of variance.
+- Cochran, W. G. (1950). The comparison of percentages in matched samples.
+- McNemar, Q. (1947). Note on the sampling error of the difference between correlated proportions or percentages.
+- Pearson, K. (1895, 1900).
+- Spearman, C. (1904). The proof and measurement of association between two things.
+- Kendall, M. G. (1938). A new measure of rank correlation.
+- Cramer, H. (1946). \emph{Mathematical Methods of Statistics}.
+- Clopper, C. J., & Pearson, E. S. (1934). The use of confidence or fiducial limits illustrated in the case of the binomial.
+- Cohen, J. (1988). \emph{Statistical Power Analysis for the Behavioral Sciences}.
