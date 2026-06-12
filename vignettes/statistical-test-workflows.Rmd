@@ -53,11 +53,25 @@ test_factorial(sbp_3m ~ sex * treatment, data = cardio)
 test_repeated(cardio, c(sbp_baseline, sbp_3m, sbp_6m), id = id)
 ```
 
+The repeated numeric workflow chooses repeated-measures ANOVA when the
+within-time normality checks are acceptable and Friedman otherwise. Post-hoc
+comparisons are paired t-tests for the parametric branch and paired Wilcoxon
+tests for the non-parametric branch.
+
 ## Categorical outcomes
 
 ```{r}
 test_categorical(treatment ~ controlled_3m, data = cardio)
 ```
+
+## Repeated categorical outcomes
+
+```{r}
+test_repeated_categorical(cardio, c(controlled_baseline, controlled_3m, controlled_6m))
+```
+
+The repeated categorical workflow uses Cochran Q for binary repeated outcomes
+and pairwise McNemar tests for follow-up comparisons.
 
 ## Correlation
 

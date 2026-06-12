@@ -28,7 +28,7 @@ test_groups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRU
   h0 <- h0_mean_equal(outcome_nm, group_nm)
   primary_tidy <- if (inherits(primary, "htest")) safe_tidy_htest(primary, recommendation) else primary
   primary_tidy <- add_null_hypothesis(primary_tidy, h0)
-  ph <- if (posthoc && recommendation == "One-way ANOVA") stats::TukeyHSD(aov_fit) else if (posthoc) stats::pairwise.wilcox.test(df[[outcome_nm]], df[[group_nm]], p.adjust.method = "BH") else NULL
+  ph <- if (posthoc) posthoc_groups(df, outcome_nm, group_nm, recommendation, alpha = alpha) else NULL
   effect <- if (recommendation == "Kruskal-Wallis test") {
     h <- unname(kruskal$statistic); n <- nrow(df); k <- dplyr::n_distinct(df[[group_nm]])
     tibble::tibble(name = "Kruskal epsilon squared", estimate = (h - k + 1) / (n - k), magnitude = magnitude_eta2((h - k + 1) / (n - k)))
