@@ -5,6 +5,12 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @references
+#' Cochran, W. G. (1950). The comparison of percentages in matched samples.
+#' \emph{Biometrika}, 37(3/4), 256-266.
+#'
+#' McNemar, Q. (1947). Note on the sampling error of the difference between
+#' correlated proportions or percentages. \emph{Psychometrika}, 12(2), 153-157.
 #' @export
 test_repeated_categorical <- function(data, measures, id = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   measure_nms <- tidyselect_names(data, {{ measures }})

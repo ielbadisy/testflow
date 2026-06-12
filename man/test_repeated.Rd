@@ -32,3 +32,16 @@ test_repeated(
 \description{
 Run a repeated-measures workflow from wide data
 }
+\references{
+Fisher, R. A. (1925). \emph{Statistical Methods for Research Workers}.
+Oliver and Boyd.
+
+Friedman, M. (1937). The use of ranks to avoid the assumption of normality
+implicit in the analysis of variance. \emph{Journal of the American
+Statistical Association}, 32(200), 675-701.
+
+Wilcoxon, F. (1945). Individual comparisons by ranking methods.
+\emph{Biometrics Bulletin}, 1(6), 80-83.
+
+Girden, E. R. (1992). \emph{ANOVA: Repeated Measures}. Sage.
+}

@@ -6,6 +6,10 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @references
+#' Clopper, C. J., & Pearson, E. S. (1934). The use of confidence or fiducial
+#' limits illustrated in the case of the binomial. \emph{Biometrika},
+#' 26(4), 404-413.
 #' @export
 test_proportion <- function(data, outcome, success, p = 0.5, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))
@@ -13,7 +17,7 @@ test_proportion <- function(data, outcome, success, p = 0.5, alpha = 0.05, plot 
   success_n <- sum(df[[outcome_nm]] == success, na.rm = TRUE)
   total_n <- sum(!is.na(df[[outcome_nm]]))
   binom <- stats::binom.test(success_n, total_n, p = p)
-  prop <- stats::prop.test(success_n, total_n, p = p, correct = FALSE)
+  prop <- suppressWarnings(stats::prop.test(success_n, total_n, p = p, correct = FALSE))
   effect <- tibble::tibble(name = "Observed proportion", estimate = success_n / total_n, magnitude = NA_character_)
   plt <- if (plot) {
     counts <- c(success_n, total_n - success_n)
