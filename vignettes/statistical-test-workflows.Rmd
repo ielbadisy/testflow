@@ -1,0 +1,68 @@
+---
+title: "Statistical test workflows"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Statistical test workflows}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## Introduction
+
+`testflow` provides statistical testing workflows organized by clinical study design.
+
+## One numerical variable
+
+```{r eval = FALSE}
+test_one_sample(cardio, sbp_3m, mu = 140)
+```
+
+## Two independent groups
+
+```{r eval = FALSE}
+test_two_groups(cardio, sbp_3m, sex)
+```
+
+## Paired measurements
+
+```{r eval = FALSE}
+test_paired(cardio, sbp_baseline, sbp_3m)
+```
+
+## More than two groups
+
+```{r eval = FALSE}
+test_groups(cardio, sbp_3m, treatment)
+```
+
+## Repeated measurements
+
+```{r eval = FALSE}
+test_repeated(cardio, c(sbp_baseline, sbp_3m, sbp_6m), id = id)
+```
+
+## Categorical outcomes
+
+```{r eval = FALSE}
+test_categorical(cardio, treatment, controlled_3m)
+```
+
+## Correlation
+
+```{r eval = FALSE}
+test_correlation(cardio, age, sbp_3m)
+```
+
+## Outliers
+
+```{r eval = FALSE}
+test_outliers(cardio, c(sbp_3m, ldl, crp))
+```
+
+## Reporting and plotting
+
+Every workflow returns a `testflow` object. Use `report(x)`, `plot(x)`, and `as_tibble(x)`.

@@ -1,0 +1,10 @@
+test_that("print and as_tibble expose core text", {
+  dat <- make_cardio_data(80)
+  x <- test_two_groups(dat, sbp_3m, sex)
+  txt <- capture.output(print(x))
+  expect_true(any(grepl("Clinical statistical test workflow", txt)))
+  expect_true(any(grepl("sbp_3m", txt)))
+  expect_true(any(grepl(x$recommended$test, txt, fixed = TRUE)))
+  expect_true(any(grepl("Report", txt)))
+  expect_equal(nrow(as_tibble(x)), 1)
+})
