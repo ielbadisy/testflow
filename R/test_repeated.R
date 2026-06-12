@@ -6,6 +6,18 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @references
+#' Fisher, R. A. (1925). \emph{Statistical Methods for Research Workers}.
+#' Oliver and Boyd.
+#'
+#' Friedman, M. (1937). The use of ranks to avoid the assumption of normality
+#' implicit in the analysis of variance. \emph{Journal of the American
+#' Statistical Association}, 32(200), 675-701.
+#'
+#' Wilcoxon, F. (1945). Individual comparisons by ranking methods.
+#' \emph{Biometrics Bulletin}, 1(6), 80-83.
+#'
+#' Girden, E. R. (1992). \emph{ANOVA: Repeated Measures}. Sage.
 #' @export
 test_repeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   measure_nms <- tidyselect_names(data, {{ measures }})
