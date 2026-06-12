@@ -5,6 +5,11 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @references
+#' Pearson, K. (1900). On the criterion that a given system of deviations from
+#' the probable in the case of a correlated system of variables is such that it
+#' can be reasonably supposed to have arisen from random sampling.
+#' \emph{Philosophical Magazine}, 50(302), 157-175.
 #' @export
 test_multinomial <- function(data, outcome, p = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))

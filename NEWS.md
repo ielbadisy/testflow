@@ -1,3 +1,13 @@
+# testflow 0.8.1
+
+## Validation and documentation
+
+- Added canonical references to workflow documentation and the main vignette.
+- Added deeper validation checks against base R/reference calculations for
+  one-sample tests, proportions, correlations, categorical association, and
+  factorial ANOVA.
+- Kept the hardened repeated-measures and post-hoc workflows from `0.8.0`.
+
 # testflow 0.8.0
 
 ## Method hardening

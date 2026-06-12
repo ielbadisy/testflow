@@ -32,3 +32,10 @@ test_factorial(
 \description{
 Run a factorial ANOVA workflow
 }
+\references{
+Fisher, R. A. (1925). \emph{Statistical Methods for Research Workers}.
+Oliver and Boyd.
+
+Cohen, J. (1988). \emph{Statistical Power Analysis for the Behavioral
+Sciences} (2nd ed.). Lawrence Erlbaum.
+}

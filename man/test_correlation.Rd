@@ -32,3 +32,13 @@ test_correlation(
 \description{
 Test correlation between two numeric variables
 }
+\references{
+Pearson, K. (1895). Notes on regression and inheritance in the case of two
+parents. \emph{Proceedings of the Royal Society of London}, 58, 240-242.
+
+Spearman, C. (1904). The proof and measurement of association between two
+things. \emph{The American Journal of Psychology}, 15(1), 72-101.
+
+Kendall, M. G. (1938). A new measure of rank correlation. \emph{Biometrika},
+30(1/2), 81-93.
+}

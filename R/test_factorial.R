@@ -6,6 +6,12 @@
 #' @param type ANOVA type placeholder for future car integration.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @references
+#' Fisher, R. A. (1925). \emph{Statistical Methods for Research Workers}.
+#' Oliver and Boyd.
+#'
+#' Cohen, J. (1988). \emph{Statistical Power Analysis for the Behavioral
+#' Sciences} (2nd ed.). Lawrence Erlbaum.
 #' @export
 test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2, plot = TRUE, na.rm = TRUE) {
   first_expr <- substitute(formula)

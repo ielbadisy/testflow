@@ -6,6 +6,12 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @references
+#' Gosset, W. S. (1908). The probable error of a mean. \emph{Biometrika},
+#' 6(1), 1-25.
+#'
+#' Wilcoxon, F. (1945). Individual comparisons by ranking methods.
+#' \emph{Biometrics Bulletin}, 1(6), 80-83.
 #' @export
 test_one_sample <- function(data, outcome, mu = 0, alternative = c("two.sided", "less", "greater"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   alternative <- match.arg(alternative)
