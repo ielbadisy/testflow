@@ -5,9 +5,9 @@
 \title{Run a factorial ANOVA workflow}
 \usage{
 test_factorial(
+  formula,
   data,
-  outcome,
-  factors,
+  factors = NULL,
   alpha = 0.05,
   type = 2,
   plot = TRUE,
@@ -15,11 +15,11 @@ test_factorial(
 )
 }
 \arguments{
-\item{data}{A data frame.}
+\item{formula}{A formula such as \code{outcome ~ factor1 * factor2}, or a data frame when using data-first style.}
 
-\item{outcome}{Numeric outcome column.}
+\item{data}{A data frame, or the outcome column when using data-first style.}
 
-\item{factors}{Factor columns selected with tidyselect syntax.}
+\item{factors}{Factor columns selected with tidyselect syntax. Optional when using formula style.}
 
 \item{alpha}{Significance level.}
 
