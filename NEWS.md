@@ -1,3 +1,22 @@
+# testflow 0.8.0
+
+## Method hardening
+
+- Replaced the repeated-categorical Friedman approximation with an explicit
+  Cochran Q implementation for binary repeated measures.
+- Added pairwise McNemar post-hoc comparisons for repeated categorical
+  workflows.
+- Added base R repeated-measures ANOVA extraction for normal repeated numeric
+  workflows.
+- Added paired post-hoc comparisons for repeated numeric workflows:
+  paired t-tests after repeated-measures ANOVA and paired Wilcoxon tests after
+  Friedman.
+- Added method-specific post-hoc selection for multi-group comparisons:
+  Tukey HSD after classical ANOVA, Welch pairwise t-tests after Welch ANOVA,
+  and pairwise Wilcoxon tests after Kruskal-Wallis.
+- Added validation tests comparing repeated ANOVA and Cochran Q results against
+  explicit base R/reference formulas.
+
 # testflow 0.7.0
 
 ## Workflow API

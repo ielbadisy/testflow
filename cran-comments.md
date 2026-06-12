@@ -10,4 +10,5 @@
 
 This is a pre-CRAN development release for package hardening. It adds
 formula-first workflow calls, rendered HTML vignettes, H0/CI/effect-size
-exposure, and additional tests.
+exposure, repeated-measures hardening, true Cochran Q testing, method-specific
+post-hoc selection, and additional validation tests.

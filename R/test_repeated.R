@@ -40,10 +40,21 @@ repeated_core <- function(data, outcome_nm, within_nm, id_nm, alpha = 0.05, plot
   measure_nms <- setdiff(names(wide), id_nm)
   complete <- stats::na.omit(wide[, measure_nms, drop = FALSE])
   friedman <- stats::friedman.test(as.matrix(complete))
-  diffs <- rowMeans(complete, na.rm = TRUE)
+  anova <- repeated_anova_test(df, outcome_nm, within_nm, id_nm)
   recommendation <- if (all(normality$status == "acceptable")) "Repeated-measures ANOVA" else "Friedman test"
-  primary <- if (recommendation == "Friedman test") safe_tidy_htest(friedman, "Friedman test") else tibble::tibble(method = "Repeated-measures ANOVA", statistic = NA_real_, parameter = length(measure_nms) - 1, p.value = friedman$p.value)
-  effect <- tibble::tibble(name = "Friedman effect size", estimate = unname(friedman$statistic) / (nrow(complete) * (length(measure_nms) - 1)), magnitude = magnitude_eta2(unname(friedman$statistic) / (nrow(complete) * (length(measure_nms) - 1))))
+  h0 <- h0_mean_equal(outcome_nm, within_nm)
+  primary <- if (recommendation == "Friedman test") {
+    add_null_hypothesis(safe_tidy_htest(friedman, "Friedman test"), h0)
+  } else {
+    add_null_hypothesis(anova, h0)
+  }
+  effect <- if (recommendation == "Friedman test") {
+    friedman_effect_size(friedman, n = nrow(complete), k = length(measure_nms))
+  } else {
+    repeated_eta_squared(df, outcome_nm, within_nm, id_nm)
+  }
+  posthoc_method <- if (recommendation == "Friedman test") "wilcox" else "t"
+  posthoc_tests <- paired_posthoc_numeric(complete, method = posthoc_method, p.adjust.method = "BH")
   plt <- if (plot) {
     ggplot2::ggplot(df, ggplot2::aes(x = .data[[within_nm]], y = .data[[outcome_nm]], group = .data[[id_nm]])) +
       ggplot2::geom_line(alpha = 0.25) +
@@ -52,7 +63,7 @@ repeated_core <- function(data, outcome_nm, within_nm, id_nm, alpha = 0.05, plot
       ggplot2::labs(title = "Repeated-measures workflow", subtitle = paste0(recommendation, ", p = ", format_p(primary$p.value[1])), x = within_nm, y = outcome_nm) +
       ggplot2::theme_minimal()
   } else NULL
-  out <- new_testflow("repeated", "repeated numeric measurements", outcome_nm, within_nm, id_nm, df, descriptives_numeric(df, outcome_nm, within_nm), list("Normality by time" = normality), list(test = recommendation), primary, list(friedman = safe_tidy_htest(friedman, "Friedman test")), posthoc = stats::pairwise.t.test(df[[outcome_nm]], df[[within_nm]], paired = TRUE, p.adjust.method = "BH"), effect_size = effect, plot = plt, call = call, subclass = "repeated")
+  out <- new_testflow("repeated", "repeated numeric measurements", outcome_nm, within_nm, id_nm, df, descriptives_numeric(df, outcome_nm, within_nm), list("Normality by time" = normality), list(test = recommendation), primary, list(anova = add_null_hypothesis(anova, h0), friedman = add_null_hypothesis(safe_tidy_htest(friedman, "Friedman test"), h0)), posthoc = posthoc_tests, effect_size = effect, plot = plt, call = call, subclass = "repeated")
   out$interpretation <- make_report(out, alpha)
   out
 }
