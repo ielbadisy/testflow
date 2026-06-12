@@ -11,6 +11,8 @@ test_that("test_two_groups returns expected object and Student t-test", {
   expect_true("null_hypothesis" %in% names(z$primary_test))
   expect_true("conf.low" %in% names(z$primary_test))
   expect_false(is.na(z$primary_test$conf.low[1]))
+  expect_true("effect_size" %in% names(z$primary_test))
+  expect_false(is.na(z$primary_test$effect_size[1]))
   p <- dat |> test_two_groups(y ~ g)
   expect_s3_class(p, "testflow_two_groups")
 })

@@ -17,49 +17,57 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 ## One numerical variable
 
-```{r eval = FALSE}
+```{r}
+library(testflow)
+cardio <- make_cardio_data()
 test_one_sample(cardio, sbp_3m, mu = 140)
 ```
 
 ## Two independent groups
 
-```{r eval = FALSE}
+```{r}
 test_two_groups(sbp_3m ~ sex, data = cardio)
 ```
 
 ## Paired measurements
 
-```{r eval = FALSE}
-test_paired(cardio, sbp_baseline, sbp_3m)
+```{r}
+test_paired(sbp_3m ~ sbp_baseline, data = cardio)
 ```
 
 ## More than two groups
 
-```{r eval = FALSE}
+```{r}
 test_groups(sbp_3m ~ treatment, data = cardio)
+```
+
+## Factorial designs
+
+```{r}
+test_factorial(sbp_3m ~ sex * treatment, data = cardio)
 ```
 
 ## Repeated measurements
 
-```{r eval = FALSE}
+```{r}
 test_repeated(cardio, c(sbp_baseline, sbp_3m, sbp_6m), id = id)
 ```
 
 ## Categorical outcomes
 
-```{r eval = FALSE}
+```{r}
 test_categorical(treatment ~ controlled_3m, data = cardio)
 ```
 
 ## Correlation
 
-```{r eval = FALSE}
+```{r}
 test_correlation(sbp_3m ~ age, data = cardio)
 ```
 
 ## Outliers
 
-```{r eval = FALSE}
+```{r}
 test_outliers(cardio, c(sbp_3m, ldl, crp))
 ```
 

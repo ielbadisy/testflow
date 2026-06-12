@@ -5,9 +5,9 @@
 \title{Compare paired before and after numeric measurements}
 \usage{
 test_paired(
+  formula,
   data,
-  before,
-  after,
+  after = NULL,
   alternative = c("two.sided", "less", "greater"),
   alpha = 0.05,
   plot = TRUE,
@@ -15,11 +15,11 @@ test_paired(
 )
 }
 \arguments{
-\item{data}{A data frame.}
+\item{formula}{A formula such as \code{after ~ before}, or a data frame when using data-first style.}
 
-\item{before}{Before column.}
+\item{data}{A data frame, or the before column when using data-first style.}
 
-\item{after}{After column.}
+\item{after}{After column. Optional when using formula style.}
 
 \item{alternative}{Alternative hypothesis.}
 

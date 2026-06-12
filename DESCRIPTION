@@ -1,6 +1,6 @@
 Package: testflow
 Title: A Workflow Grammar for Statistical Testing, Interpretation, and Visualization
-Version: 0.0.1
+Version: 0.7.0
 Authors@R: c(
     person(
       given = "Imad",
