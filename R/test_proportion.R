@@ -25,7 +25,8 @@ test_proportion <- function(data, outcome, success, p = 0.5, alpha = 0.05, plot 
       ggplot2::theme_minimal() +
       ggplot2::theme(legend.position = "none")
   } else NULL
-  out <- new_testflow("proportion", "one categorical proportion", outcome_nm, data = df, descriptives = descriptives_categorical(df, outcome_nm), recommended = list(test = "Exact binomial test"), primary_test = safe_tidy_htest(binom, "Exact binomial test"), alternative_tests = list(prop_test = safe_tidy_htest(prop, "One-sample proportion test")), effect_size = effect, plot = plt, call = match.call(), subclass = "proportion")
+  h0 <- h0_proportion(outcome_nm, p)
+  out <- new_testflow("proportion", "one categorical proportion", outcome_nm, data = df, descriptives = descriptives_categorical(df, outcome_nm), recommended = list(test = "Exact binomial test"), primary_test = add_null_hypothesis(safe_tidy_htest(binom, "Exact binomial test"), h0), alternative_tests = list(prop_test = add_null_hypothesis(safe_tidy_htest(prop, "One-sample proportion test"), h0)), effect_size = effect, plot = plt, call = match.call(), subclass = "proportion")
   out$interpretation <- make_report(out, alpha)
   out
 }

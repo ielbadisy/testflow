@@ -4,6 +4,8 @@ test_that("test_categorical builds table and computes Cramer's V", {
   expect_s3_class(z, "testflow_categorical")
   expect_equal(z$recommended$test, "Chi-square test of independence")
   expect_equal(z$effect_size$name, "Cramer's V")
+  f <- test_categorical(x ~ y, data = dat)
+  expect_s3_class(f, "testflow_categorical")
 })
 
 test_that("test_categorical uses Fisher with small expected counts", {

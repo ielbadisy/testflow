@@ -1,25 +1,27 @@
 #' Compare a numeric outcome between two independent groups
-#' @param data A data frame.
-#' @param outcome Numeric outcome column.
-#' @param group Two-level grouping column.
+#' @param formula A formula such as `outcome ~ group`, or a data frame when using pipe/data-first style.
+#' @param data A data frame, or an outcome column when using data-first style.
+#' @param group Two-level grouping column. Optional when using formula style.
 #' @param alternative Alternative hypothesis.
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
 #' @export
 test_two_groups <- function(
+  formula,
   data,
-  outcome,
-  group,
+  group = NULL,
   alternative = c("two.sided", "less", "greater"),
   alpha = 0.05,
   plot = TRUE,
   na.rm = TRUE
 ) {
   alternative <- match.arg(alternative)
-  outcome_nm <- rlang::as_name(rlang::ensym(outcome))
-  group_nm <- rlang::as_name(rlang::ensym(group))
-  df <- drop_missing(data, c(outcome_nm, group_nm), na.rm = na.rm)
+  vars <- resolve_formula_pair(substitute(formula), substitute(data), substitute(group), missing(group))
+  outcome_nm <- vars$outcome
+  group_nm <- vars$group
+  data_obj <- resolve_data_first_or_formula(formula, data)
+  df <- drop_missing(data_obj, c(outcome_nm, group_nm), na.rm = na.rm)
   df[[group_nm]] <- as.factor(df[[group_nm]])
   assert_two_groups(df, group_nm)
 
@@ -39,7 +41,7 @@ test_two_groups <- function(
     "Wilcoxon rank-sum test" = wilcox
   )
   effect <- if (recommendation == "Wilcoxon rank-sum test") rank_biserial_two_groups(df, outcome_nm, group_nm) else cohens_d_independent(df, outcome_nm, group_nm)
-  primary_tidy <- safe_tidy_htest(primary, recommendation)
+  primary_tidy <- add_null_hypothesis(safe_tidy_htest(primary, recommendation), h0_mean_equal(outcome_nm, group_nm))
   plt <- if (plot) make_plot("two_groups", df, outcome_nm, group_nm, recommendation, primary, effect) else NULL
 
   x <- new_testflow(
@@ -52,7 +54,11 @@ test_two_groups <- function(
     assumptions = list("Normality by group" = normality, "Homogeneity of variance" = levene, "F-test variance comparison" = f_test),
     recommended = list(test = recommendation, rationale = "Selected from normality and variance assumptions."),
     primary_test = primary_tidy,
-    alternative_tests = list(student_t_test = safe_tidy_htest(student, "Student independent t-test"), welch_t_test = safe_tidy_htest(welch, "Welch t-test"), wilcox = safe_tidy_htest(wilcox, "Wilcoxon rank-sum test")),
+    alternative_tests = list(
+      student_t_test = add_null_hypothesis(safe_tidy_htest(student, "Student independent t-test"), h0_mean_equal(outcome_nm, group_nm)),
+      welch_t_test = add_null_hypothesis(safe_tidy_htest(welch, "Welch t-test"), h0_mean_equal(outcome_nm, group_nm)),
+      wilcox = add_null_hypothesis(safe_tidy_htest(wilcox, "Wilcoxon rank-sum test"), h0_mean_equal(outcome_nm, group_nm))
+    ),
     effect_size = effect,
     plot = plt,
     call = match.call(),

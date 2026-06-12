@@ -5,9 +5,9 @@
 \title{Compare a numeric outcome across more than two groups}
 \usage{
 test_groups(
+  formula,
   data,
-  outcome,
-  group,
+  group = NULL,
   alpha = 0.05,
   posthoc = TRUE,
   plot = TRUE,
@@ -15,11 +15,11 @@ test_groups(
 )
 }
 \arguments{
-\item{data}{A data frame.}
+\item{formula}{A formula such as \code{outcome ~ group}, or a data frame when using pipe/data-first style.}
 
-\item{outcome}{Numeric outcome column.}
+\item{data}{A data frame, or an outcome column when using data-first style.}
 
-\item{group}{Grouping column.}
+\item{group}{Grouping column. Optional when using formula style.}
 
 \item{alpha}{Significance level.}
 

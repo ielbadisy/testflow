@@ -1,6 +1,6 @@
 test_that("test_correlation returns a testflow object", {
   dat <- make_cardio_data(60)
-  x <- test_correlation(dat, age, sbp_3m)
+  x <- test_correlation(sbp_3m ~ age, data = dat)
   expect_s3_class(x, "testflow_correlation")
   expect_s3_class(plot(x), "ggplot")
 })
