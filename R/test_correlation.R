@@ -1,16 +1,19 @@
 #' Test correlation between two numeric variables
-#' @param data A data frame.
-#' @param x First numeric column.
-#' @param y Second numeric column.
+#' @param formula A formula such as `y ~ x`, or a data frame when using pipe/data-first style.
+#' @param data A data frame, or a first numeric column when using data-first style.
+#' @param y Second numeric column. Optional when using formula style.
 #' @param method Correlation method or `"auto"`.
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
 #' @export
-test_correlation <- function(data, x, y, method = c("auto", "pearson", "spearman", "kendall"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+test_correlation <- function(formula, data, y = NULL, method = c("auto", "pearson", "spearman", "kendall"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   method <- match.arg(method)
-  x_nm <- rlang::as_name(rlang::ensym(x)); y_nm <- rlang::as_name(rlang::ensym(y))
-  df <- drop_missing(data, c(x_nm, y_nm), na.rm = na.rm)
+  vars <- resolve_formula_pair(substitute(formula), substitute(data), substitute(y), missing(y), rhs_label = "x")
+  y_nm <- vars$outcome
+  x_nm <- vars$group
+  data_obj <- resolve_data_first_or_formula(formula, data)
+  df <- drop_missing(data_obj, c(x_nm, y_nm), na.rm = na.rm)
   normality <- check_normality(df, c(x_nm, y_nm), alpha = alpha)
   outliers <- iqr_outliers(df, c(x_nm, y_nm))
   chosen <- if (method == "auto") {
@@ -28,7 +31,8 @@ test_correlation <- function(data, x, y, method = c("auto", "pearson", "spearman
       ggplot2::labs(title = "Correlation workflow", subtitle = plot_subtitle(paste(chosen, "correlation"), primary), caption = paste0(effect$name[1], " = ", format_stat(effect$estimate[1]), ", ", effect$magnitude[1]), x = x_nm, y = y_nm) +
       ggplot2::theme_minimal()
   } else NULL
-  out <- new_testflow("correlation", "two numeric variables", y_nm, x_nm, data = df, descriptives = descriptives_numeric(df, c(x_nm, y_nm)), assumptions = list("Normality" = normality, "IQR outliers" = outliers), recommended = list(test = paste(chosen, "correlation")), primary_test = safe_tidy_htest(primary, paste(chosen, "correlation")), alternative_tests = list(pearson = safe_tidy_htest(pearson, "Pearson correlation"), spearman = safe_tidy_htest(spearman, "Spearman correlation"), kendall = safe_tidy_htest(kendall, "Kendall correlation")), effect_size = effect, plot = plt, call = match.call(), subclass = "correlation")
+  h0 <- h0_no_correlation(x_nm, y_nm)
+  out <- new_testflow("correlation", "two numeric variables", y_nm, x_nm, data = df, descriptives = descriptives_numeric(df, c(x_nm, y_nm)), assumptions = list("Normality" = normality, "IQR outliers" = outliers), recommended = list(test = paste(chosen, "correlation")), primary_test = add_null_hypothesis(safe_tidy_htest(primary, paste(chosen, "correlation")), h0), alternative_tests = list(pearson = add_null_hypothesis(safe_tidy_htest(pearson, "Pearson correlation"), h0), spearman = add_null_hypothesis(safe_tidy_htest(spearman, "Spearman correlation"), h0), kendall = add_null_hypothesis(safe_tidy_htest(kendall, "Kendall correlation"), h0)), effect_size = effect, plot = plt, call = match.call(), subclass = "correlation")
   out$interpretation <- make_report(out, alpha)
   out
 }

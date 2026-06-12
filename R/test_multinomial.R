@@ -27,7 +27,8 @@ test_multinomial <- function(data, outcome, p = NULL, alpha = 0.05, plot = TRUE,
       ggplot2::labs(title = "Multinomial workflow", subtitle = plot_subtitle("Chi-square goodness-of-fit", chisq), x = outcome_nm, y = "Count") +
       ggplot2::theme_minimal()
   } else NULL
-  out <- new_testflow("multinomial", "one multinomial categorical variable", outcome_nm, data = df, descriptives = descriptives_categorical(df, outcome_nm), recommended = list(test = "Chi-square goodness-of-fit"), primary_test = safe_tidy_htest(chisq, "Chi-square goodness-of-fit"), alternative_tests = list(pairwise_binomial = pairwise), effect_size = effect, plot = plt, call = match.call(), subclass = "multinomial")
+  h0 <- paste0("H0: the distribution of ", outcome_nm, " follows the expected probabilities.")
+  out <- new_testflow("multinomial", "one multinomial categorical variable", outcome_nm, data = df, descriptives = descriptives_categorical(df, outcome_nm), recommended = list(test = "Chi-square goodness-of-fit"), primary_test = add_null_hypothesis(safe_tidy_htest(chisq, "Chi-square goodness-of-fit"), h0), alternative_tests = list(pairwise_binomial = pairwise), effect_size = effect, plot = plt, call = match.call(), subclass = "multinomial")
   out$posthoc <- pairwise
   out$interpretation <- make_report(out, alpha)
   out

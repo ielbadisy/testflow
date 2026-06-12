@@ -1,16 +1,18 @@
 #' Compare a numeric outcome across more than two groups
-#' @param data A data frame.
-#' @param outcome Numeric outcome column.
-#' @param group Grouping column.
+#' @param formula A formula such as `outcome ~ group`, or a data frame when using pipe/data-first style.
+#' @param data A data frame, or an outcome column when using data-first style.
+#' @param group Grouping column. Optional when using formula style.
 #' @param alpha Significance level.
 #' @param posthoc Logical; compute post-hoc comparisons.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
 #' @export
-test_groups <- function(data, outcome, group, alpha = 0.05, posthoc = TRUE, plot = TRUE, na.rm = TRUE) {
-  outcome_nm <- rlang::as_name(rlang::ensym(outcome))
-  group_nm <- rlang::as_name(rlang::ensym(group))
-  df <- drop_missing(data, c(outcome_nm, group_nm), na.rm = na.rm)
+test_groups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRUE, plot = TRUE, na.rm = TRUE) {
+  vars <- resolve_formula_pair(substitute(formula), substitute(data), substitute(group), missing(group))
+  outcome_nm <- vars$outcome
+  group_nm <- vars$group
+  data_obj <- resolve_data_first_or_formula(formula, data)
+  df <- drop_missing(data_obj, c(outcome_nm, group_nm), na.rm = na.rm)
   df[[group_nm]] <- as.factor(df[[group_nm]])
   if (dplyr::n_distinct(df[[group_nm]]) < 3) stop("`group` must contain at least three groups.", call. = FALSE)
   normality <- check_normality(df, outcome_nm, group_nm, alpha)
@@ -23,14 +25,16 @@ test_groups <- function(data, outcome, group, alpha = 0.05, posthoc = TRUE, plot
   welch <- stats::oneway.test(formula, data = df, var.equal = FALSE)
   kruskal <- stats::kruskal.test(formula, data = df)
   primary <- switch(recommendation, "One-way ANOVA" = list_obj_from_tidy(aov_test, "One-way ANOVA"), "Welch ANOVA" = welch, "Kruskal-Wallis test" = kruskal)
+  h0 <- h0_mean_equal(outcome_nm, group_nm)
   primary_tidy <- if (inherits(primary, "htest")) safe_tidy_htest(primary, recommendation) else primary
+  primary_tidy <- add_null_hypothesis(primary_tidy, h0)
   ph <- if (posthoc && recommendation == "One-way ANOVA") stats::TukeyHSD(aov_fit) else if (posthoc) stats::pairwise.wilcox.test(df[[outcome_nm]], df[[group_nm]], p.adjust.method = "BH") else NULL
   effect <- if (recommendation == "Kruskal-Wallis test") {
     h <- unname(kruskal$statistic); n <- nrow(df); k <- dplyr::n_distinct(df[[group_nm]])
     tibble::tibble(name = "Kruskal epsilon squared", estimate = (h - k + 1) / (n - k), magnitude = magnitude_eta2((h - k + 1) / (n - k)))
   } else eta_squared_aov(aov_fit) |> dplyr::slice(1)
   plt <- if (plot) make_plot("groups", df, outcome_nm, group_nm, recommendation, if (inherits(primary, "htest")) primary else list(p.value = primary_tidy$p.value[1]), effect) else NULL
-  out <- new_testflow("groups", "more than two independent groups", outcome_nm, group_nm, data = df, descriptives = descriptives_numeric(df, outcome_nm, group_nm), assumptions = list("Normality by group" = normality, "Homogeneity of variance" = levene, "Bartlett test" = bartlett), recommended = list(test = recommendation), primary_test = primary_tidy, alternative_tests = list(anova = aov_test, welch = safe_tidy_htest(welch, "Welch ANOVA"), kruskal = safe_tidy_htest(kruskal, "Kruskal-Wallis test")), posthoc = ph, effect_size = effect, plot = plt, call = match.call(), subclass = "groups")
+  out <- new_testflow("groups", "more than two independent groups", outcome_nm, group_nm, data = df, descriptives = descriptives_numeric(df, outcome_nm, group_nm), assumptions = list("Normality by group" = normality, "Homogeneity of variance" = levene, "Bartlett test" = bartlett), recommended = list(test = recommendation), primary_test = primary_tidy, alternative_tests = list(anova = add_null_hypothesis(aov_test, h0), welch = add_null_hypothesis(safe_tidy_htest(welch, "Welch ANOVA"), h0), kruskal = add_null_hypothesis(safe_tidy_htest(kruskal, "Kruskal-Wallis test"), h0)), posthoc = ph, effect_size = effect, plot = plt, call = match.call(), subclass = "groups")
   out$interpretation <- make_report(out, alpha)
   out
 }

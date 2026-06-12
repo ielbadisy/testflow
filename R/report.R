@@ -29,11 +29,15 @@ make_report <- function(x, alpha = 0.05) {
   } else {
     paste0(" The effect size was ", effect$magnitude[1], " (", effect$name[1], " = ", format_stat(effect$estimate[1]), ").")
   }
+  ci <- primary_ci(x)
+  ci_text <- if (any(is.na(ci))) "" else paste0(" The 95% confidence interval was [", format_stat(ci[1]), ", ", format_stat(ci[2]), "].")
+  h0 <- primary_h0(x)
+  h0_text <- if (is.na(h0)) "" else paste0(" ", h0)
   result <- ifelse(p < alpha, "showed a statistically significant result", "did not show a statistically significant result")
   paste0(
     "The ", x$design, " workflow for ", x$outcome %||% "the outcome",
     " ", result, " using ", method, ", statistic = ", format_stat(stat),
     ifelse(is.na(df), "", paste0(", df = ", format_stat(df))),
-    ", p = ", format_p(p), ".", effect_text
+    ", p = ", format_p(p), ".", ci_text, effect_text, h0_text
   )
 }

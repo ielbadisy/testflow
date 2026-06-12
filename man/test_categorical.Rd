@@ -5,9 +5,9 @@
 \title{Test association between two categorical variables}
 \usage{
 test_categorical(
+  formula,
   data,
-  x,
-  y,
+  y = NULL,
   alpha = 0.05,
   fisher_threshold = 5,
   plot = TRUE,
@@ -15,11 +15,11 @@ test_categorical(
 )
 }
 \arguments{
-\item{data}{A data frame.}
+\item{formula}{A formula such as \code{x ~ y}, or a data frame when using pipe/data-first style.}
 
-\item{x}{First categorical column.}
+\item{data}{A data frame, or a first categorical column when using data-first style.}
 
-\item{y}{Second categorical column.}
+\item{y}{Second categorical column. Optional when using formula style.}
 
 \item{alpha}{Significance level.}
 
