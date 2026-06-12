@@ -1,0 +1,43 @@
+Package: testflow
+Title: A Workflow Grammar for Statistical Testing, Interpretation, and Visualization
+Version: 0.0.1
+Authors@R: c(
+    person(
+      given = "Imad",
+      family = "EL BADISY",
+      role = c("aut", "cre"),
+      email = "elbadisyimad@gmail.com"
+    )
+  )
+Author: Imad EL BADISY [aut, cre]
+Maintainer: Imad EL BADISY <elbadisyimad@gmail.com>
+Description: Provides a unified workflow for choosing, running, interpreting,
+  and visualizing common statistical tests. The package combines assumption
+  checks, test selection, effect sizes, formatted results, plain-language
+  interpretation, and ggplot2-based statistical visualizations.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 4.1.0)
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    stats,
+    rlang,
+    dplyr,
+    tidyr,
+    tidyselect,
+    tibble,
+    purrr,
+    broom,
+    ggplot2
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    car,
+    effectsize,
+    rstatix,
+    patchwork
+Config/testthat/edition: 3
+VignetteBuilder: knitr

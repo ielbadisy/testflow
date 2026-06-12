@@ -1,0 +1,23 @@
+---
+title: "Getting started with testflow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with testflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+`testflow` starts with the study design.
+
+```{r eval = FALSE}
+library(testflow)
+cardio <- make_cardio_data()
+x <- test_two_groups(cardio, sbp_3m, sex)
+x
+report(x)
+plot(x)
+```
