@@ -1,0 +1,6 @@
+*.Rcheck/
+*.tar.gz
+.Rproj.user/
+.DS_Store
+TASK6testflow.txt
+raw-code/
