@@ -5,9 +5,9 @@
 \title{Compare a numeric outcome between two independent groups}
 \usage{
 test_two_groups(
+  formula,
   data,
-  outcome,
-  group,
+  group = NULL,
   alternative = c("two.sided", "less", "greater"),
   alpha = 0.05,
   plot = TRUE,
@@ -15,11 +15,11 @@ test_two_groups(
 )
 }
 \arguments{
-\item{data}{A data frame.}
+\item{formula}{A formula such as \code{outcome ~ group}, or a data frame when using pipe/data-first style.}
 
-\item{outcome}{Numeric outcome column.}
+\item{data}{A data frame, or an outcome column when using data-first style.}
 
-\item{group}{Two-level grouping column.}
+\item{group}{Two-level grouping column. Optional when using formula style.}
 
 \item{alternative}{Alternative hypothesis.}
 

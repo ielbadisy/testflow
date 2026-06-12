@@ -18,6 +18,8 @@ print.testflow <- function(x, ...) {
   cat(x$recommended$test %||% x$recommended, "\n\n")
 
   cat("Result:\n")
+  h0 <- primary_h0(x)
+  if (!is.na(h0)) cat(h0, "\n")
   cat(format_primary_result(x), "\n\n")
 
   if (!is.null(x$effect_size) && nrow(x$effect_size) > 0) {
@@ -48,10 +50,13 @@ format_primary_result <- function(x) {
   if (is.null(test)) return("No primary test available.")
   stat <- primary_statistic(x)
   df <- primary_df(x)
+  ci <- primary_ci(x)
+  ci_text <- if (any(is.na(ci))) "" else paste0(", 95% CI [", format_stat(ci[1]), ", ", format_stat(ci[2]), "]")
   paste0(
     "statistic = ", format_stat(stat),
     ifelse(is.na(df), "", paste0(", df = ", format_stat(df))),
-    ", p = ", format_p(primary_p(x))
+    ", p = ", format_p(primary_p(x)),
+    ci_text
   )
 }
 

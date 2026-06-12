@@ -6,6 +6,13 @@ test_that("test_two_groups returns expected object and Student t-test", {
   expect_equal(x$recommended$test, "Student independent t-test")
   expect_s3_class(plot(x), "ggplot")
   expect_type(report(x), "character")
+  z <- test_two_groups(y ~ g, data = dat)
+  expect_s3_class(z, "testflow_two_groups")
+  expect_true("null_hypothesis" %in% names(z$primary_test))
+  expect_true("conf.low" %in% names(z$primary_test))
+  expect_false(is.na(z$primary_test$conf.low[1]))
+  p <- dat |> test_two_groups(y ~ g)
+  expect_s3_class(p, "testflow_two_groups")
 })
 
 test_that("test_two_groups recommends Welch when variances differ", {

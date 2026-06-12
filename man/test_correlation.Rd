@@ -5,9 +5,9 @@
 \title{Test correlation between two numeric variables}
 \usage{
 test_correlation(
+  formula,
   data,
-  x,
-  y,
+  y = NULL,
   method = c("auto", "pearson", "spearman", "kendall"),
   alpha = 0.05,
   plot = TRUE,
@@ -15,11 +15,11 @@ test_correlation(
 )
 }
 \arguments{
-\item{data}{A data frame.}
+\item{formula}{A formula such as \code{y ~ x}, or a data frame when using pipe/data-first style.}
 
-\item{x}{First numeric column.}
+\item{data}{A data frame, or a first numeric column when using data-first style.}
 
-\item{y}{Second numeric column.}
+\item{y}{Second numeric column. Optional when using formula style.}
 
 \item{method}{Correlation method or \code{"auto"}.}
 
