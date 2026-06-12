@@ -1,17 +1,30 @@
 #' Compare paired before and after numeric measurements
-#' @param data A data frame.
-#' @param before Before column.
-#' @param after After column.
+#' @param formula A formula such as `after ~ before`, or a data frame when using data-first style.
+#' @param data A data frame, or the before column when using data-first style.
+#' @param after After column. Optional when using formula style.
 #' @param alternative Alternative hypothesis.
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
 #' @export
-test_paired <- function(data, before, after, alternative = c("two.sided", "less", "greater"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+test_paired <- function(formula, data, after = NULL, alternative = c("two.sided", "less", "greater"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   alternative <- match.arg(alternative)
-  before_nm <- rlang::as_name(rlang::ensym(before))
-  after_nm <- rlang::as_name(rlang::ensym(after))
-  df <- drop_missing(data, c(before_nm, after_nm), na.rm = na.rm)
+  first_expr <- substitute(formula)
+  second_expr <- substitute(data)
+  is_formula_call <- inherits(first_expr, "formula") ||
+    (is.call(first_expr) && identical(first_expr[[1]], as.name("~"))) ||
+    inherits(second_expr, "formula") ||
+    (is.call(second_expr) && identical(second_expr[[1]], as.name("~")))
+  vars <- resolve_formula_pair(first_expr, second_expr, substitute(after), missing(after), rhs_label = "before")
+  if (is_formula_call) {
+    after_nm <- vars$outcome
+    before_nm <- vars$group
+  } else {
+    before_nm <- vars$outcome
+    after_nm <- vars$group
+  }
+  data_obj <- resolve_data_first_or_formula(formula, data)
+  df <- drop_missing(data_obj, c(before_nm, after_nm), na.rm = na.rm)
   df$row_id <- seq_len(nrow(df))
   df$diff <- df[[after_nm]] - df[[before_nm]]
   normality <- check_normality(df, "diff", alpha = alpha)
