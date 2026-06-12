@@ -1,0 +1,10 @@
+test_that("test_paired computes differences and returns plot", {
+  set.seed(3)
+  dat <- tibble::tibble(before = rnorm(50, 10, 2), after = before - rnorm(50, 1, 1))
+  x <- test_paired(dat, before, after)
+  expect_s3_class(x, "testflow_paired")
+  expect_equal(x$data$diff, x$data$after - x$data$before)
+  expect_equal(x$recommended$test, "Paired t-test")
+  expect_s3_class(plot(x), "ggplot")
+  expect_named(x$alternative_tests, c("paired_t_test", "wilcox", "sign"))
+})
