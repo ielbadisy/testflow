@@ -13,7 +13,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 `testflow` starts with the study design.
 
-```{r eval = FALSE}
+```{r}
 library(testflow)
 cardio <- make_cardio_data()
 x <- test_two_groups(sbp_3m ~ sex, data = cardio)

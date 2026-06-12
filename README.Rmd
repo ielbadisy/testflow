@@ -38,8 +38,9 @@ The public workflows are named for common study designs:
 ```{r eval = FALSE}
 test_one_sample(cardio, sbp_3m, mu = 140)
 test_two_groups(sbp_3m ~ sex, data = cardio)
-test_paired(cardio, sbp_baseline, sbp_3m)
+test_paired(sbp_3m ~ sbp_baseline, data = cardio)
 test_groups(sbp_3m ~ treatment, data = cardio)
+test_factorial(sbp_3m ~ sex * treatment, data = cardio)
 test_categorical(treatment ~ controlled_3m, data = cardio)
 test_correlation(sbp_3m ~ age, data = cardio)
 test_outliers(cardio, c(sbp_3m, ldl, crp))
@@ -54,9 +55,9 @@ confidence interval when available, appropriate effect size, report text, and pl
 |---|---|---|
 | One sample | `test_one_sample(cardio, sbp_3m, mu = 140)` | one-sample t-test, Wilcoxon signed-rank, sign test |
 | Two independent groups | `test_two_groups(sbp_3m ~ sex, data = cardio)` | Student t-test, Welch t-test, Wilcoxon rank-sum |
-| Paired measurements | `test_paired(cardio, sbp_baseline, sbp_3m)` | paired t-test, Wilcoxon signed-rank, sign test |
+| Paired measurements | `test_paired(sbp_3m ~ sbp_baseline, data = cardio)` | paired t-test, Wilcoxon signed-rank, sign test |
 | More than two groups | `test_groups(sbp_3m ~ treatment, data = cardio)` | one-way ANOVA, Welch ANOVA, Kruskal-Wallis, post-hoc comparisons |
-| Factorial design | `test_factorial(cardio, sbp_3m, c(sex, treatment))` | factorial ANOVA with main effects and interactions |
+| Factorial design | `test_factorial(sbp_3m ~ sex * treatment, data = cardio)` | factorial ANOVA with main effects and interactions |
 | Repeated measurements | `test_repeated(cardio, c(sbp_baseline, sbp_3m, sbp_6m), id = id)` | repeated-measures workflow, Friedman alternative |
 | Categorical association | `test_categorical(treatment ~ controlled_3m, data = cardio)` | chi-square independence test, Fisher exact test |
 | Paired categorical | `test_paired_categorical(cardio, controlled_baseline, controlled_3m)` | McNemar test |

@@ -1,0 +1,10 @@
+test_that("test_factorial supports formula-first calls", {
+  dat <- make_cardio_data(90)
+  x <- test_factorial(sbp_3m ~ sex * treatment, data = dat)
+  expect_s3_class(x, "testflow_factorial")
+  expect_equal(x$outcome, "sbp_3m")
+  expect_equal(x$recommended$test, "Factorial ANOVA")
+  expect_true("null_hypothesis" %in% names(x$primary_test))
+  expect_true("effect_size" %in% names(x$primary_test))
+  expect_s3_class(plot(x), "ggplot")
+})
