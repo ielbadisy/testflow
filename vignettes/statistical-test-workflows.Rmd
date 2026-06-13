@@ -1,6 +1,6 @@
 ---
 title: "Statistical test workflows"
-output: rmarkdown::html_vignette
+output: rmarkdown::pdf_document
 vignette: >
   %\VignetteIndexEntry{Statistical test workflows}
   %\VignetteEngine{knitr::rmarkdown}
@@ -13,7 +13,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 ## Introduction
 
-`testflow` provides statistical testing workflows organized by clinical study design.
+`testflow` provides statistical testing workflows organized by study design.
 
 ## One numerical variable
 
