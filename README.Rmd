@@ -44,15 +44,19 @@ test_factorial(sbp_3m ~ sex * treatment, data = cardio)
 test_categorical(treatment ~ controlled_3m, data = cardio)
 test_correlation(sbp_3m ~ age, data = cardio)
 test_outliers(cardio, c(sbp_3m, ldl, crp))
+sumtab(~ age + sex + sbp_3m | treatment, cardio, p_value = TRUE)
 ```
 
 ## Implemented workflows and tests
 
 Each workflow returns a `testflow` object with the recommended test, H0, p-value,
 confidence interval when available, appropriate effect size, report text, and plot.
+For descriptive reporting, `sumtab()` builds a formula-driven summary table and
+can add automatically selected p-values.
 
 | Workflow | Formula-oriented call | Tests considered |
 |---|---|---|
+| Summary table | `sumtab(~ age + sex + sbp_3m \| treatment, cardio, p_value = TRUE)` | Student t-test, Welch t-test, Wilcoxon rank-sum, ANOVA, Welch ANOVA, Kruskal-Wallis, chi-square, Fisher exact |
 | One sample | `test_one_sample(cardio, sbp_3m, mu = 140)` | one-sample t-test, Wilcoxon signed-rank, sign test |
 | Two independent groups | `test_two_groups(sbp_3m ~ sex, data = cardio)` | Student t-test, Welch t-test, Wilcoxon rank-sum |
 | Paired measurements | `test_paired(sbp_3m ~ sbp_baseline, data = cardio)` | paired t-test, Wilcoxon signed-rank, sign test |

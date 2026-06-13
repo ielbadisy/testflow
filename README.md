@@ -22,7 +22,7 @@ x <- cardio |>
   test_two_groups(sbp_3m ~ sex)
 
 x
-#> Statistical test workflow
+#> Clinical statistical test workflow
 #> 
 #> Outcome: sbp_3m 
 #> Group: sex 
@@ -74,30 +74,34 @@ test_factorial(sbp_3m ~ sex * treatment, data = cardio)
 test_categorical(treatment ~ controlled_3m, data = cardio)
 test_correlation(sbp_3m ~ age, data = cardio)
 test_outliers(cardio, c(sbp_3m, ldl, crp))
+sumtab(~ age + sex + sbp_3m | treatment, cardio, p_value = TRUE)
 ```
 
 ## Implemented workflows and tests
 
 Each workflow returns a `testflow` object with the recommended test, H0,
 p-value, confidence interval when available, appropriate effect size,
-report text, and plot.
+report text, and plot. For descriptive reporting, `sumtab()` builds a
+formula-driven summary table and can add automatically selected
+p-values.
 
-| Workflow                | Formula-oriented call                                                                     | Tests considered                                                                                |
-|-------------------------|-------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
-| One sample              | `test_one_sample(cardio, sbp_3m, mu = 140)`                                               | one-sample t-test, Wilcoxon signed-rank, sign test                                              |
-| Two independent groups  | `test_two_groups(sbp_3m ~ sex, data = cardio)`                                            | Student t-test, Welch t-test, Wilcoxon rank-sum                                                 |
-| Paired measurements     | `test_paired(sbp_3m ~ sbp_baseline, data = cardio)`                                       | paired t-test, Wilcoxon signed-rank, sign test                                                  |
-| More than two groups    | `test_groups(sbp_3m ~ treatment, data = cardio)`                                          | one-way ANOVA + Tukey, Welch ANOVA + Welch pairwise t-tests, Kruskal-Wallis + pairwise Wilcoxon |
-| Factorial design        | `test_factorial(sbp_3m ~ sex * treatment, data = cardio)`                                 | factorial ANOVA with main effects and interactions                                              |
-| Repeated measurements   | `test_repeated(cardio, c(sbp_baseline, sbp_3m, sbp_6m), id = id)`                         | repeated-measures ANOVA + paired t-tests, Friedman + paired Wilcoxon                            |
-| Categorical association | `test_categorical(treatment ~ controlled_3m, data = cardio)`                              | chi-square independence test, Fisher exact test                                                 |
-| Paired categorical      | `test_paired_categorical(cardio, controlled_baseline, controlled_3m)`                     | McNemar test                                                                                    |
-| Repeated categorical    | `test_repeated_categorical(cardio, c(controlled_baseline, controlled_3m, controlled_6m))` | Cochran Q test + pairwise McNemar tests                                                         |
-| One proportion          | `test_proportion(cardio, controlled_3m, success = "yes", p = 0.5)`                        | exact binomial test, one-sample proportion test                                                 |
-| Multinomial             | `test_multinomial(cardio, treatment)`                                                     | chi-square goodness-of-fit, pairwise binomial checks                                            |
-| Correlation             | `test_correlation(sbp_3m ~ age, data = cardio)`                                           | Pearson, Spearman, Kendall                                                                      |
-| Correlation matrix      | `test_correlation_matrix(cardio, c(age, sbp_3m, ldl))`                                    | matrix of Pearson/Spearman/Kendall correlations                                                 |
-| Outliers                | `test_outliers(cardio, c(sbp_3m, ldl, crp))`                                              | IQR outliers, Mahalanobis distance                                                              |
+| Workflow                | Formula-oriented call                                                                     | Tests considered                                                                                              |
+|-------------------------|-------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
+| Summary table           | `sumtab(~ age + sex + sbp_3m \| treatment, cardio, p_value = TRUE)`                       | Student t-test, Welch t-test, Wilcoxon rank-sum, ANOVA, Welch ANOVA, Kruskal-Wallis, chi-square, Fisher exact |
+| One sample              | `test_one_sample(cardio, sbp_3m, mu = 140)`                                               | one-sample t-test, Wilcoxon signed-rank, sign test                                                            |
+| Two independent groups  | `test_two_groups(sbp_3m ~ sex, data = cardio)`                                            | Student t-test, Welch t-test, Wilcoxon rank-sum                                                               |
+| Paired measurements     | `test_paired(sbp_3m ~ sbp_baseline, data = cardio)`                                       | paired t-test, Wilcoxon signed-rank, sign test                                                                |
+| More than two groups    | `test_groups(sbp_3m ~ treatment, data = cardio)`                                          | one-way ANOVA + Tukey, Welch ANOVA + Welch pairwise t-tests, Kruskal-Wallis + pairwise Wilcoxon               |
+| Factorial design        | `test_factorial(sbp_3m ~ sex * treatment, data = cardio)`                                 | factorial ANOVA with main effects and interactions                                                            |
+| Repeated measurements   | `test_repeated(cardio, c(sbp_baseline, sbp_3m, sbp_6m), id = id)`                         | repeated-measures ANOVA + paired t-tests, Friedman + paired Wilcoxon                                          |
+| Categorical association | `test_categorical(treatment ~ controlled_3m, data = cardio)`                              | chi-square independence test, Fisher exact test                                                               |
+| Paired categorical      | `test_paired_categorical(cardio, controlled_baseline, controlled_3m)`                     | McNemar test                                                                                                  |
+| Repeated categorical    | `test_repeated_categorical(cardio, c(controlled_baseline, controlled_3m, controlled_6m))` | Cochran Q test + pairwise McNemar tests                                                                       |
+| One proportion          | `test_proportion(cardio, controlled_3m, success = "yes", p = 0.5)`                        | exact binomial test, one-sample proportion test                                                               |
+| Multinomial             | `test_multinomial(cardio, treatment)`                                                     | chi-square goodness-of-fit, pairwise binomial checks                                                          |
+| Correlation             | `test_correlation(sbp_3m ~ age, data = cardio)`                                           | Pearson, Spearman, Kendall                                                                                    |
+| Correlation matrix      | `test_correlation_matrix(cardio, c(age, sbp_3m, ldl))`                                    | matrix of Pearson/Spearman/Kendall correlations                                                               |
+| Outliers                | `test_outliers(cardio, c(sbp_3m, ldl, crp))`                                              | IQR outliers, Mahalanobis distance                                                                            |
 
 ## References
 
