@@ -1,5 +1,10 @@
 # testflow 0.8.1
 
+## Summary tables
+
+- Added `sumtab()` for formula-driven descriptive summary tables with optional
+  automatic p-value selection.
+
 ## Validation and documentation
 
 - Added canonical references to workflow documentation and the main vignette.
