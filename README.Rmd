@@ -11,7 +11,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 `testflow` is organized around study design, not test names.
 Instead of asking "which function runs a t-test?", testflow asks:
-"what is the design of my clinical question?"
+"what is the design of my study question?"
 
 The core grammar is:
 
@@ -19,7 +19,7 @@ The core grammar is:
 testflow = test + interpret + plot
 ```
 
-```{r eval = FALSE}
+```{r}
 library(testflow)
 
 cardio <- make_cardio_data()

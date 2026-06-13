@@ -1,7 +1,7 @@
 #' Simulate a small cardiovascular teaching dataset
 #' @param n Number of rows.
 #' @param seed Random seed.
-#' @return A tibble with clinical-style numeric and categorical variables.
+#' @return A tibble with example numeric and categorical variables.
 #' @export
 make_cardio_data <- function(n = 180, seed = 2026) {
   set.seed(seed)

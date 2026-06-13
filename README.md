@@ -5,7 +5,7 @@ testflow
 
 `testflow` is organized around study design, not test names. Instead of
 asking “which function runs a t-test?”, testflow asks: “what is the
-design of my clinical question?”
+design of my study question?”
 
 The core grammar is:
 
@@ -22,9 +22,45 @@ x <- cardio |>
   test_two_groups(sbp_3m ~ sex)
 
 x
+#> Statistical test workflow
+#> 
+#> Outcome: sbp_3m 
+#> Group: sex 
+#> Design: two independent groups 
+#> 
+#> Assumptions:
+#> - Normality by group: acceptable
+#> - Homogeneity of variance: acceptable
+#> - F-test variance comparison: acceptable
+#> 
+#> Recommended test:
+#> Student independent t-test 
+#> 
+#> Result:
+#> H0: the population mean or location of sbp_3m is equal across levels of sex. 
+#> statistic = -1.91, df = 178.00, p = 0.058, 95% CI [-11.22, 0.18] 
+#> 
+#> Effect size:
+#> Cohen's d = -0.29, small
+#> 
+#> Report:
+#> The two independent groups workflow for sbp_3m did not show a statistically significant result using Student independent t-test, statistic = -1.91, df = 178.00, p = 0.058. The 95% confidence interval was [-11.22, 0.18]. The effect size was small (Cohen's d = -0.29). H0: the population mean or location of sbp_3m is equal across levels of sex.
 plot(x)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+
+``` r
 report(x)
+#> [1] "The two independent groups workflow for sbp_3m did not show a statistically significant result using Student independent t-test, statistic = -1.91, df = 178.00, p = 0.058. The 95% confidence interval was [-11.22, 0.18]. The effect size was small (Cohen's d = -0.29). H0: the population mean or location of sbp_3m is equal across levels of sex."
 as_tibble(x)
+#> # A tibble: 1 × 15
+#>   workflow design outcome group recommended_test null_hypothesis statistic    df
+#>   <chr>    <chr>  <chr>   <chr> <chr>            <chr>               <dbl> <dbl>
+#> 1 two_gro… two i… sbp_3m  sex   Student indepen… H0: the popula…     -1.91   178
+#> # ℹ 7 more variables: p <dbl>, conf.low <dbl>, conf.high <dbl>,
+#> #   effect_size <dbl>, effect_size_name <chr>, effect_size_magnitude <chr>,
+#> #   decision <chr>
 ```
 
 The public workflows are named for common study designs:
