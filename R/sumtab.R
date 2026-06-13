@@ -159,3 +159,66 @@ sumtab_categorical_cell <- function(x, level, digits, na.rm) {
   pct <- if (n_total == 0) NA_real_ else n / n_total * 100
   paste0(n, " (", format_stat(pct, digits), "%)")
 }
+
+sumtab_auto_test <- function(data, variable, group, alpha, fisher_threshold, na.rm) {
+  df <- drop_missing(data, c(variable, group), na.rm = na.rm)
+  df[[group]] <- as.factor(df[[group]])
+  n_groups <- dplyr::n_distinct(df[[group]])
+
+  if (n_groups < 2) {
+    return(list(p.value = NA_real_, method = NA_character_))
+  }
+
+  if (is.numeric(df[[variable]])) {
+    if (n_groups == 2) {
+      return(sumtab_numeric_two_group_test(df, variable, group, alpha))
+    }
+    return(sumtab_numeric_multi_group_test(df, variable, group, alpha))
+  }
+
+  sumtab_categorical_test(df, variable, group, fisher_threshold)
+}
+
+sumtab_numeric_two_group_test <- function(data, variable, group, alpha) {
+  normality <- check_normality(data, variable, group, alpha)
+  variance <- check_variance_homogeneity(data, variable, group, alpha)
+  recommendation <- recommend_two_groups(normality, variance)
+  formula <- stats::as.formula(paste(variable, "~", group))
+
+  test <- switch(
+    recommendation,
+    "Student independent t-test" = stats::t.test(formula, data = data, var.equal = TRUE),
+    "Welch t-test" = stats::t.test(formula, data = data, var.equal = FALSE),
+    "Wilcoxon rank-sum test" = stats::wilcox.test(formula, data = data, exact = FALSE)
+  )
+
+  list(p.value = test$p.value, method = recommendation)
+}
+
+sumtab_numeric_multi_group_test <- function(data, variable, group, alpha) {
+  normality <- check_normality(data, variable, group, alpha)
+  variance <- check_variance_homogeneity(data, variable, group, alpha)
+  recommendation <- recommend_groups(normality, variance)
+  formula <- stats::as.formula(paste(variable, "~", group))
+
+  p <- switch(
+    recommendation,
+    "One-way ANOVA" = stats::anova(stats::aov(formula, data = data))[["Pr(>F)"]][1],
+    "Welch ANOVA" = stats::oneway.test(formula, data = data, var.equal = FALSE)$p.value,
+    "Kruskal-Wallis test" = stats::kruskal.test(formula, data = data)$p.value
+  )
+
+  list(p.value = p, method = recommendation)
+}
+
+sumtab_categorical_test <- function(data, variable, group, fisher_threshold) {
+  tab <- table(data[[variable]], data[[group]])
+  chi <- suppressWarnings(stats::chisq.test(tab, correct = FALSE))
+
+  if (any(chi$expected < fisher_threshold)) {
+    fisher <- stats::fisher.test(tab)
+    return(list(p.value = fisher$p.value, method = "Fisher exact test"))
+  }
+
+  list(p.value = chi$p.value, method = "Chi-square test of independence")
+}
