@@ -1,6 +1,6 @@
 ---
 title: "Getting started with testflow"
-output: rmarkdown::html_vignette
+output: rmarkdown::pdf_document
 vignette: >
   %\VignetteIndexEntry{Getting started with testflow}
   %\VignetteEngine{knitr::rmarkdown}

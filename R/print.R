@@ -3,7 +3,7 @@
 #' @param ... Unused.
 #' @export
 print.testflow <- function(x, ...) {
-  cat("Clinical statistical test workflow\n\n")
+  cat("Statistical test workflow\n\n")
   if (!is.null(x$outcome)) cat("Outcome:", x$outcome, "\n")
   if (!is.null(x$group)) cat("Group:", x$group, "\n")
   cat("Design:", x$design, "\n\n")
