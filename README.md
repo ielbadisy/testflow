@@ -1,7 +1,10 @@
 testflow
 ================
 
-# testflow
+![Version 0.8.2](https://img.shields.io/badge/version-0.8.2-blue.svg)
+[![License:
+MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![R \>= 4.1.0](https://img.shields.io/badge/R-%3E%3D%204.1.0-blue.svg)
 
 `testflow` is organized around study design, not test names. Instead of
 asking “which function runs a t-test?”, testflow asks: “what is the
