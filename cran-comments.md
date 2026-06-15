@@ -1,6 +1,13 @@
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes
+0 errors | 0 warnings | 2 notes
+
+The notes are:
+
+- New submission.
+- unable to verify current time. This appears to be local environment-related
+  during `R CMD check --as-cran`; no future timestamps were found in package
+  files.
 
 ## test environments
 
