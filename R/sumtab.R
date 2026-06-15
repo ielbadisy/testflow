@@ -29,22 +29,41 @@ sumtab <- function(
   require_columns(data, c(parsed$vars, parsed$group))
 
   group_levels <- sumtab_group_levels(data, parsed$group)
+  group_labels <- sumtab_group_labels(data, parsed$group, group_levels)
+  overall_label <- paste0("Overall (n = ", nrow(data), ")")
 
-  purrr::map_dfr(parsed$vars, function(variable) {
+  out <- purrr::map_dfr(parsed$vars, function(variable) {
     rows <- if (is.numeric(data[[variable]])) {
-      sumtab_numeric_rows(data, variable, parsed$group, group_levels, overall, digits, na.rm)
+      sumtab_numeric_rows(data, variable, parsed$group, group_levels, group_labels, overall, overall_label, digits, na.rm)
     } else {
-      sumtab_categorical_rows(data, variable, parsed$group, group_levels, overall, digits, na.rm)
+      sumtab_categorical_rows(data, variable, parsed$group, group_levels, group_labels, overall, overall_label, digits, na.rm)
     }
 
     if (!is.null(parsed$group) && isTRUE(p_value)) {
       test <- sumtab_auto_test(data, variable, parsed$group, alpha, fisher_threshold, na.rm)
-      rows$p.value <- c(format_p(test$p.value, p_digits), rep(NA_character_, nrow(rows) - 1))
-      rows$test <- c(test$method, rep(NA_character_, nrow(rows) - 1))
+      rows$p.value <- c(format_p(test$p.value, p_digits), rep("", nrow(rows) - 1))
+      rows$test <- c(test$method, rep("", nrow(rows) - 1))
     }
 
     rows
   })
+  class(out) <- c("sumtab", class(out))
+  out
+}
+
+#' @export
+print.sumtab <- function(x, ..., n = NULL, width = NULL) {
+  out <- as.data.frame(x)
+  out[] <- lapply(out, function(col) {
+    col <- as.character(col)
+    col[is.na(col)] <- ""
+    col
+  })
+  old_width <- getOption("width")
+  on.exit(options(width = old_width), add = TRUE)
+  options(width = width %||% max(old_width, 1000))
+  print.data.frame(out, row.names = FALSE, quote = FALSE, right = FALSE)
+  invisible(x)
 }
 
 parse_sumtab_formula <- function(expr) {
@@ -86,29 +105,41 @@ sumtab_group_levels <- function(data, group) {
   as.character(unique(stats::na.omit(x)))
 }
 
-sumtab_numeric_rows <- function(data, variable, group, group_levels, overall, digits, na.rm) {
-  cells <- list()
-  if (isTRUE(overall)) {
-    cells[["Overall"]] <- sumtab_numeric_cell(data[[variable]], digits, na.rm)
-  }
-  for (level in group_levels) {
-    cells[[level]] <- sumtab_numeric_cell(data[[variable]][data[[group]] == level], digits, na.rm)
+sumtab_group_labels <- function(data, group, group_levels) {
+  if (is.null(group)) {
+    return(stats::setNames(character(), character()))
   }
 
-  tibble::tibble(variable = variable, level = NA_character_) |>
+  counts <- stats::setNames(
+    vapply(group_levels, function(level) sum(data[[group]] == level, na.rm = TRUE), integer(1)),
+    group_levels
+  )
+  stats::setNames(paste0(names(counts), " (n = ", counts, ")"), names(counts))
+}
+
+sumtab_numeric_rows <- function(data, variable, group, group_levels, group_labels, overall, overall_label, digits, na.rm) {
+  cells <- list()
+  if (isTRUE(overall)) {
+    cells[[overall_label]] <- sumtab_numeric_cell(data[[variable]], digits, na.rm)
+  }
+  for (level in group_levels) {
+    cells[[group_labels[[level]]]] <- sumtab_numeric_cell(data[[variable]][data[[group]] == level], digits, na.rm)
+  }
+
+  tibble::tibble(variable = variable, level = "") |>
     dplyr::bind_cols(tibble::as_tibble_row(cells))
 }
 
-sumtab_categorical_rows <- function(data, variable, group, group_levels, overall, digits, na.rm) {
+sumtab_categorical_rows <- function(data, variable, group, group_levels, group_labels, overall, overall_label, digits, na.rm) {
   levels <- sumtab_variable_levels(data[[variable]], na.rm)
 
   purrr::map_dfr(levels, function(level) {
     cells <- list()
     if (isTRUE(overall)) {
-      cells[["Overall"]] <- sumtab_categorical_cell(data[[variable]], level, digits, na.rm)
+      cells[[overall_label]] <- sumtab_categorical_cell(data[[variable]], level, digits, na.rm)
     }
     for (group_level in group_levels) {
-      cells[[group_level]] <- sumtab_categorical_cell(data[[variable]][data[[group]] == group_level], level, digits, na.rm)
+      cells[[group_labels[[group_level]]]] <- sumtab_categorical_cell(data[[variable]][data[[group]] == group_level], level, digits, na.rm)
     }
 
     tibble::tibble(variable = variable, level = level) |>
