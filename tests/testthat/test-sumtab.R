@@ -9,9 +9,9 @@ test_that("sumtab builds grouped numeric and categorical summaries", {
 
   expect_s3_class(out, "tbl_df")
   expect_equal(out$variable, c("age", "sex", "sex"))
-  expect_true(all(c("Overall", "A", "B") %in% names(out)))
-  expect_match(out$Overall[1], "16.0")
-  expect_match(out$A[2], "1 \\(50.0%\\)")
+  expect_true(all(c("Overall (n = 4)", "A (n = 2)", "B (n = 2)") %in% names(out)))
+  expect_match(out[["Overall (n = 4)"]][1], "16.0")
+  expect_match(out[["A (n = 2)"]][2], "1 \\(50.0%\\)")
 })
 
 test_that("sumtab adds one p-value and selected test per variable", {

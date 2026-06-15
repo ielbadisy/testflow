@@ -33,6 +33,15 @@ report(x)
 as_tibble(x)
 ```
 
+## Summary tables
+
+Use `sumtab()` to build a descriptive table and, when requested, add
+automatically selected p-values by variable type and group structure.
+
+```{r}
+sumtab(~ age + sex + sbp_3m | treatment, cardio, p_value = TRUE)
+```
+
 The public workflows are named for common study designs:
 
 ```{r eval = FALSE}
@@ -53,6 +62,9 @@ Each workflow returns a `testflow` object with the recommended test, H0, p-value
 confidence interval when available, appropriate effect size, report text, and plot.
 For descriptive reporting, `sumtab()` builds a formula-driven summary table and
 can add automatically selected p-values.
+
+The exact formulas used for Cohen's d and the other reported effect-size
+estimates are documented in `vignettes/effect-size-formulas.Rmd`.
 
 | Workflow | Formula-oriented call | Tests considered |
 |---|---|---|

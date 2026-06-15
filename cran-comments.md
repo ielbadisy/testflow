@@ -8,8 +8,7 @@
 
 ## Release summary
 
-This is a pre-CRAN development release for package hardening. It adds
-formula-first workflow calls, rendered HTML vignettes, H0/CI/effect-size
-exposure, repeated-measures hardening, true Cochran Q testing, method-specific
-post-hoc selection, canonical documentation references, and additional
-validation tests.
+This release improves package documentation and CRAN readiness. It adds a
+dedicated README example for `sumtab()`, documents the implemented effect-size
+formulas in a vignette, adds focused Cohen's d formula validation tests, and
+removes generated vignette PDFs from the source repository.
