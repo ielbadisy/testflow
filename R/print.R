@@ -3,32 +3,40 @@
 #' @param ... Unused.
 #' @export
 print.testflow <- function(x, ...) {
-  cat("Statistical test workflow\n\n")
-  if (!is.null(x$outcome)) cat("Outcome:", x$outcome, "\n")
-  if (!is.null(x$group)) cat("Group:", x$group, "\n")
-  cat("Design:", x$design, "\n\n")
+  tf_title("Statistical test workflow")
+  tf_field("Outcome", x$outcome)
+  tf_field("Group", x$group)
+  tf_field("Design", x$design)
+  tf_blank()
 
   if (!is.null(x$assumptions)) {
-    cat("Assumptions:\n")
+    tf_section("Assumptions")
     print_assumption_line(x$assumptions)
-    cat("\n")
+    tf_blank()
   }
 
-  cat("Recommended test:\n")
-  cat(x$recommended$test %||% x$recommended, "\n\n")
+  tf_section("Recommended test")
+  tf_line(tf_value(x$recommended$test %||% x$recommended))
+  tf_blank()
 
-  cat("Result:\n")
+  tf_section("Result")
   h0 <- primary_h0(x)
-  if (!is.na(h0)) cat(h0, "\n")
-  cat(format_primary_result(x), "\n\n")
+  if (!is.na(h0)) tf_line(h0)
+  tf_line(format_primary_result(x))
+  tf_blank()
 
   if (!is.null(x$effect_size) && nrow(x$effect_size) > 0) {
-    cat("Effect size:\n")
-    cat(x$effect_size$name[1], " = ", format_stat(x$effect_size$estimate[1]), ", ", x$effect_size$magnitude[1], "\n\n", sep = "")
+    tf_section("Effect size")
+    tf_line(paste0(
+      tf_label(x$effect_size$name[1]), " ",
+      format_stat(x$effect_size$estimate[1]), ", ",
+      tf_value(x$effect_size$magnitude[1])
+    ))
+    tf_blank()
   }
 
-  cat("Report:\n")
-  cat(report(x), "\n")
+  tf_section("Report")
+  tf_line(report(x))
   invisible(x)
 }
 
@@ -37,11 +45,11 @@ print_assumption_line <- function(assumptions) {
     for (nm in names(assumptions)) {
       value <- assumptions[[nm]]
       if (inherits(value, "data.frame") && "status" %in% names(value)) {
-        cat("- ", nm, ": ", paste(unique(value$status), collapse = ", "), "\n", sep = "")
+        tf_bullet(paste0(tf_label(nm), " ", paste(unique(value$status), collapse = ", ")))
       }
     }
   } else if (inherits(assumptions, "data.frame") && "status" %in% names(assumptions)) {
-    cat("- Status: ", paste(unique(assumptions$status), collapse = ", "), "\n", sep = "")
+    tf_bullet(paste0(tf_label("Status"), " ", paste(unique(assumptions$status), collapse = ", ")))
   }
 }
 
@@ -87,7 +95,7 @@ summary.testflow <- function(object, ...) {
 
 #' @export
 print.summary.testflow <- function(x, ...) {
-  cat("testflow summary\n\n")
+  tf_title("testflow summary")
   print_summary_field("Workflow", x$workflow)
   print_summary_field("Design", x$design)
   print_summary_field("Outcome", x$outcome)
@@ -97,7 +105,8 @@ print.summary.testflow <- function(x, ...) {
   h0 <- x$primary_test$null_hypothesis %||% NA_character_
   print_summary_field("H0", h0)
 
-  cat("\nResult\n")
+  tf_blank()
+  tf_section("Result")
   print_summary_field("Statistic", first_or_na(x$primary_test$statistic), formatter = format_stat)
   print_summary_field("df", first_or_na(x$primary_test$parameter), formatter = format_stat)
   print_summary_field("p", first_or_na(x$primary_test$p.value), formatter = format_p)
@@ -118,8 +127,9 @@ print.summary.testflow <- function(x, ...) {
   print_summary_field("Decision", x$decision)
 
   if (!is.null(x$report) && !is.na(x$report)) {
-    cat("\nReport\n")
-    cat(x$report, "\n")
+    tf_blank()
+    tf_section("Report")
+    tf_line(x$report)
   }
 
   invisible(x)
@@ -128,11 +138,46 @@ print.summary.testflow <- function(x, ...) {
 print_summary_field <- function(label, value, formatter = identity) {
   value <- first_or_na(value)
   if (length(value) == 0 || is.null(value) || is.na(value)) return(invisible(NULL))
-  cat(sprintf("%-18s %s\n", paste0(label, ":"), formatter(value)))
+  tf_line(paste0(tf_label(label), " ", tf_value(formatter(value))))
   invisible(NULL)
 }
 
 first_or_na <- function(x) {
   if (is.null(x) || length(x) == 0) return(NA)
   unname(x[[1]])
+}
+
+tf_title <- function(text) {
+  tf_line(cli::style_bold(cli::col_blue(text)))
+  tf_blank()
+}
+
+tf_section <- function(text) {
+  tf_line(cli::style_bold(cli::col_magenta(text)))
+}
+
+tf_line <- function(...) {
+  cat(..., "\n", sep = "")
+}
+
+tf_blank <- function() {
+  cat("\n")
+}
+
+tf_bullet <- function(text) {
+  tf_line("* ", text)
+}
+
+tf_field <- function(label, value) {
+  if (length(value) == 0 || is.null(value) || is.na(value)) return(invisible(NULL))
+  tf_line(paste0(tf_label(label), " ", tf_value(value)))
+  invisible(NULL)
+}
+
+tf_label <- function(label) {
+  cli::col_cyan(paste0(label, ":"))
+}
+
+tf_value <- function(value) {
+  cli::col_green(as.character(value))
 }
