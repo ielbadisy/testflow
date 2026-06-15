@@ -109,3 +109,5 @@ test_outliers(cardio, c(sbp_3m, ldl, crp))
 ## Reporting and plotting
 
 Every workflow returns a `testflow` object. Use `report(x)`, `plot(x)`, and `as_tibble(x)`.
+See `effect-size-formulas.Rmd` for the exact formulas used by the reported
+effect-size estimates.
