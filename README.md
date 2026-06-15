@@ -22,7 +22,7 @@ x <- cardio |>
   test_two_groups(sbp_3m ~ sex)
 
 x
-#> Clinical statistical test workflow
+#> Statistical test workflow
 #> 
 #> Outcome: sbp_3m 
 #> Group: sex 
@@ -63,6 +63,10 @@ as_tibble(x)
 #> #   decision <chr>
 ```
 
+Printed `testflow` objects use `cli`-styled headings, labels, and values
+in the R console. GitHub strips terminal colors, but the rendered
+example above shows the updated console structure.
+
 ## Summary tables
 
 Use `sumtab()` to build a descriptive table and, when requested, add
@@ -102,7 +106,7 @@ report text, and plot. For descriptive reporting, `sumtab()` builds a
 formula-driven summary table and can add automatically selected
 p-values.
 
-The exact formulas used for Cohen's d and the other reported effect-size
+The exact formulas used for Cohen’s d and the other reported effect-size
 estimates are documented in `vignettes/effect-size-formulas.Rmd`.
 
 | Workflow                | Formula-oriented call                                                                     | Tests considered                                                                                              |

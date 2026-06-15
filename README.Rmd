@@ -33,6 +33,10 @@ report(x)
 as_tibble(x)
 ```
 
+Printed `testflow` objects use `cli`-styled headings, labels, and values in
+the R console. GitHub strips terminal colors, but the rendered example above
+shows the updated console structure.
+
 ## Summary tables
 
 Use `sumtab()` to build a descriptive table and, when requested, add
