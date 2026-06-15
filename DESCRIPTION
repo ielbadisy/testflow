@@ -1,5 +1,5 @@
 Package: testflow
-Title: A Workflow Grammar for Statistical Testing, Interpretation, and 'ggplot2'-Based Visualization
+Title: A Workflow for Statistical Testing, Interpretation, and 'ggplot2'-Based Visualization
 Version: 0.8.2
 Authors@R: c(
     person(
