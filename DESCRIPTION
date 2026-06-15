@@ -1,5 +1,5 @@
 Package: testflow
-Title: A Workflow Grammar for Statistical Testing, Interpretation, and Visualization
+Title: A Workflow for Statistical Testing, Interpretation, and 'ggplot2'-Based Visualization
 Version: 0.8.2
 Authors@R: c(
     person(
@@ -14,7 +14,7 @@ Maintainer: Imad EL BADISY <elbadisyimad@gmail.com>
 Description: Provides a unified workflow for choosing, running, interpreting,
   and visualizing common statistical tests. The package combines assumption
   checks, test selection, effect sizes, formatted results, plain-language
-  interpretation, and ggplot2-based statistical visualizations.
+  interpretation, and 'ggplot2'-based statistical visualizations.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends:
