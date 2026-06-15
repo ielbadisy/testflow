@@ -12,5 +12,9 @@
 \item{...}{Unused.}
 }
 \description{
-Summarize a testflow object
+Summarize a testflow object.
+}
+\details{
+Console colors follow the same \code{testflow.cli_colors} option used by
+\code{\link[=print.testflow]{print.testflow()}}.
 }

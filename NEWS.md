@@ -4,6 +4,9 @@
 
 - Structured printed `testflow` and summary output with `cli`-based colors,
   section headings, field labels, and assumption bullets.
+- Interactive console colors are enabled by default for printed `testflow`
+  objects and summaries. Set `options(testflow.cli_colors = FALSE)` to disable
+  them, or `options(testflow.cli_colors = TRUE)` to force colors in scripts.
 
 ## Documentation and release prep
 
