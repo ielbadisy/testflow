@@ -1,3 +1,15 @@
+# testflow 0.8.2
+
+## Documentation and release prep
+
+- Added a dedicated `sumtab()` example to the README.
+- Added an effect-size formulas vignette documenting the implemented formulas
+  for Cohen's d, eta squared, Cramer's V, rank-biserial correlation, Kendall's
+  W, and related workflow summaries.
+- Added validation tests that pin the documented Cohen's d formulas to the
+  implementation.
+- Removed generated vignette PDFs from the source repository.
+
 # testflow 0.8.1
 
 ## Summary tables

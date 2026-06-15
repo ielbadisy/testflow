@@ -1,6 +1,7 @@
 ^TASK6testflow[.]txt$
 ^raw-code$
 ^examples$
+^inst/doc$
 ^[.][.]Rcheck$
 ^[.]git$
 ^[.]github$
