@@ -27,26 +27,26 @@ x <- cardio |>
 x
 #> Statistical test workflow
 #> 
-#> Outcome: sbp_3m 
-#> Group: sex 
-#> Design: two independent groups 
+#> Outcome: sbp_3m
+#> Group: sex
+#> Design: two independent groups
 #> 
-#> Assumptions:
-#> - Normality by group: acceptable
-#> - Homogeneity of variance: acceptable
-#> - F-test variance comparison: acceptable
+#> Assumptions
+#> * Normality by group: acceptable
+#> * Homogeneity of variance: acceptable
+#> * F-test variance comparison: acceptable
 #> 
-#> Recommended test:
-#> Student independent t-test 
+#> Recommended test
+#> Student independent t-test
 #> 
-#> Result:
-#> H0: the population mean or location of sbp_3m is equal across levels of sex. 
-#> statistic = -1.91, df = 178.00, p = 0.058, 95% CI [-11.22, 0.18] 
+#> Result
+#> H0: the population mean or location of sbp_3m is equal across levels of sex.
+#> statistic = -1.91, df = 178.00, p = 0.058, 95% CI [-11.22, 0.18]
 #> 
-#> Effect size:
-#> Cohen's d = -0.29, small
+#> Effect size
+#> Cohen's d: -0.29, small
 #> 
-#> Report:
+#> Report
 #> The two independent groups workflow for sbp_3m did not show a statistically significant result using Student independent t-test, statistic = -1.91, df = 178.00, p = 0.058. The 95% confidence interval was [-11.22, 0.18]. The effect size was small (Cohen's d = -0.29). H0: the population mean or location of sbp_3m is equal across levels of sex.
 plot(x)
 ```
@@ -68,7 +68,10 @@ as_tibble(x)
 
 Printed `testflow` objects use `cli`-styled headings, labels, and values
 in the R console. GitHub strips terminal colors, but the rendered
-example above shows the updated console structure.
+example above shows the updated console structure. Colors are enabled by
+default in interactive sessions. Disable them with
+`options(testflow.cli_colors = FALSE)`, or force them in non-interactive
+scripts with `options(testflow.cli_colors = TRUE)`.
 
 ## Summary tables
 

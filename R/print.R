@@ -1,43 +1,55 @@
 #' Print a testflow object
+#'
+#' @description
+#' Print a testflow object.
+#'
+#' @details
+#' Console colors are enabled by default in interactive sessions. Use
+#' `options(testflow.cli_colors = FALSE)` to disable colors, or
+#' `options(testflow.cli_colors = TRUE)` to force colors in non-interactive
+#' output.
+#'
 #' @param x A testflow object.
 #' @param ... Unused.
 #' @export
 print.testflow <- function(x, ...) {
-  tf_title("Statistical test workflow")
-  tf_field("Outcome", x$outcome)
-  tf_field("Group", x$group)
-  tf_field("Design", x$design)
-  tf_blank()
-
-  if (!is.null(x$assumptions)) {
-    tf_section("Assumptions")
-    print_assumption_line(x$assumptions)
+  tf_with_cli_colors({
+    tf_title("Statistical test workflow")
+    tf_field("Outcome", x$outcome)
+    tf_field("Group", x$group)
+    tf_field("Design", x$design)
     tf_blank()
-  }
 
-  tf_section("Recommended test")
-  tf_line(tf_value(x$recommended$test %||% x$recommended))
-  tf_blank()
+    if (!is.null(x$assumptions)) {
+      tf_section("Assumptions")
+      print_assumption_line(x$assumptions)
+      tf_blank()
+    }
 
-  tf_section("Result")
-  h0 <- primary_h0(x)
-  if (!is.na(h0)) tf_line(h0)
-  tf_line(format_primary_result(x))
-  tf_blank()
-
-  if (!is.null(x$effect_size) && nrow(x$effect_size) > 0) {
-    tf_section("Effect size")
-    tf_line(paste0(
-      tf_label(x$effect_size$name[1]), " ",
-      format_stat(x$effect_size$estimate[1]), ", ",
-      tf_value(x$effect_size$magnitude[1])
-    ))
+    tf_section("Recommended test")
+    tf_line(tf_value(x$recommended$test %||% x$recommended))
     tf_blank()
-  }
 
-  tf_section("Report")
-  tf_line(report(x))
-  invisible(x)
+    tf_section("Result")
+    h0 <- primary_h0(x)
+    if (!is.na(h0)) tf_line(h0)
+    tf_line(format_primary_result(x))
+    tf_blank()
+
+    if (!is.null(x$effect_size) && nrow(x$effect_size) > 0) {
+      tf_section("Effect size")
+      tf_line(paste0(
+        tf_label(x$effect_size$name[1]), " ",
+        format_stat(x$effect_size$estimate[1]), ", ",
+        tf_value(x$effect_size$magnitude[1])
+      ))
+      tf_blank()
+    }
+
+    tf_section("Report")
+    tf_line(report(x))
+    invisible(x)
+  })
 }
 
 print_assumption_line <- function(assumptions) {
@@ -69,6 +81,14 @@ format_primary_result <- function(x) {
 }
 
 #' Summarize a testflow object
+#'
+#' @description
+#' Summarize a testflow object.
+#'
+#' @details
+#' Console colors follow the same `testflow.cli_colors` option used by
+#' [print.testflow()].
+#'
 #' @param object A testflow object.
 #' @param ... Unused.
 #' @export
@@ -95,44 +115,46 @@ summary.testflow <- function(object, ...) {
 
 #' @export
 print.summary.testflow <- function(x, ...) {
-  tf_title("testflow summary")
-  print_summary_field("Workflow", x$workflow)
-  print_summary_field("Design", x$design)
-  print_summary_field("Outcome", x$outcome)
-  print_summary_field("Group", x$group)
-  print_summary_field("Recommended test", x$recommended$test %||% x$recommended)
+  tf_with_cli_colors({
+    tf_title("testflow summary")
+    print_summary_field("Workflow", x$workflow)
+    print_summary_field("Design", x$design)
+    print_summary_field("Outcome", x$outcome)
+    print_summary_field("Group", x$group)
+    print_summary_field("Recommended test", x$recommended$test %||% x$recommended)
 
-  h0 <- x$primary_test$null_hypothesis %||% NA_character_
-  print_summary_field("H0", h0)
+    h0 <- x$primary_test$null_hypothesis %||% NA_character_
+    print_summary_field("H0", h0)
 
-  tf_blank()
-  tf_section("Result")
-  print_summary_field("Statistic", first_or_na(x$primary_test$statistic), formatter = format_stat)
-  print_summary_field("df", first_or_na(x$primary_test$parameter), formatter = format_stat)
-  print_summary_field("p", first_or_na(x$primary_test$p.value), formatter = format_p)
-
-  if (!is.null(x$primary_test$conf.low) && !is.null(x$primary_test$conf.high)) {
-    ci <- paste0("[", format_stat(x$primary_test$conf.low[[1]]), ", ", format_stat(x$primary_test$conf.high[[1]]), "]")
-    print_summary_field("95% CI", ci)
-  }
-
-  if (!is.null(x$effect_size) && nrow(x$effect_size) > 0) {
-    effect <- paste0(
-      x$effect_size$name[1], " = ", format_stat(x$effect_size$estimate[1]),
-      if (!is.na(x$effect_size$magnitude[1])) paste0(", ", x$effect_size$magnitude[1]) else ""
-    )
-    print_summary_field("Effect size", effect)
-  }
-
-  print_summary_field("Decision", x$decision)
-
-  if (!is.null(x$report) && !is.na(x$report)) {
     tf_blank()
-    tf_section("Report")
-    tf_line(x$report)
-  }
+    tf_section("Result")
+    print_summary_field("Statistic", first_or_na(x$primary_test$statistic), formatter = format_stat)
+    print_summary_field("df", first_or_na(x$primary_test$parameter), formatter = format_stat)
+    print_summary_field("p", first_or_na(x$primary_test$p.value), formatter = format_p)
 
-  invisible(x)
+    if (!is.null(x$primary_test$conf.low) && !is.null(x$primary_test$conf.high)) {
+      ci <- paste0("[", format_stat(x$primary_test$conf.low[[1]]), ", ", format_stat(x$primary_test$conf.high[[1]]), "]")
+      print_summary_field("95% CI", ci)
+    }
+
+    if (!is.null(x$effect_size) && nrow(x$effect_size) > 0) {
+      effect <- paste0(
+        x$effect_size$name[1], " = ", format_stat(x$effect_size$estimate[1]),
+        if (!is.na(x$effect_size$magnitude[1])) paste0(", ", x$effect_size$magnitude[1]) else ""
+      )
+      print_summary_field("Effect size", effect)
+    }
+
+    print_summary_field("Decision", x$decision)
+
+    if (!is.null(x$report) && !is.na(x$report)) {
+      tf_blank()
+      tf_section("Report")
+      tf_line(x$report)
+    }
+
+    invisible(x)
+  })
 }
 
 print_summary_field <- function(label, value, formatter = identity) {
@@ -145,6 +167,23 @@ print_summary_field <- function(label, value, formatter = identity) {
 first_or_na <- function(x) {
   if (is.null(x) || length(x) == 0) return(NA)
   unname(x[[1]])
+}
+
+tf_with_cli_colors <- function(expr) {
+  color_setting <- getOption("testflow.cli_colors", NULL)
+  old_options <- NULL
+
+  if (isTRUE(color_setting) || (is.null(color_setting) && interactive())) {
+    old_options <- options(cli.num_colors = 256)
+  } else if (isFALSE(color_setting)) {
+    old_options <- options(cli.num_colors = 1)
+  }
+
+  if (!is.null(old_options)) {
+    on.exit(options(old_options), add = TRUE)
+  }
+
+  eval.parent(substitute(expr))
 }
 
 tf_title <- function(text) {
