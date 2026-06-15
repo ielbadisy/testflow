@@ -38,6 +38,9 @@ as_tibble(x)
 Printed `testflow` objects use `cli`-styled headings, labels, and values in
 the R console. GitHub strips terminal colors, but the rendered example above
 shows the updated console structure.
+Colors are enabled by default in interactive sessions. Disable them with
+`options(testflow.cli_colors = FALSE)`, or force them in non-interactive scripts
+with `options(testflow.cli_colors = TRUE)`.
 
 ## Summary tables
 

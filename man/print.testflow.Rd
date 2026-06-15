@@ -12,5 +12,11 @@
 \item{...}{Unused.}
 }
 \description{
-Print a testflow object
+Print a testflow object.
+}
+\details{
+Console colors are enabled by default in interactive sessions. Use
+\code{options(testflow.cli_colors = FALSE)} to disable colors, or
+\code{options(testflow.cli_colors = TRUE)} to force colors in non-interactive
+output.
 }

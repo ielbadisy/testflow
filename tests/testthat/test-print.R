@@ -28,3 +28,17 @@ test_that("summary.testflow prints a compact vertical result", {
   expect_true(any(grepl("Effect size:", txt, fixed = TRUE)))
   expect_true(any(grepl("Report", txt, fixed = TRUE)))
 })
+
+test_that("testflow cli colors can be forced on and disabled", {
+  dat <- make_cardio_data(80)
+  x <- test_two_groups(dat, sbp_3m, sex)
+
+  old <- options(testflow.cli_colors = TRUE, cli.num_colors = 1)
+  on.exit(options(old), add = TRUE)
+  colored <- capture.output(print(x))
+  expect_true(any(cli::ansi_has_any(colored)))
+
+  options(testflow.cli_colors = FALSE, cli.num_colors = 256)
+  plain <- capture.output(print(x))
+  expect_false(any(cli::ansi_has_any(plain)))
+})
