@@ -1,5 +1,10 @@
 # testflow 0.8.2
 
+## Output
+
+- Structured printed `testflow` and summary output with `cli`-based colors,
+  section headings, field labels, and assumption bullets.
+
 ## Documentation and release prep
 
 - Added a dedicated `sumtab()` example to the README.
