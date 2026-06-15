@@ -12,3 +12,19 @@ test_that("print and as_tibble expose core text", {
   expect_true("null_hypothesis" %in% names(tbl))
   expect_true("conf.low" %in% names(tbl))
 })
+
+test_that("summary.testflow prints a compact vertical result", {
+  dat <- make_cardio_data(80)
+  x <- test_two_groups(dat, sbp_3m, sex)
+
+  txt <- capture.output(summary(x))
+
+  expect_true(any(grepl("testflow summary", txt, fixed = TRUE)))
+  expect_true(any(grepl("Workflow:", txt, fixed = TRUE)))
+  expect_true(any(grepl("Recommended test:", txt, fixed = TRUE)))
+  expect_true(any(grepl(x$recommended$test, txt, fixed = TRUE)))
+  expect_true(any(grepl("H0:", txt, fixed = TRUE)))
+  expect_true(any(grepl("p:", txt, fixed = TRUE)))
+  expect_true(any(grepl("Effect size:", txt, fixed = TRUE)))
+  expect_true(any(grepl("Report", txt, fixed = TRUE)))
+})

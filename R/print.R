@@ -67,7 +67,10 @@ format_primary_result <- function(x) {
 summary.testflow <- function(object, ...) {
   out <- list(
     question = paste(object$design, "workflow for", object$outcome %||% "outcome"),
+    workflow = object$workflow,
     design = object$design,
+    outcome = object$outcome,
+    group = object$group,
     descriptives = object$descriptives,
     assumptions = object$assumptions,
     recommended = object$recommended,
@@ -80,4 +83,56 @@ summary.testflow <- function(object, ...) {
   )
   class(out) <- "summary.testflow"
   out
+}
+
+#' @export
+print.summary.testflow <- function(x, ...) {
+  cat("testflow summary\n\n")
+  print_summary_field("Workflow", x$workflow)
+  print_summary_field("Design", x$design)
+  print_summary_field("Outcome", x$outcome)
+  print_summary_field("Group", x$group)
+  print_summary_field("Recommended test", x$recommended$test %||% x$recommended)
+
+  h0 <- x$primary_test$null_hypothesis %||% NA_character_
+  print_summary_field("H0", h0)
+
+  cat("\nResult\n")
+  print_summary_field("Statistic", first_or_na(x$primary_test$statistic), formatter = format_stat)
+  print_summary_field("df", first_or_na(x$primary_test$parameter), formatter = format_stat)
+  print_summary_field("p", first_or_na(x$primary_test$p.value), formatter = format_p)
+
+  if (!is.null(x$primary_test$conf.low) && !is.null(x$primary_test$conf.high)) {
+    ci <- paste0("[", format_stat(x$primary_test$conf.low[[1]]), ", ", format_stat(x$primary_test$conf.high[[1]]), "]")
+    print_summary_field("95% CI", ci)
+  }
+
+  if (!is.null(x$effect_size) && nrow(x$effect_size) > 0) {
+    effect <- paste0(
+      x$effect_size$name[1], " = ", format_stat(x$effect_size$estimate[1]),
+      if (!is.na(x$effect_size$magnitude[1])) paste0(", ", x$effect_size$magnitude[1]) else ""
+    )
+    print_summary_field("Effect size", effect)
+  }
+
+  print_summary_field("Decision", x$decision)
+
+  if (!is.null(x$report) && !is.na(x$report)) {
+    cat("\nReport\n")
+    cat(x$report, "\n")
+  }
+
+  invisible(x)
+}
+
+print_summary_field <- function(label, value, formatter = identity) {
+  value <- first_or_na(value)
+  if (length(value) == 0 || is.null(value) || is.na(value)) return(invisible(NULL))
+  cat(sprintf("%-18s %s\n", paste0(label, ":"), formatter(value)))
+  invisible(NULL)
+}
+
+first_or_na <- function(x) {
+  if (is.null(x) || length(x) == 0) return(NA)
+  unname(x[[1]])
 }
