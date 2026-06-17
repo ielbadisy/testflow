@@ -100,7 +100,7 @@ test_groups(sbp_3m ~ treatment, data = cardio)
 test_factorial(sbp_3m ~ sex * treatment, data = cardio)
 test_categorical(treatment ~ controlled_3m, data = cardio)
 test_correlation(sbp_3m ~ age, data = cardio)
-test_outliers(cardio, c(sbp_3m, ldl, crp))
+test_outliers(c(sbp_3m, ldl, crp), adata = cardio)
 sumtab(~ age + sex + sbp_3m | treatment, cardio, p_value = TRUE)
 ```
 
@@ -131,7 +131,7 @@ estimates are documented in `vignettes/effect-size-formulas.Rmd`.
 | Multinomial             | `test_multinomial(cardio, treatment)`                                                     | chi-square goodness-of-fit, pairwise binomial checks                                                          |
 | Correlation             | `test_correlation(sbp_3m ~ age, data = cardio)`                                           | Pearson, Spearman, Kendall                                                                                    |
 | Correlation matrix      | `test_correlation_matrix(cardio, c(age, sbp_3m, ldl))`                                    | matrix of Pearson/Spearman/Kendall correlations                                                               |
-| Outliers                | `test_outliers(cardio, c(sbp_3m, ldl, crp))`                                              | IQR outliers, Mahalanobis distance                                                                            |
+| Outliers                | `test_outliers(c(sbp_3m, ldl, crp), adata = cardio)`                                      | IQR outliers, Mahalanobis distance                                                                            |
 
 ## References
 

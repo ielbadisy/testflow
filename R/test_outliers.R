@@ -1,14 +1,14 @@
 #' Detect numeric outliers
+#' @param formula Numeric columns to screen for outliers.
 #' @param data A data frame.
-#' @param vars Numeric columns.
 #' @param group Optional grouping column.
 #' @param method Outlier method.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
 #' @export
-test_outliers <- function(data, vars, group = NULL, method = c("iqr", "mahalanobis", "both"), plot = TRUE, na.rm = TRUE) {
+test_outliers <- function(formula, data, group = NULL, method = c("iqr", "mahalanobis", "both"), plot = TRUE, na.rm = TRUE) {
   method <- match.arg(method)
-  vars <- tidyselect_names(data, {{ vars }})
+  vars <- tidyselect_names(data, {{ formula }})
   group_nm <- if (missing(group) || is.null(substitute(group))) NULL else rlang::as_name(rlang::ensym(group))
   cols <- c(vars, group_nm)
   df <- drop_missing(data, cols, na.rm = na.rm)
