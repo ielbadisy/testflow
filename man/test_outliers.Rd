@@ -5,8 +5,8 @@
 \title{Detect numeric outliers}
 \usage{
 test_outliers(
+  formula,
   data,
-  vars,
   group = NULL,
   method = c("iqr", "mahalanobis", "both"),
   plot = TRUE,
@@ -14,9 +14,9 @@ test_outliers(
 )
 }
 \arguments{
-\item{data}{A data frame.}
+\item{formula}{Numeric columns to screen for outliers.}
 
-\item{vars}{Numeric columns.}
+\item{data}{A data frame.}
 
 \item{group}{Optional grouping column.}
 

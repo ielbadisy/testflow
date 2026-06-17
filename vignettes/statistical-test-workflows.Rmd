@@ -103,7 +103,7 @@ test_correlation(sbp_3m ~ age, data = cardio)
 ## Outliers
 
 ```{r}
-test_outliers(cardio, c(sbp_3m, ldl, crp))
+test_outliers(c(sbp_3m, ldl, crp), data = cardio)
 ```
 
 ## Reporting and plotting
