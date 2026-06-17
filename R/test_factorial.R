@@ -37,6 +37,7 @@ test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2
   residual_df <- tibble::tibble(.resid = stats::residuals(fit))
   normality <- check_normality(residual_df, ".resid", alpha = alpha)
   levene <- check_variance_homogeneity(df, outcome_nm, factor_nms[1], alpha)
+  balanced <- assumption_check("Balanced design", "not required", ifelse(length(unique(table(df[factor_nms]))) > 1, "Cell sizes are unbalanced; the workflow still reports the design.", "Cell sizes are balanced."))
   effect <- eta_squared_aov(fit)
   primary <- tab |> dplyr::filter(.data$term != "Residuals") |> dplyr::slice(1) |> dplyr::transmute(method = "Factorial ANOVA", statistic = .data$statistic, parameter = .data$df, p.value = .data$p.value)
   plt <- if (plot && length(factor_nms) >= 2) {
@@ -47,7 +48,7 @@ test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2
       ggplot2::theme_minimal()
   } else if (plot) make_plot("groups", df, outcome_nm, factor_nms[1], "Factorial ANOVA", list(p.value = min(primary$p.value, na.rm = TRUE)), effect) else NULL
   h0 <- h0_mean_equal(outcome_nm, paste(factor_nms, collapse = ", "))
-  out <- new_testflow("factorial", "factorial design", outcome_nm, paste(factor_nms, collapse = ", "), data = df, descriptives = descriptives_numeric(df, outcome_nm, factor_nms[1]), assumptions = list("Residual normality" = normality, "Homogeneity of variance" = levene), recommended = list(test = "Factorial ANOVA", rationale = "Primary workflow for factorial numeric outcomes."), primary_test = add_null_hypothesis(primary, h0), alternative_tests = list(anova_table = tab), effect_size = effect, plot = plt, call = match.call(), subclass = "factorial")
+  out <- new_testflow("factorial", "factorial design", outcome_nm, paste(factor_nms, collapse = ", "), data = df, descriptives = descriptives_numeric(df, outcome_nm, factor_nms[1]), assumptions = assumption_checks(check_independence_note(), normality, levene, balanced), recommended = list(test = "Factorial ANOVA", rationale = "Primary workflow for factorial numeric outcomes."), primary_test = add_null_hypothesis(primary, h0), alternative_tests = list(anova_table = tab), effect_size = effect, plot = plt, call = match.call(), subclass = "factorial")
   out$interpretation <- make_report(out, alpha)
   out
 }

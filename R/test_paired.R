@@ -28,6 +28,8 @@ test_paired <- function(formula, data, after = NULL, alternative = c("two.sided"
   df$row_id <- seq_len(nrow(df))
   df$diff <- df[[after_nm]] - df[[before_nm]]
   normality <- check_normality(df, "diff", alpha = alpha)
+  symmetry <- assumption_check("Symmetry of paired differences", ifelse(normality$status[1] == "acceptable", "not checked", "warning"), "Wilcoxon signed-rank assumes approximate symmetry of paired differences.")
+  outliers <- check_outliers(df$diff)
   recommendation <- recommend_paired(normality)
   ttest <- stats::t.test(df[[after_nm]], df[[before_nm]], paired = TRUE, alternative = alternative)
   wilcox <- stats::wilcox.test(df[[after_nm]], df[[before_nm]], paired = TRUE, alternative = alternative, exact = FALSE)
@@ -37,7 +39,7 @@ test_paired <- function(formula, data, after = NULL, alternative = c("two.sided"
   long <- tidyr::pivot_longer(df, dplyr::all_of(c(before_nm, after_nm)), names_to = "time", values_to = "value")
   plt <- if (plot) make_plot("paired", long, paste(after_nm, "-", before_nm), recommended = recommendation, primary = primary, effect = effect) else NULL
   h0 <- paste0("H0: the mean or median paired difference (", after_nm, " - ", before_nm, ") equals 0.")
-  out <- new_testflow("paired", "paired measurements", paste(after_nm, "-", before_nm), id = "row_id", data = df, descriptives = descriptives_numeric(df, c(before_nm, after_nm, "diff")), assumptions = list("Normality of paired differences" = normality), recommended = list(test = recommendation), primary_test = add_null_hypothesis(safe_tidy_htest(primary, recommendation), h0), alternative_tests = list(paired_t_test = add_null_hypothesis(safe_tidy_htest(ttest, "Paired t-test"), h0), wilcox = add_null_hypothesis(safe_tidy_htest(wilcox, "Wilcoxon signed-rank test"), h0), sign = add_null_hypothesis(safe_tidy_htest(signs, "Sign test"), "H0: positive and negative paired differences are equally likely.")), effect_size = effect, plot = plt, call = match.call(), subclass = "paired")
+  out <- new_testflow("paired", "paired measurements", paste(after_nm, "-", before_nm), id = "row_id", data = df, descriptives = descriptives_numeric(df, c(before_nm, after_nm, "diff")), assumptions = assumption_checks(check_independence_note("Paired observations from the same subjects are assumed by design."), normality, symmetry, outliers), recommended = list(test = recommendation), primary_test = add_null_hypothesis(safe_tidy_htest(primary, recommendation), h0), alternative_tests = list(paired_t_test = add_null_hypothesis(safe_tidy_htest(ttest, "Paired t-test"), h0), wilcox = add_null_hypothesis(safe_tidy_htest(wilcox, "Wilcoxon signed-rank test"), h0), sign = add_null_hypothesis(safe_tidy_htest(signs, "Sign test"), "H0: positive and negative paired differences are equally likely.")), effect_size = effect, plot = plt, call = match.call(), subclass = "paired")
   out$interpretation <- make_report(out, alpha)
   out
 }

@@ -28,6 +28,8 @@ test_correlation <- function(formula, data, y = NULL, method = c("auto", "pearso
   chosen <- if (method == "auto") {
     if (all(normality$status == "acceptable") && !any(outliers$is_outlier)) "pearson" else "spearman"
   } else method
+  linearity <- assumption_check("Linearity", ifelse(chosen == "pearson", "acceptable", "not checked"), ifelse(chosen == "pearson", "A roughly linear relation is assumed for Pearson correlation.", "Normality is not required for Spearman or Kendall; monotonicity is the key check."))
+  monotonicity <- check_monotonicity(df[[x_nm]], df[[y_nm]], alpha = alpha)
   pearson <- stats::cor.test(df[[x_nm]], df[[y_nm]], method = "pearson")
   spearman <- suppressWarnings(stats::cor.test(df[[x_nm]], df[[y_nm]], method = "spearman", exact = FALSE))
   kendall <- suppressWarnings(stats::cor.test(df[[x_nm]], df[[y_nm]], method = "kendall", exact = FALSE))
@@ -41,7 +43,8 @@ test_correlation <- function(formula, data, y = NULL, method = c("auto", "pearso
       ggplot2::theme_minimal()
   } else NULL
   h0 <- h0_no_correlation(x_nm, y_nm)
-  out <- new_testflow("correlation", "two numeric variables", y_nm, x_nm, data = df, descriptives = descriptives_numeric(df, c(x_nm, y_nm)), assumptions = list("Normality" = normality, "IQR outliers" = outliers), recommended = list(test = paste(chosen, "correlation")), primary_test = add_null_hypothesis(safe_tidy_htest(primary, paste(chosen, "correlation")), h0), alternative_tests = list(pearson = add_null_hypothesis(safe_tidy_htest(pearson, "Pearson correlation"), h0), spearman = add_null_hypothesis(safe_tidy_htest(spearman, "Spearman correlation"), h0), kendall = add_null_hypothesis(safe_tidy_htest(kendall, "Kendall correlation"), h0)), effect_size = effect, plot = plt, call = match.call(), subclass = "correlation")
+  corr_assumptions <- switch(chosen, pearson = assumption_checks(linearity, normality, outliers), spearman = assumption_checks(monotonicity, outliers, assumption_check("Normality", "not required", "Normality is not required for Spearman correlation.")), kendall = assumption_checks(monotonicity, outliers, assumption_check("Normality", "not required", "Normality is not required for Kendall correlation.")))
+  out <- new_testflow("correlation", "two numeric variables", y_nm, x_nm, data = df, descriptives = descriptives_numeric(df, c(x_nm, y_nm)), assumptions = corr_assumptions, recommended = list(test = paste(chosen, "correlation")), primary_test = add_null_hypothesis(safe_tidy_htest(primary, paste(chosen, "correlation")), h0), alternative_tests = list(pearson = add_null_hypothesis(safe_tidy_htest(pearson, "Pearson correlation"), h0), spearman = add_null_hypothesis(safe_tidy_htest(spearman, "Spearman correlation"), h0), kendall = add_null_hypothesis(safe_tidy_htest(kendall, "Kendall correlation"), h0)), effect_size = effect, plot = plt, call = match.call(), subclass = "correlation")
   out$interpretation <- make_report(out, alpha)
   out
 }
@@ -64,6 +67,11 @@ test_correlation_matrix <- function(data, vars, method = c("spearman", "pearson"
     test <- suppressWarnings(stats::cor.test(df[[z[1]]], df[[z[2]]], method = method, exact = FALSE))
     tibble::tibble(var1 = z[1], var2 = z[2], estimate = unname(test$estimate), p = test$p.value)
   })
+  assumptions <- assumption_checks(
+    assumption_check("Variable types", "acceptable", "All selected variables should be numeric or ordinal."),
+    assumption_check("Pairwise missing data", "acceptable", "Pairwise complete observations are used for each correlation."),
+    assumption_check("Multiple testing correction", "not checked", "P-values are reported pairwise; correction is not applied in this workflow.")
+  )
   plt <- if (plot) {
     hm <- as.data.frame(as.table(mat))
     ggplot2::ggplot(hm, ggplot2::aes(x = .data$Var1, y = .data$Var2, fill = .data$Freq)) +
@@ -73,7 +81,7 @@ test_correlation_matrix <- function(data, vars, method = c("spearman", "pearson"
       ggplot2::theme_minimal()
   } else NULL
   primary <- tibble::tibble(method = paste(method, "correlation matrix"), statistic = NA_real_, parameter = NA_real_, p.value = min(long$p, na.rm = TRUE))
-  out <- new_testflow("correlation_matrix", "correlation matrix", paste(vars, collapse = ", "), data = df, descriptives = descriptives_numeric(df, vars), recommended = list(test = paste(method, "correlation matrix")), primary_test = primary, alternative_tests = list(correlation_matrix = mat, p_values = long), effect_size = tibble::tibble(name = "maximum absolute r", estimate = max(abs(long$estimate), na.rm = TRUE), magnitude = magnitude_cramers_v(max(abs(long$estimate), na.rm = TRUE))), plot = plt, call = match.call(), subclass = "correlation_matrix")
+  out <- new_testflow("correlation_matrix", "correlation matrix", paste(vars, collapse = ", "), data = df, descriptives = descriptives_numeric(df, vars), assumptions = assumptions, recommended = list(test = paste(method, "correlation matrix")), primary_test = primary, alternative_tests = list(correlation_matrix = mat, p_values = long), effect_size = tibble::tibble(name = "maximum absolute r", estimate = max(abs(long$estimate), na.rm = TRUE), magnitude = magnitude_cramers_v(max(abs(long$estimate), na.rm = TRUE))), plot = plt, call = match.call(), subclass = "correlation_matrix")
   out$interpretation <- make_report(out, alpha)
   out
 }
