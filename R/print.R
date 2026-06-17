@@ -53,16 +53,22 @@ print.testflow <- function(x, ...) {
 }
 
 print_assumption_line <- function(assumptions) {
-  if (is.list(assumptions) && !inherits(assumptions, "data.frame")) {
-    for (nm in names(assumptions)) {
-      value <- assumptions[[nm]]
-      if (inherits(value, "data.frame") && "status" %in% names(value)) {
-        tf_bullet(paste0(tf_label(nm), " ", paste(unique(value$status), collapse = ", ")))
-      }
-    }
-  } else if (inherits(assumptions, "data.frame") && "status" %in% names(assumptions)) {
-    tf_bullet(paste0(tf_label("Status"), " ", paste(unique(assumptions$status), collapse = ", ")))
+  assumptions <- format_assumptions(assumptions)
+  if (!nrow(assumptions)) {
+    tf_bullet("No assumptions reported.")
+    return(invisible(NULL))
   }
+  purrr::pwalk(assumptions, function(name, status, message, method, statistic, p_value, details) {
+    line <- paste0(tf_label(name), " ", tf_value(status), ": ", message)
+    extras <- c()
+    if (!is.na(method) && nzchar(method)) extras <- c(extras, paste0("method=", method))
+    if (!is.na(statistic)) extras <- c(extras, paste0("statistic=", format_stat(statistic)))
+    if (!is.na(p_value)) extras <- c(extras, paste0("p=", format_p(p_value)))
+    if (!is.na(details) && nzchar(details)) extras <- c(extras, details)
+    if (length(extras)) line <- paste0(line, " (", paste(extras, collapse = "; "), ")")
+    tf_bullet(line)
+  })
+  invisible(NULL)
 }
 
 format_primary_result <- function(x) {

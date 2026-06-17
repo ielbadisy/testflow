@@ -29,7 +29,7 @@ test_repeated_categorical <- function(data, measures, id = NULL, alpha = 0.05, p
       ggplot2::theme_minimal()
   } else NULL
   h0 <- paste0("H0: the success proportions are equal across repeated categorical measures.")
-  out <- new_testflow("repeated_categorical", "repeated categorical measurements", paste(measure_nms, collapse = ", "), data = df, descriptives = counts, recommended = list(test = "Cochran Q test"), primary_test = add_null_hypothesis(safe_tidy_htest(test, "Cochran Q test"), h0), alternative_tests = list(pairwise_mcnemar = pairwise_mcnemar(mat, measure_nms)), posthoc = pairwise_mcnemar(mat, measure_nms), effect_size = effect, plot = plt, call = match.call(), subclass = "repeated_categorical")
+  out <- new_testflow("repeated_categorical", "repeated categorical measurements", paste(measure_nms, collapse = ", "), data = df, descriptives = counts, assumptions = assumption_checks(assumption_check("Repeated binary measurements", "assumed", "Same subjects should be measured at 3 or more time points."), assumption_check("Complete repeated data", ifelse(nrow(df) == nrow(mat), "acceptable", "warning"), "Missingness should be handled explicitly or via complete-case analysis.")), recommended = list(test = "Cochran Q test"), primary_test = add_null_hypothesis(safe_tidy_htest(test, "Cochran Q test"), h0), alternative_tests = list(pairwise_mcnemar = pairwise_mcnemar(mat, measure_nms)), posthoc = pairwise_mcnemar(mat, measure_nms), effect_size = effect, plot = plt, call = match.call(), subclass = "repeated_categorical")
   out$interpretation <- make_report(out, alpha)
   out
 }

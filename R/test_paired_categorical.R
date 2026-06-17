@@ -11,6 +11,7 @@ test_paired_categorical <- function(data, before, after, alpha = 0.05, plot = TR
   df <- drop_missing(data, c(before_nm, after_nm), na.rm = na.rm)
   tab <- table(df[[before_nm]], df[[after_nm]])
   test <- stats::mcnemar.test(tab)
+  discordant <- if (all(dim(tab) == 2)) sum(tab[c(1, 2), c(2, 1)]) else NA_integer_
   disc <- tibble::tibble(before_only = if (all(dim(tab) == 2)) tab[2, 1] else NA_integer_, after_only = if (all(dim(tab) == 2)) tab[1, 2] else NA_integer_)
   effect <- tibble::tibble(name = "Discordant pairs", estimate = sum(disc, na.rm = TRUE), magnitude = NA_character_)
   plt <- if (plot) {
@@ -20,7 +21,7 @@ test_paired_categorical <- function(data, before, after, alpha = 0.05, plot = TR
       ggplot2::labs(title = "Paired categorical workflow", subtitle = plot_subtitle("McNemar test", test), x = NULL, y = "Proportion") +
       ggplot2::theme_minimal()
   } else NULL
-  out <- new_testflow("paired_categorical", "paired categorical measurements", paste(before_nm, after_nm, sep = " -> "), data = df, descriptives = descriptives_categorical(df, c(before_nm, after_nm)), recommended = list(test = "McNemar test"), primary_test = safe_tidy_htest(test, "McNemar test"), alternative_tests = list(discordant_pairs = disc), effect_size = effect, plot = plt, call = match.call(), subclass = "paired_categorical")
+  out <- new_testflow("paired_categorical", "paired categorical measurements", paste(before_nm, after_nm, sep = " -> "), data = df, descriptives = descriptives_categorical(df, c(before_nm, after_nm)), assumptions = assumption_checks(assumption_check("Paired binary measurements", "assumed", "Same subjects should be measured twice."), assumption_check("Discordant pairs", ifelse(is.na(discordant) || discordant >= 10, "acceptable", "warning"), ifelse(is.na(discordant), "Discordant pairs could not be counted.", "Small numbers of discordant pairs favor exact McNemar."), details = paste0("discordant = ", discordant))), recommended = list(test = "McNemar test"), primary_test = safe_tidy_htest(test, "McNemar test"), alternative_tests = list(discordant_pairs = disc), effect_size = effect, plot = plt, call = match.call(), subclass = "paired_categorical")
   out$interpretation <- make_report(out, alpha)
   out
 }

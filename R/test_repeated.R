@@ -48,6 +48,7 @@ test_repeated_long <- function(data, outcome, within, id, between = NULL, alpha 
 repeated_core <- function(data, outcome_nm, within_nm, id_nm, alpha = 0.05, plot = TRUE, na.rm = TRUE, call = NULL) {
   df <- drop_missing(data, c(outcome_nm, within_nm, id_nm), na.rm = na.rm)
   normality <- check_normality(df, outcome_nm, within_nm, alpha)
+  sphericity <- check_sphericity_or_note()
   wide <- tidyr::pivot_wider(df, names_from = dplyr::all_of(within_nm), values_from = dplyr::all_of(outcome_nm), id_cols = dplyr::all_of(id_nm))
   measure_nms <- setdiff(names(wide), id_nm)
   complete <- stats::na.omit(wide[, measure_nms, drop = FALSE])
@@ -75,7 +76,7 @@ repeated_core <- function(data, outcome_nm, within_nm, id_nm, alpha = 0.05, plot
       ggplot2::labs(title = "Repeated-measures workflow", subtitle = paste0(recommendation, ", p = ", format_p(primary$p.value[1])), x = within_nm, y = outcome_nm) +
       ggplot2::theme_minimal()
   } else NULL
-  out <- new_testflow("repeated", "repeated numeric measurements", outcome_nm, within_nm, id_nm, df, descriptives_numeric(df, outcome_nm, within_nm), list("Normality by time" = normality), list(test = recommendation), primary, list(anova = add_null_hypothesis(anova, h0), friedman = add_null_hypothesis(safe_tidy_htest(friedman, "Friedman test"), h0)), posthoc = posthoc_tests, effect_size = effect, plot = plt, call = call, subclass = "repeated")
+  out <- new_testflow("repeated", "repeated numeric measurements", outcome_nm, within_nm, id_nm, df, descriptives_numeric(df, outcome_nm, within_nm), assumption_checks(check_independence_note("Repeated measurements from the same subjects are assumed by design."), normality, sphericity), list(test = recommendation), primary, list(anova = add_null_hypothesis(anova, h0), friedman = add_null_hypothesis(safe_tidy_htest(friedman, "Friedman test"), h0)), posthoc = posthoc_tests, effect_size = effect, plot = plt, call = call, subclass = "repeated")
   out$interpretation <- make_report(out, alpha)
   out
 }
