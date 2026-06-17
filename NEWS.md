@@ -1,5 +1,14 @@
 # testflow 0.8.2
 
+## Outlier workflow
+
+- Standardized `test_outliers()` on the same `test_*(formula, data, ...)`
+  calling convention used by the other workflow helpers.
+- Kept outlier visualization on the generic `plot()` S3 path via
+  `plot.testflow()`.
+- Hardened assumption printing so workflows with extra diagnostic columns no
+  longer break `print()`.
+
 ## Output
 
 - Structured printed `testflow` and summary output with `cli`-based colors,
