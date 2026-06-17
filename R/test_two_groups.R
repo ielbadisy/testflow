@@ -28,6 +28,8 @@ test_two_groups <- function(
   normality <- check_normality(df, outcome_nm, group_nm, alpha)
   levene <- check_variance_homogeneity(df, outcome_nm, group_nm, alpha)
   f_test <- check_variance_two_groups(df, outcome_nm, group_nm, alpha)
+  outliers <- check_outliers(df[[outcome_nm]])
+  independence <- check_independence_note()
   recommendation <- recommend_two_groups(normality, levene)
   formula <- stats::as.formula(paste(outcome_nm, "~", group_nm))
 
@@ -51,7 +53,7 @@ test_two_groups <- function(
     group = group_nm,
     data = df,
     descriptives = descriptives_numeric(df, outcome_nm, group_nm),
-    assumptions = list("Normality by group" = normality, "Homogeneity of variance" = levene, "F-test variance comparison" = f_test),
+    assumptions = assumption_checks(independence, normality, levene, outliers, tibble::add_column(f_test, name = "Variance ratio check", message = "Variance comparison via F test.", .before = 1)),
     recommended = list(test = recommendation, rationale = "Selected from normality and variance assumptions."),
     primary_test = primary_tidy,
     alternative_tests = list(

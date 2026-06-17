@@ -14,6 +14,11 @@ test_outliers <- function(data, vars, group = NULL, method = c("iqr", "mahalanob
   df <- drop_missing(data, cols, na.rm = na.rm)
   iqr <- if (method %in% c("iqr", "both")) iqr_outliers(df, vars, group_nm) else NULL
   mahal <- if (method %in% c("mahalanobis", "both") && length(vars) > 1) mahalanobis_outliers(df, vars) else NULL
+  assumptions <- if (method == "iqr") {
+    assumption_checks(assumption_check("Numeric variable", "acceptable", "IQR outlier detection is univariate and does not require normality."), assumption_check("Skewness sensitivity", "warning", "Interpret IQR outliers with care when the distribution is strongly skewed."))
+  } else {
+    assumption_checks(assumption_check("Complete cases", "acceptable", "Mahalanobis distance uses complete cases only."), assumption_check("Approximate multivariate normality", "warning", "Mahalanobis screening is more stable when the variables are roughly multivariate normal."), assumption_check("Invertible covariance matrix", "acceptable", "The covariance matrix must be invertible."))
+  }
   primary <- tibble::tibble(method = paste(method, "outlier detection"), statistic = sum((iqr$is_outlier %||% FALSE), na.rm = TRUE), parameter = NA_real_, p.value = NA_real_)
   plt <- if (plot) {
     long <- tidyr::pivot_longer(df, dplyr::all_of(vars), names_to = "variable", values_to = "value")
@@ -23,7 +28,7 @@ test_outliers <- function(data, vars, group = NULL, method = c("iqr", "mahalanob
       ggplot2::labs(title = "Outlier workflow", x = NULL, y = NULL) +
       ggplot2::theme_minimal()
   } else NULL
-  out <- new_testflow("outliers", "outlier screening", paste(vars, collapse = ", "), group_nm, data = df, descriptives = descriptives_numeric(df, vars, group_nm), recommended = list(test = paste(method, "outlier detection")), primary_test = primary, alternative_tests = list(iqr = iqr, mahalanobis = mahal), effect_size = tibble::tibble(name = "Outlier count", estimate = primary$statistic[1], magnitude = NA_character_), plot = plt, call = match.call(), subclass = "outliers")
+  out <- new_testflow("outliers", "outlier screening", paste(vars, collapse = ", "), group_nm, data = df, descriptives = descriptives_numeric(df, vars, group_nm), assumptions = assumptions, recommended = list(test = paste(method, "outlier detection")), primary_test = primary, alternative_tests = list(iqr = iqr, mahalanobis = mahal), effect_size = tibble::tibble(name = "Outlier count", estimate = primary$statistic[1], magnitude = NA_character_), plot = plt, call = match.call(), subclass = "outliers")
   out$interpretation <- paste0("The outlier workflow flagged ", primary$statistic[1], " IQR outlier rows.")
   out
 }
