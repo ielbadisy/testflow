@@ -38,6 +38,60 @@ check_normality <- function(data, vars, group = NULL, alpha = 0.05) {
   }
 }
 
+#' Check monotonicity
+#' @keywords internal
+check_monotonicity <- function(x, y, alpha = 0.05) {
+  x <- x[stats::complete.cases(x, y)]
+  y <- y[stats::complete.cases(x, y)]
+  if (length(x) < 3) {
+    return(assumption_check("Monotonic relationship", "not checked", "Not enough complete observations to assess monotonicity."))
+  }
+  sp <- suppressWarnings(stats::cor.test(x, y, method = "spearman", exact = FALSE))
+  assumption_check(
+    "Monotonic relationship",
+    ifelse(sp$p.value >= alpha, "acceptable", "warning"),
+    ifelse(sp$p.value >= alpha, "A monotonic association appears plausible.", "Relationship may be non-monotonic."),
+    method = "Spearman correlation",
+    statistic = unname(sp$statistic),
+    p_value = sp$p.value
+  )
+}
+
+#' Check outliers
+#' @keywords internal
+check_outliers <- function(x) {
+  x <- x[!is.na(x)]
+  if (length(x) < 4) {
+    return(assumption_check("Extreme outliers", "not checked", "Too few observations for a useful outlier screen."))
+  }
+  q1 <- stats::quantile(x, 0.25, names = FALSE)
+  q3 <- stats::quantile(x, 0.75, names = FALSE)
+  i <- q3 - q1
+  n <- sum(x < q1 - 1.5 * i | x > q3 + 1.5 * i)
+  assumption_check("Extreme outliers", ifelse(n == 0, "acceptable", "warning"), paste0(n, " potential outlier(s) flagged by IQR."), details = paste0("IQR rule, n = ", n))
+}
+
+#' Check expected counts
+#' @keywords internal
+check_expected_counts <- function(tab, threshold = 5) {
+  chi <- suppressWarnings(stats::chisq.test(tab, correct = FALSE))
+  expected <- as.vector(chi$expected)
+  ok <- sum(expected >= threshold) / length(expected) >= 0.8 && all(expected >= 1)
+  assumption_check(
+    "Expected cell counts",
+    ifelse(ok, "acceptable", "not acceptable"),
+    ifelse(ok, "Chi-square approximation is reasonable.", "Some expected counts are too small for the chi-square approximation."),
+    method = "Pearson chi-square approximation",
+    details = paste0("Min expected = ", format(min(expected), digits = 3))
+  )
+}
+
+#' Check sphericity or note
+#' @keywords internal
+check_sphericity_or_note <- function(...) {
+  assumption_check("Sphericity", "not checked", "Sphericity is not checked here; use this as a teaching note unless a formal test is added.")
+}
+
 #' Check homogeneity of variance
 #' @keywords internal
 check_variance_homogeneity <- function(data, outcome, group, alpha = 0.05) {
@@ -99,3 +153,52 @@ check_bartlett <- function(data, outcome, group, alpha = 0.05) {
     status = ifelse(test$p.value >= alpha, "acceptable", "not acceptable")
   )
 }
+#' Build a standardized assumption check
+#' @keywords internal
+assumption_check <- function(name, status, message, method = NA_character_, statistic = NA_real_, p_value = NA_real_, details = NA_character_) {
+  tibble::tibble(
+    name = name,
+    status = status,
+    message = message,
+    method = method,
+    statistic = statistic,
+    p_value = p_value,
+    details = details
+  )
+}
+
+#' Combine assumption checks
+#' @keywords internal
+assumption_checks <- function(...) {
+  dplyr::bind_rows(...)
+}
+
+#' Format assumption checks
+#' @keywords internal
+format_assumptions <- function(assumptions) {
+  if (is.null(assumptions)) {
+    return(tibble::tibble())
+  }
+  if (is.data.frame(assumptions)) {
+    return(tibble::as_tibble(assumptions))
+  }
+  if (is.list(assumptions)) {
+    out <- purrr::imap_dfr(assumptions, function(x, nm) {
+      if (is.data.frame(x)) {
+        x$name <- x$name %||% nm
+        return(x)
+      }
+      assumption_check(name = nm, status = "not checked", message = as.character(x))
+    })
+    return(out)
+  }
+  tibble::tibble()
+}
+
+#' Check independence note
+#' @keywords internal
+check_independence_note <- function(message = "Assumed from study design.") {
+  assumption_check("Independence of observations", "assumed", message)
+}
+
+#' Check normality

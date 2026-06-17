@@ -18,6 +18,8 @@ test_groups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRU
   normality <- check_normality(df, outcome_nm, group_nm, alpha)
   levene <- check_variance_homogeneity(df, outcome_nm, group_nm, alpha)
   bartlett <- check_bartlett(df, outcome_nm, group_nm, alpha)
+  independence <- check_independence_note()
+  outliers <- check_outliers(df[[outcome_nm]])
   recommendation <- recommend_groups(normality, levene)
   formula <- stats::as.formula(paste(outcome_nm, "~", group_nm))
   aov_fit <- stats::aov(formula, data = df)
@@ -34,7 +36,7 @@ test_groups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRU
     tibble::tibble(name = "Kruskal epsilon squared", estimate = (h - k + 1) / (n - k), magnitude = magnitude_eta2((h - k + 1) / (n - k)))
   } else eta_squared_aov(aov_fit) |> dplyr::slice(1)
   plt <- if (plot) make_plot("groups", df, outcome_nm, group_nm, recommendation, if (inherits(primary, "htest")) primary else list(p.value = primary_tidy$p.value[1]), effect) else NULL
-  out <- new_testflow("groups", "more than two independent groups", outcome_nm, group_nm, data = df, descriptives = descriptives_numeric(df, outcome_nm, group_nm), assumptions = list("Normality by group" = normality, "Homogeneity of variance" = levene, "Bartlett test" = bartlett), recommended = list(test = recommendation), primary_test = primary_tidy, alternative_tests = list(anova = add_null_hypothesis(aov_test, h0), welch = add_null_hypothesis(safe_tidy_htest(welch, "Welch ANOVA"), h0), kruskal = add_null_hypothesis(safe_tidy_htest(kruskal, "Kruskal-Wallis test"), h0)), posthoc = ph, effect_size = effect, plot = plt, call = match.call(), subclass = "groups")
+  out <- new_testflow("groups", "more than two independent groups", outcome_nm, group_nm, data = df, descriptives = descriptives_numeric(df, outcome_nm, group_nm), assumptions = assumption_checks(independence, normality, levene, bartlett, outliers), recommended = list(test = recommendation), primary_test = primary_tidy, alternative_tests = list(anova = add_null_hypothesis(aov_test, h0), welch = add_null_hypothesis(safe_tidy_htest(welch, "Welch ANOVA"), h0), kruskal = add_null_hypothesis(safe_tidy_htest(kruskal, "Kruskal-Wallis test"), h0)), posthoc = ph, effect_size = effect, plot = plt, call = match.call(), subclass = "groups")
   out$interpretation <- make_report(out, alpha)
   out
 }

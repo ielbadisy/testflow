@@ -19,6 +19,7 @@ test_multinomial <- function(data, outcome, p = NULL, alpha = 0.05, plot = TRUE,
   if (is.null(p)) p <- rep(1 / length(counts), length(counts))
   expected <- sum(counts) * p
   chisq <- suppressWarnings(stats::chisq.test(x = counts, p = p))
+  expected_ok <- all(expected >= 5)
   pairwise <- purrr::map_dfr(seq_along(counts), function(i) {
     bt <- stats::binom.test(counts[i], sum(counts), p = p[i])
     tibble::tibble(level = levels[i], observed = counts[i], expected = expected[i], p = bt$p.value)
@@ -33,7 +34,7 @@ test_multinomial <- function(data, outcome, p = NULL, alpha = 0.05, plot = TRUE,
       ggplot2::theme_minimal()
   } else NULL
   h0 <- paste0("H0: the distribution of ", outcome_nm, " follows the expected probabilities.")
-  out <- new_testflow("multinomial", "one multinomial categorical variable", outcome_nm, data = df, descriptives = descriptives_categorical(df, outcome_nm), recommended = list(test = "Chi-square goodness-of-fit"), primary_test = add_null_hypothesis(safe_tidy_htest(chisq, "Chi-square goodness-of-fit"), h0), alternative_tests = list(pairwise_binomial = pairwise), effect_size = effect, plot = plt, call = match.call(), subclass = "multinomial")
+  out <- new_testflow("multinomial", "one multinomial categorical variable", outcome_nm, data = df, descriptives = descriptives_categorical(df, outcome_nm), assumptions = assumption_checks(check_independence_note(), assumption_check("Expected category counts", ifelse(expected_ok, "acceptable", "warning"), ifelse(expected_ok, "Chi-square approximation is reasonable.", "Some expected counts are small; consider exact or simulation-based alternatives."), details = paste0("min expected = ", format(min(expected), digits = 3)))), recommended = list(test = ifelse(expected_ok, "Chi-square goodness-of-fit", "Warning: expected counts are small")), primary_test = add_null_hypothesis(safe_tidy_htest(chisq, "Chi-square goodness-of-fit"), h0), alternative_tests = list(pairwise_binomial = pairwise), effect_size = effect, plot = plt, call = match.call(), subclass = "multinomial")
   out$posthoc <- pairwise
   out$interpretation <- make_report(out, alpha)
   out
