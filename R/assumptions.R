@@ -9,52 +9,31 @@ check_normality <- function(data, vars, group = NULL, alpha = 0.05) {
     x <- x[!is.na(x)]
     n <- length(x)
     if (n < 3) {
-      return(tibble::tibble(statistic = NA_real_, p = NA_real_, status = "not enough data"))
+      return(assumption_check("Normality", "not enough data", "Too few observations for a useful normality check.", method = "Shapiro-Wilk", statistic = NA_real_, p_value = NA_real_))
     }
     if (n > 5000) {
       warning("Shapiro-Wilk is not recommended for n > 5000.", call. = FALSE)
-      return(tibble::tibble(statistic = NA_real_, p = NA_real_, status = "not checked"))
+      return(assumption_check("Normality", "not checked", "Shapiro-Wilk is not recommended for n > 5000.", method = "Shapiro-Wilk", statistic = NA_real_, p_value = NA_real_))
     }
     test <- stats::shapiro.test(x)
-    tibble::tibble(
+    assumption_check(
+      "Normality",
+      ifelse(test$p.value >= alpha, "acceptable", "not acceptable"),
+      ifelse(test$p.value >= alpha, "Approximate normality looks reasonable.", "Normality may be violated."),
+      method = "Shapiro-Wilk",
       statistic = unname(test$statistic),
-      p = test$p.value,
-      status = ifelse(test$p.value >= alpha, "acceptable", "not acceptable")
+      p_value = test$p.value
     )
-  }
-
-  label_for <- function(variable, group_value = NULL) {
-    if (is.null(group_value) || is.na(group_value)) {
-      paste0("Normality: ", variable)
-    } else {
-      paste0("Normality: ", variable, " (", group_value, ")")
-    }
   }
 
   vars <- as.character(vars)
   if (is.null(group)) {
-    purrr::map_dfr(vars, function(v) {
-      dplyr::bind_cols(
-        tibble::tibble(
-          name = label_for(v),
-          variable = v,
-          group = NA_character_
-        ),
-        run_one(data[[v]])
-      )
-    })
+    purrr::map_dfr(vars, function(v) dplyr::mutate(run_one(data[[v]]), name = paste0("Normality: ", v)))
   } else {
     purrr::map_dfr(vars, function(v) {
       split(data[[v]], data[[group]]) |>
         purrr::imap_dfr(function(x, g) {
-          dplyr::bind_cols(
-            tibble::tibble(
-              name = label_for(v, g),
-              variable = v,
-              group = as.character(g)
-            ),
-            run_one(x)
-          )
+          dplyr::mutate(run_one(x), name = paste0("Normality: ", v, " (", g, ")"))
         })
     })
   }
