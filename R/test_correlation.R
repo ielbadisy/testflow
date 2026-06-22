@@ -30,7 +30,11 @@ test_correlation <- function(formula, data, y = NULL, method = c("auto", "pearso
   chosen <- if (method == "auto") {
     if (all(normality$status == "acceptable") && !any(outlier_flags$is_outlier, na.rm = TRUE)) "pearson" else "spearman"
   } else method
-  linearity <- assumption_check("Linearity", ifelse(chosen == "pearson", "acceptable", "not checked"), ifelse(chosen == "pearson", "A roughly linear relation is assumed for Pearson correlation.", "Normality is not required for Spearman or Kendall; monotonicity is the key check."))
+  linearity <- assumption_check(
+    "Linearity",
+    ifelse(chosen == "pearson", "acceptable", "not checked"),
+    ifelse(chosen == "pearson", "A roughly linear relation is assumed for Pearson correlation.", "Linearity is not checked for rank-based correlations; monotonicity is the key check.")
+  )
   monotonicity <- check_monotonicity(df[[x_nm]], df[[y_nm]], alpha = alpha)
   pearson <- stats::cor.test(df[[x_nm]], df[[y_nm]], method = "pearson")
   spearman <- suppressWarnings(stats::cor.test(df[[x_nm]], df[[y_nm]], method = "spearman", exact = FALSE))
