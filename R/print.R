@@ -58,6 +58,11 @@ print_assumption_line <- function(assumptions) {
     tf_bullet("No assumptions reported.")
     return(invisible(NULL))
   }
+  if (!"name" %in% names(assumptions)) {
+    assumptions$name <- paste0("Assumption ", seq_len(nrow(assumptions)))
+  } else {
+    assumptions$name <- ifelse(is.na(assumptions$name) | !nzchar(as.character(assumptions$name)), paste0("Assumption ", seq_len(nrow(assumptions))), assumptions$name)
+  }
   assumptions <- dplyr::select(assumptions, any_of(c("name", "status", "message", "method", "statistic", "p_value", "details")))
   purrr::pwalk(assumptions, function(name, status, message, method, statistic, p_value, details) {
     line <- paste0(tf_label(name), " ", tf_value(status), ": ", message)
