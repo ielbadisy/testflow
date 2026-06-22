@@ -23,16 +23,38 @@ check_normality <- function(data, vars, group = NULL, alpha = 0.05) {
     )
   }
 
+  label_for <- function(variable, group_value = NULL) {
+    if (is.null(group_value) || is.na(group_value)) {
+      paste0("Normality: ", variable)
+    } else {
+      paste0("Normality: ", variable, " (", group_value, ")")
+    }
+  }
+
   vars <- as.character(vars)
   if (is.null(group)) {
     purrr::map_dfr(vars, function(v) {
-      dplyr::bind_cols(tibble::tibble(variable = v, group = NA_character_), run_one(data[[v]]))
+      dplyr::bind_cols(
+        tibble::tibble(
+          name = label_for(v),
+          variable = v,
+          group = NA_character_
+        ),
+        run_one(data[[v]])
+      )
     })
   } else {
     purrr::map_dfr(vars, function(v) {
       split(data[[v]], data[[group]]) |>
         purrr::imap_dfr(function(x, g) {
-          dplyr::bind_cols(tibble::tibble(variable = v, group = as.character(g)), run_one(x))
+          dplyr::bind_cols(
+            tibble::tibble(
+              name = label_for(v, g),
+              variable = v,
+              group = as.character(g)
+            ),
+            run_one(x)
+          )
         })
     })
   }
@@ -101,6 +123,7 @@ check_variance_homogeneity <- function(data, outcome, group, alpha = 0.05) {
     p <- lt[["Pr(>F)"]][1]
     stat <- lt[["F value"]][1]
     return(tibble::tibble(
+      name = "Variance homogeneity",
       method = "Levene test",
       statistic = stat,
       df1 = lt[["Df"]][1],
@@ -116,6 +139,7 @@ check_variance_homogeneity <- function(data, outcome, group, alpha = 0.05) {
   aov_tab <- stats::anova(fit)
   p <- aov_tab[["Pr(>F)"]][1]
   tibble::tibble(
+    name = "Variance homogeneity",
     method = "Median-centered Levene approximation",
     statistic = aov_tab[["F value"]][1],
     df1 = aov_tab[["Df"]][1],
@@ -131,6 +155,7 @@ check_variance_two_groups <- function(data, outcome, group, alpha = 0.05) {
   formula <- stats::as.formula(paste(outcome, "~", group))
   test <- stats::var.test(formula, data = data)
   tibble::tibble(
+    name = "Variance ratio check",
     statistic = unname(test$statistic),
     df1 = unname(test$parameter[1]),
     df2 = unname(test$parameter[2]),
@@ -146,6 +171,7 @@ check_variance_two_groups <- function(data, outcome, group, alpha = 0.05) {
 check_bartlett <- function(data, outcome, group, alpha = 0.05) {
   test <- stats::bartlett.test(stats::as.formula(paste(outcome, "~", group)), data = data)
   tibble::tibble(
+    name = "Bartlett test",
     method = "Bartlett test",
     statistic = unname(test$statistic),
     df = unname(test$parameter),

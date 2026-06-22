@@ -53,7 +53,7 @@ test_two_groups <- function(
     group = group_nm,
     data = df,
     descriptives = descriptives_numeric(df, outcome_nm, group_nm),
-    assumptions = assumption_checks(independence, normality, levene, outliers, tibble::add_column(f_test, name = "Variance ratio check", message = "Variance comparison via F test.", .before = 1)),
+    assumptions = assumption_checks(independence, normality, levene, outliers, f_test),
     recommended = list(test = recommendation, rationale = "Selected from normality and variance assumptions."),
     primary_test = primary_tidy,
     alternative_tests = list(
