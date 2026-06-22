@@ -21,7 +21,8 @@ test_outliers <- function(formula, data, group = NULL, method = c("iqr", "mahala
   } else {
     assumption_checks(assumption_check("Complete cases", "acceptable", "Mahalanobis distance uses complete cases only."), assumption_check("Approximate multivariate normality", "warning", "Mahalanobis screening is more stable when the variables are roughly multivariate normal."), assumption_check("Invertible covariance matrix", "acceptable", "The covariance matrix must be invertible."))
   }
-  primary <- tibble::tibble(method = paste(method, "outlier detection"), statistic = sum((iqr$is_outlier %||% FALSE), na.rm = TRUE), parameter = NA_real_, p.value = NA_real_)
+  method_label <- ifelse(method == "iqr", "IQR outlier detection", title_case_method(paste(method, "outlier detection")))
+  primary <- tibble::tibble(method = method_label, statistic = sum((iqr$is_outlier %||% FALSE), na.rm = TRUE), parameter = NA_real_, p.value = NA_real_)
   plt <- if (plot) {
     long <- tidyr::pivot_longer(df, dplyr::all_of(vars), names_to = "variable", values_to = "value")
     ggplot2::ggplot(long, ggplot2::aes(x = .data$variable, y = .data$value)) +
@@ -30,8 +31,8 @@ test_outliers <- function(formula, data, group = NULL, method = c("iqr", "mahala
       ggplot2::labs(title = "Outlier workflow", x = NULL, y = NULL) +
       ggplot2::theme_minimal()
   } else NULL
-  out <- new_testflow("outliers", "outlier screening", paste(vars, collapse = ", "), group_nm, data = df, descriptives = descriptives_numeric(df, vars, group_nm), assumptions = assumptions, recommended = list(test = paste(method, "outlier detection")), primary_test = primary, alternative_tests = list(iqr = iqr, mahalanobis = mahal), effect_size = tibble::tibble(name = "Outlier count", estimate = primary$statistic[1], magnitude = NA_character_), plot = plt, call = match.call(), subclass = "outliers")
-  out$interpretation <- paste0("The outlier workflow flagged ", primary$statistic[1], " IQR outlier rows.")
+  out <- new_testflow("outliers", "outlier screening", paste(vars, collapse = ", "), group_nm, data = df, descriptives = descriptives_numeric(df, vars, group_nm), assumptions = assumptions, recommended = list(test = method_label), primary_test = primary, alternative_tests = list(iqr = iqr, mahalanobis = mahal), effect_size = tibble::tibble(name = "Outlier count", estimate = primary$statistic[1], magnitude = NA_character_), plot = plt, call = match.call(), subclass = "outliers")
+  out$interpretation <- make_report(out)
   out
 }
 
