@@ -24,9 +24,10 @@ test_correlation <- function(formula, data, y = NULL, method = c("auto", "pearso
   data_obj <- resolve_data_first_or_formula(formula, data)
   df <- drop_missing(data_obj, c(x_nm, y_nm), na.rm = na.rm)
   normality <- check_normality(df, c(x_nm, y_nm), alpha = alpha)
-  outliers <- iqr_outliers(df, c(x_nm, y_nm))
+  outlier_flags <- iqr_outlier_flags(df, c(x_nm, y_nm))
+  outliers <- iqr_outlier_assumption(outlier_flags, c(x_nm, y_nm))
   chosen <- if (method == "auto") {
-    if (all(normality$status == "acceptable") && !any(outliers$is_outlier)) "pearson" else "spearman"
+    if (all(normality$status == "acceptable") && !any(outlier_flags$is_outlier, na.rm = TRUE)) "pearson" else "spearman"
   } else method
   linearity <- assumption_check("Linearity", ifelse(chosen == "pearson", "acceptable", "not checked"), ifelse(chosen == "pearson", "A roughly linear relation is assumed for Pearson correlation.", "Normality is not required for Spearman or Kendall; monotonicity is the key check."))
   monotonicity <- check_monotonicity(df[[x_nm]], df[[y_nm]], alpha = alpha)
@@ -47,6 +48,30 @@ test_correlation <- function(formula, data, y = NULL, method = c("auto", "pearso
   out <- new_testflow("correlation", "two numeric variables", y_nm, x_nm, data = df, descriptives = descriptives_numeric(df, c(x_nm, y_nm)), assumptions = corr_assumptions, recommended = list(test = paste(chosen, "correlation")), primary_test = add_null_hypothesis(safe_tidy_htest(primary, paste(chosen, "correlation")), h0), alternative_tests = list(pearson = add_null_hypothesis(safe_tidy_htest(pearson, "Pearson correlation"), h0), spearman = add_null_hypothesis(safe_tidy_htest(spearman, "Spearman correlation"), h0), kendall = add_null_hypothesis(safe_tidy_htest(kendall, "Kendall correlation"), h0)), effect_size = effect, plot = plt, call = match.call(), subclass = "correlation")
   out$interpretation <- make_report(out, alpha)
   out
+}
+
+iqr_outlier_assumption <- function(data, vars) {
+  n <- sum(data$is_outlier, na.rm = TRUE)
+  assumption_check(
+    "Extreme outliers",
+    ifelse(n == 0, "acceptable", "warning"),
+    paste0(n, " potential outlier(s) flagged by IQR."),
+    details = paste0("IQR rule applied to ", paste(vars, collapse = ", "))
+  )
+}
+
+iqr_outlier_flags <- function(data, vars) {
+  purrr::map_dfr(vars, function(v) {
+    x <- data[[v]]
+    x <- x[!is.na(x)]
+    if (length(x) < 4) {
+      return(tibble::tibble(variable = v, is_outlier = NA))
+    }
+    q1 <- stats::quantile(x, 0.25, names = FALSE)
+    q3 <- stats::quantile(x, 0.75, names = FALSE)
+    i <- q3 - q1
+    tibble::tibble(variable = v, is_outlier = x < q1 - 1.5 * i | x > q3 + 1.5 * i)
+  })
 }
 
 #' Test a correlation matrix
