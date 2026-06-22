@@ -11,6 +11,15 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
+## Installation
+
+`testflow` is not on CRAN yet. Install the development version from GitHub:
+
+```r
+install.packages("remotes")
+remotes::install_github("ielbadisy/testflow")
+```
+
 `testflow` starts with the study design.
 
 ```{r}
