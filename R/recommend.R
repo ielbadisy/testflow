@@ -17,3 +17,7 @@ recommend_groups <- function(normality, variance) {
   variance_ok <- variance$status[1] == "acceptable"
   if (normal_ok && variance_ok) "One-way ANOVA" else if (normal_ok) "Welch ANOVA" else "Kruskal-Wallis test"
 }
+
+title_case_method <- function(x) {
+  tools::toTitleCase(as.character(x))
+}

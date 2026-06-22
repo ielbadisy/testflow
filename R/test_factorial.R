@@ -30,6 +30,7 @@ test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2
     factor_nms <- tidyselect_names(data_obj, {{ factors }})
     formula_obj <- stats::as.formula(paste(outcome_nm, "~", paste(factor_nms, collapse = " * ")))
   }
+  warn_if_two_groups_for_factorial(factor_nms)
   df <- drop_missing(data_obj, c(outcome_nm, factor_nms), na.rm = na.rm)
   df[factor_nms] <- lapply(df[factor_nms], as.factor)
   fit <- stats::aov(formula_obj, data = df)

@@ -27,6 +27,9 @@ sumtab <- function(
 ) {
   parsed <- parse_sumtab_formula(substitute(formula))
   require_columns(data, c(parsed$vars, parsed$group))
+  if (!is.null(parsed$group) && dplyr::n_distinct(stats::na.omit(data[[parsed$group]])) < 2) {
+    warning("`sumtab()` cannot compute automatic p-values when the grouping variable has fewer than two levels.", call. = FALSE)
+  }
 
   group_levels <- sumtab_group_levels(data, parsed$group)
   group_labels <- sumtab_group_labels(data, parsed$group, group_levels)

@@ -10,6 +10,7 @@ test_paired_categorical <- function(data, before, after, alpha = 0.05, plot = TR
   before_nm <- rlang::as_name(rlang::ensym(before)); after_nm <- rlang::as_name(rlang::ensym(after))
   df <- drop_missing(data, c(before_nm, after_nm), na.rm = na.rm)
   tab <- table(df[[before_nm]], df[[after_nm]])
+  warn_if(!all(dim(tab) == 2), "McNemar's test requires a 2x2 table; the current input is not a binary paired design.")
   test <- stats::mcnemar.test(tab)
   discordant <- if (all(dim(tab) == 2)) sum(tab[c(1, 2), c(2, 1)]) else NA_integer_
   disc <- tibble::tibble(before_only = if (all(dim(tab) == 2)) tab[2, 1] else NA_integer_, after_only = if (all(dim(tab) == 2)) tab[1, 2] else NA_integer_)

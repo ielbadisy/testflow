@@ -28,12 +28,14 @@ check_normality <- function(data, vars, group = NULL, alpha = 0.05) {
 
   vars <- as.character(vars)
   if (is.null(group)) {
-    purrr::map_dfr(vars, function(v) dplyr::mutate(run_one(data[[v]]), name = paste0("Normality: ", v)))
+    purrr::map_dfr(vars, function(v) {
+      dplyr::mutate(run_one(data[[v]]), name = paste0("Normality: ", v), variable = v)
+    })
   } else {
     purrr::map_dfr(vars, function(v) {
       split(data[[v]], data[[group]]) |>
         purrr::imap_dfr(function(x, g) {
-          dplyr::mutate(run_one(x), name = paste0("Normality: ", v, " (", g, ")"))
+          dplyr::mutate(run_one(x), name = paste0("Normality: ", v, " (", g, ")"), variable = v, group = g)
         })
     })
   }
@@ -104,6 +106,7 @@ check_variance_homogeneity <- function(data, outcome, group, alpha = 0.05) {
     return(tibble::tibble(
       name = "Variance homogeneity",
       method = "Levene test",
+      message = ifelse(p >= alpha, "Variance homogeneity looks reasonable.", "Variance homogeneity may be violated."),
       statistic = stat,
       df1 = lt[["Df"]][1],
       df2 = lt[["Df"]][2],
@@ -120,6 +123,7 @@ check_variance_homogeneity <- function(data, outcome, group, alpha = 0.05) {
   tibble::tibble(
     name = "Variance homogeneity",
     method = "Median-centered Levene approximation",
+    message = ifelse(p >= alpha, "Variance homogeneity looks reasonable.", "Variance homogeneity may be violated."),
     statistic = aov_tab[["F value"]][1],
     df1 = aov_tab[["Df"]][1],
     df2 = aov_tab[["Df"]][2],
@@ -135,6 +139,7 @@ check_variance_two_groups <- function(data, outcome, group, alpha = 0.05) {
   test <- stats::var.test(formula, data = data)
   tibble::tibble(
     name = "Variance ratio check",
+    message = ifelse(test$p.value >= alpha, "Variance ratio looks reasonable.", "Variance ratio looks concerning."),
     statistic = unname(test$statistic),
     df1 = unname(test$parameter[1]),
     df2 = unname(test$parameter[2]),
@@ -152,6 +157,7 @@ check_bartlett <- function(data, outcome, group, alpha = 0.05) {
   tibble::tibble(
     name = "Bartlett test",
     method = "Bartlett test",
+    message = ifelse(test$p.value >= alpha, "Variance homogeneity looks reasonable.", "Variance homogeneity may be violated."),
     statistic = unname(test$statistic),
     df = unname(test$parameter),
     p = test$p.value,
@@ -160,7 +166,7 @@ check_bartlett <- function(data, outcome, group, alpha = 0.05) {
 }
 #' Build a standardized assumption check
 #' @keywords internal
-assumption_check <- function(name, status, message, method = NA_character_, statistic = NA_real_, p_value = NA_real_, details = NA_character_) {
+assumption_check <- function(name, status, message, method = NA_character_, statistic = NA_real_, p_value = NA_real_, details = NA_character_, ...) {
   tibble::tibble(
     name = name,
     status = status,
@@ -168,7 +174,8 @@ assumption_check <- function(name, status, message, method = NA_character_, stat
     method = method,
     statistic = statistic,
     p_value = p_value,
-    details = details
+    details = details,
+    ...
   )
 }
 

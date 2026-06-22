@@ -23,6 +23,7 @@ test_correlation <- function(formula, data, y = NULL, method = c("auto", "pearso
   x_nm <- vars$group
   data_obj <- resolve_data_first_or_formula(formula, data)
   df <- drop_missing(data_obj, c(x_nm, y_nm), na.rm = na.rm)
+  warn_if_small_correlation_n(df, x_nm, y_nm)
   normality <- check_normality(df, c(x_nm, y_nm), alpha = alpha)
   outlier_flags <- iqr_outlier_flags(df, c(x_nm, y_nm))
   outliers <- iqr_outlier_assumption(outlier_flags, c(x_nm, y_nm))
@@ -35,17 +36,18 @@ test_correlation <- function(formula, data, y = NULL, method = c("auto", "pearso
   spearman <- suppressWarnings(stats::cor.test(df[[x_nm]], df[[y_nm]], method = "spearman", exact = FALSE))
   kendall <- suppressWarnings(stats::cor.test(df[[x_nm]], df[[y_nm]], method = "kendall", exact = FALSE))
   primary <- switch(chosen, pearson = pearson, spearman = spearman, kendall = kendall)
-  effect <- tibble::tibble(name = paste0(chosen, " r"), estimate = unname(primary$estimate), magnitude = magnitude_cramers_v(abs(unname(primary$estimate))))
+  chosen_label <- title_case_method(paste(chosen, "correlation"))
+  effect <- tibble::tibble(name = paste0(chosen_label, " r"), estimate = unname(primary$estimate), magnitude = magnitude_cramers_v(abs(unname(primary$estimate))))
   plt <- if (plot) {
     ggplot2::ggplot(df, ggplot2::aes(x = .data[[x_nm]], y = .data[[y_nm]])) +
       ggplot2::geom_point(alpha = 0.75, color = "#4C78A8") +
       ggplot2::geom_smooth(method = "lm", se = TRUE, color = "#F58518") +
-      ggplot2::labs(title = "Correlation workflow", subtitle = plot_subtitle(paste(chosen, "correlation"), primary), caption = paste0(effect$name[1], " = ", format_stat(effect$estimate[1]), ", ", effect$magnitude[1]), x = x_nm, y = y_nm) +
+      ggplot2::labs(title = "Correlation workflow", subtitle = plot_subtitle(chosen_label, primary), caption = paste0(effect$name[1], " = ", format_stat(effect$estimate[1]), ", ", effect$magnitude[1]), x = x_nm, y = y_nm) +
       ggplot2::theme_minimal()
   } else NULL
   h0 <- h0_no_correlation(x_nm, y_nm)
   corr_assumptions <- switch(chosen, pearson = assumption_checks(linearity, normality, outliers), spearman = assumption_checks(monotonicity, outliers, assumption_check("Normality", "not required", "Normality is not required for Spearman correlation.")), kendall = assumption_checks(monotonicity, outliers, assumption_check("Normality", "not required", "Normality is not required for Kendall correlation.")))
-  out <- new_testflow("correlation", "two numeric variables", y_nm, x_nm, data = df, descriptives = descriptives_numeric(df, c(x_nm, y_nm)), assumptions = corr_assumptions, recommended = list(test = paste(chosen, "correlation")), primary_test = add_null_hypothesis(safe_tidy_htest(primary, paste(chosen, "correlation")), h0), alternative_tests = list(pearson = add_null_hypothesis(safe_tidy_htest(pearson, "Pearson correlation"), h0), spearman = add_null_hypothesis(safe_tidy_htest(spearman, "Spearman correlation"), h0), kendall = add_null_hypothesis(safe_tidy_htest(kendall, "Kendall correlation"), h0)), effect_size = effect, plot = plt, call = match.call(), subclass = "correlation")
+  out <- new_testflow("correlation", "two numeric variables", y_nm, x_nm, data = df, descriptives = descriptives_numeric(df, c(x_nm, y_nm)), assumptions = corr_assumptions, recommended = list(test = chosen_label), primary_test = add_null_hypothesis(safe_tidy_htest(primary, chosen_label), h0), alternative_tests = list(correlation_table = tibble::tibble(method = c("Pearson", "Spearman", "Kendall"), statistic = c(unname(pearson$estimate), unname(spearman$estimate), unname(kendall$estimate)), p.value = c(pearson$p.value, spearman$p.value, kendall$p.value)), pearson = add_null_hypothesis(safe_tidy_htest(pearson, "Pearson correlation"), h0), spearman = add_null_hypothesis(safe_tidy_htest(spearman, "Spearman correlation"), h0), kendall = add_null_hypothesis(safe_tidy_htest(kendall, "Kendall correlation"), h0)), effect_size = effect, plot = plt, call = match.call(), subclass = "correlation")
   out$interpretation <- make_report(out, alpha)
   out
 }
@@ -85,6 +87,7 @@ iqr_outlier_flags <- function(data, vars) {
 test_correlation_matrix <- function(data, vars, method = c("spearman", "pearson", "kendall"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   method <- match.arg(method)
   vars <- tidyselect_names(data, {{ vars }})
+  warn_if_screening_workflow("correlation_matrix")
   df <- drop_missing(data, vars, na.rm = na.rm)
   mat <- stats::cor(df[, vars, drop = FALSE], method = method, use = "pairwise.complete.obs")
   pairs <- utils::combn(vars, 2, simplify = FALSE)
@@ -105,8 +108,9 @@ test_correlation_matrix <- function(data, vars, method = c("spearman", "pearson"
       ggplot2::labs(title = "Correlation matrix workflow", x = NULL, y = NULL, fill = "r") +
       ggplot2::theme_minimal()
   } else NULL
-  primary <- tibble::tibble(method = paste(method, "correlation matrix"), statistic = NA_real_, parameter = NA_real_, p.value = min(long$p, na.rm = TRUE))
-  out <- new_testflow("correlation_matrix", "correlation matrix", paste(vars, collapse = ", "), data = df, descriptives = descriptives_numeric(df, vars), assumptions = assumptions, recommended = list(test = paste(method, "correlation matrix")), primary_test = primary, alternative_tests = list(correlation_matrix = mat, p_values = long), effect_size = tibble::tibble(name = "maximum absolute r", estimate = max(abs(long$estimate), na.rm = TRUE), magnitude = magnitude_cramers_v(max(abs(long$estimate), na.rm = TRUE))), plot = plt, call = match.call(), subclass = "correlation_matrix")
+  method_label <- title_case_method(paste(method, "correlation matrix"))
+  primary <- tibble::tibble(method = method_label, statistic = NA_real_, parameter = NA_real_, p.value = min(long$p, na.rm = TRUE))
+  out <- new_testflow("correlation_matrix", "correlation matrix", paste(vars, collapse = ", "), data = df, descriptives = descriptives_numeric(df, vars), assumptions = assumptions, recommended = list(test = method_label), primary_test = primary, alternative_tests = list(correlation_matrix = mat, correlation_table = long), effect_size = tibble::tibble(name = "Maximum absolute r", estimate = max(abs(long$estimate), na.rm = TRUE), magnitude = magnitude_cramers_v(max(abs(long$estimate), na.rm = TRUE))), plot = plt, call = match.call(), subclass = "correlation_matrix")
   out$interpretation <- make_report(out, alpha)
   out
 }
