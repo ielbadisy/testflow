@@ -84,6 +84,13 @@ print_assumption_line <- function(assumptions) {
 }
 
 format_primary_result <- function(x) {
+  if (identical(x$workflow, "correlation_matrix")) {
+    return(paste0("pairwise correlations reported; smallest pairwise p = ", format_p(primary_p(x))))
+  }
+  if (identical(x$workflow, "outliers")) {
+    return(paste0("flagged rows = ", format_count(primary_statistic(x))))
+  }
+
   test <- x$primary_test
   if (is.null(test)) return("No primary test available.")
   stat <- primary_statistic(x)
@@ -185,6 +192,11 @@ print_summary_field <- function(label, value, formatter = identity) {
 first_or_na <- function(x) {
   if (is.null(x) || length(x) == 0) return(NA)
   unname(x[[1]])
+}
+
+format_count <- function(x) {
+  if (is.na(x)) return("NA")
+  format(as.integer(round(x)), big.mark = ",", scientific = FALSE)
 }
 
 tf_with_cli_colors <- function(expr) {
