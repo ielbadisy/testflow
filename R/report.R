@@ -19,6 +19,25 @@ report_test <- function(x) {
 }
 
 make_report <- function(x, alpha = 0.05) {
+  if (identical(x$workflow, "correlation_matrix")) {
+    effect <- x$effect_size
+    effect_text <- if (is.null(effect) || nrow(effect) == 0 || is.na(effect$estimate[1]) || is.na(effect$magnitude[1])) {
+      ""
+    } else {
+      paste0(" The strongest absolute correlation was ", format_stat(effect$estimate[1]), " (", effect$magnitude[1], ").")
+    }
+    return(paste0(
+      "The correlation matrix workflow for ", x$outcome %||% "the selected variables",
+      " reported pairwise correlations using ", x$recommended$test %||% x$recommended,
+      "; the smallest pairwise p-value was ", format_p(primary_p(x)), ".", effect_text
+    ))
+  }
+
+  if (identical(x$workflow, "outliers")) {
+    n <- primary_statistic(x)
+    return(paste0("The outlier workflow flagged ", format_count(n), " ", ifelse(n == 1, "row", "rows"), " for review."))
+  }
+
   p <- primary_p(x)
   method <- x$recommended$test %||% x$recommended
   stat <- primary_statistic(x)
