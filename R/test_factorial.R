@@ -35,8 +35,25 @@ test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2
   fit <- stats::aov(formula_obj, data = df)
   tab <- broom::tidy(fit)
   residual_df <- tibble::tibble(.resid = stats::residuals(fit))
-  normality <- check_normality(residual_df, ".resid", alpha = alpha)
-  levene <- check_variance_homogeneity(df, outcome_nm, factor_nms[1], alpha)
+  residual_normality_test <- stats::shapiro.test(residual_df$.resid)
+  normality <- assumption_check(
+    "Normality of residuals",
+    ifelse(residual_normality_test$p.value >= alpha, "acceptable", "not acceptable"),
+    ifelse(residual_normality_test$p.value >= alpha, "Residuals appear approximately normal.", "Residuals deviate from normality."),
+    method = "Shapiro-Wilk",
+    statistic = unname(residual_normality_test$statistic),
+    p_value = residual_normality_test$p.value
+  )
+  levene_test <- check_variance_homogeneity(df, outcome_nm, factor_nms[1], alpha)
+  levene <- assumption_check(
+    "Variance homogeneity",
+    levene_test$status[1],
+    ifelse(levene_test$status[1] == "acceptable", "Variance homogeneity looks reasonable.", "Variance homogeneity may be violated."),
+    method = levene_test$method[1],
+    statistic = levene_test$statistic[1],
+    p_value = levene_test$p[1],
+    details = paste0("Df1=", levene_test$df1[1], "; Df2=", levene_test$df2[1])
+  )
   balanced <- assumption_check("Balanced design", "not required", ifelse(length(unique(table(df[factor_nms]))) > 1, "Cell sizes are unbalanced; the workflow still reports the design.", "Cell sizes are balanced."))
   effect <- eta_squared_aov(fit)
   primary <- tab |> dplyr::filter(.data$term != "Residuals") |> dplyr::slice(1) |> dplyr::transmute(method = "Factorial ANOVA", statistic = .data$statistic, parameter = .data$df, p.value = .data$p.value)
