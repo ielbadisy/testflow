@@ -42,3 +42,17 @@ test_that("testflow cli colors can be forced on and disabled", {
   plain <- capture.output(print(x))
   expect_false(any(cli::ansi_has_any(plain)))
 })
+
+test_that("assumption labels do not print as NA", {
+  dat <- make_cardio_data(80)
+  one <- test_one_sample(dat, sbp_3m, mu = 140)
+  two <- test_two_groups(dat, sbp_3m, sex)
+
+  one_txt <- capture.output(print(one))
+  two_txt <- capture.output(print(two))
+
+  expect_false(any(grepl("^\\* NA:", one_txt)))
+  expect_false(any(grepl("^\\* NA:", two_txt)))
+  expect_true(any(grepl("Normality:", one_txt, fixed = TRUE)))
+  expect_true(any(grepl("Normality:", two_txt, fixed = TRUE)))
+})
