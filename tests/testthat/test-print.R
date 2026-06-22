@@ -56,3 +56,18 @@ test_that("assumption labels do not print as NA", {
   expect_true(any(grepl("Normality:", one_txt, fixed = TRUE)))
   expect_true(any(grepl("Normality:", two_txt, fixed = TRUE)))
 })
+
+test_that("screening workflows do not print fake test statistics", {
+  dat <- make_cardio_data(80)
+
+  corr <- suppressWarnings(test_correlation_matrix(dat, c(age, sbp_3m, ldl), plot = FALSE))
+  outliers <- suppressWarnings(test_outliers(c(sbp_3m, ldl), data = dat, plot = FALSE))
+
+  corr_txt <- capture.output(print(corr))
+  outlier_txt <- capture.output(print(outliers))
+
+  expect_false(any(grepl("statistic = NA", corr_txt, fixed = TRUE)))
+  expect_false(any(grepl("p = NA", outlier_txt, fixed = TRUE)))
+  expect_true(any(grepl("pairwise correlations reported", corr_txt, fixed = TRUE)))
+  expect_true(any(grepl("flagged rows", outlier_txt, fixed = TRUE)))
+})
