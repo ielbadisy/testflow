@@ -14,9 +14,12 @@
 #' @export
 test_repeated_categorical <- function(data, measures, id = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   measure_nms <- tidyselect_names(data, {{ measures }})
+  warn_if_two_measures_repeated(measure_nms)
+  purrr::walk(measure_nms, function(nm) warn_if_nonbinary(data[[nm]], paste0("`", nm, "`")))
   df <- drop_missing(data, measure_nms, na.rm = na.rm)
   mat <- as.matrix(df[, measure_nms, drop = FALSE])
   mat <- apply(mat, 2, function(x) as.integer(as.factor(x)) - 1L)
+  warn_if(!all(mat %in% c(0, 1)), "Repeated categorical measures should be binary after recoding.")
   test <- cochran_q_test(mat)
   counts <- tibble::as_tibble(mat) |> dplyr::summarise(dplyr::across(dplyr::everything(), sum)) |> tidyr::pivot_longer(dplyr::everything(), names_to = "time", values_to = "success")
   effect <- cochran_q_effect_size(test, n = nrow(mat), k = ncol(mat))

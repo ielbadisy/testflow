@@ -10,6 +10,8 @@ test_outliers <- function(formula, data, group = NULL, method = c("iqr", "mahala
   method <- match.arg(method)
   vars <- tidyselect_names(data, {{ formula }})
   group_nm <- if (missing(group) || is.null(substitute(group))) NULL else rlang::as_name(rlang::ensym(group))
+  warn_if_screening_workflow("outliers")
+  warn_if(method == "mahalanobis" && length(vars) < 2, "Mahalanobis outlier screening requires at least two numeric variables.")
   cols <- c(vars, group_nm)
   df <- drop_missing(data, cols, na.rm = na.rm)
   iqr <- if (method %in% c("iqr", "both")) iqr_outliers(df, vars, group_nm) else NULL
