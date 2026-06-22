@@ -16,7 +16,11 @@ test_multinomial <- function(data, outcome, p = NULL, alpha = 0.05, plot = TRUE,
   df <- drop_missing(data, outcome_nm, na.rm = na.rm)
   counts <- as.numeric(table(df[[outcome_nm]]))
   levels <- names(table(df[[outcome_nm]]))
-  if (is.null(p)) p <- rep(1 / length(counts), length(counts))
+  warn_if(length(counts) < 2, "Multinomial goodness-of-fit requires at least two outcome categories.")
+  if (is.null(p)) {
+    warning("No expected probabilities supplied; using equal probabilities.", call. = FALSE)
+    p <- rep(1 / length(counts), length(counts))
+  }
   expected <- sum(counts) * p
   chisq <- suppressWarnings(stats::chisq.test(x = counts, p = p))
   expected_ok <- all(expected >= 5)

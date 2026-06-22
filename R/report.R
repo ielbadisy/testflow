@@ -24,7 +24,7 @@ make_report <- function(x, alpha = 0.05) {
   stat <- primary_statistic(x)
   df <- primary_df(x)
   effect <- x$effect_size
-  effect_text <- if (is.null(effect) || nrow(effect) == 0) {
+  effect_text <- if (is.null(effect) || nrow(effect) == 0 || is.na(effect$estimate[1]) || is.na(effect$magnitude[1])) {
     ""
   } else {
     paste0(" The effect size was ", effect$magnitude[1], " (", effect$name[1], " = ", format_stat(effect$estimate[1]), ").")
