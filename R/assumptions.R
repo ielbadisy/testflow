@@ -26,13 +26,27 @@ check_normality <- function(data, vars, group = NULL, alpha = 0.05) {
   vars <- as.character(vars)
   if (is.null(group)) {
     purrr::map_dfr(vars, function(v) {
-      dplyr::bind_cols(tibble::tibble(variable = v, group = NA_character_), run_one(data[[v]]))
+      dplyr::bind_cols(
+        tibble::tibble(
+          name = "Normality",
+          variable = v,
+          group = NA_character_
+        ),
+        run_one(data[[v]])
+      )
     })
   } else {
     purrr::map_dfr(vars, function(v) {
       split(data[[v]], data[[group]]) |>
         purrr::imap_dfr(function(x, g) {
-          dplyr::bind_cols(tibble::tibble(variable = v, group = as.character(g)), run_one(x))
+          dplyr::bind_cols(
+            tibble::tibble(
+              name = "Normality",
+              variable = v,
+              group = as.character(g)
+            ),
+            run_one(x)
+          )
         })
     })
   }
