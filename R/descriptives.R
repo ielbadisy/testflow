@@ -40,9 +40,9 @@ descriptives_numeric <- function(data, vars, group = NULL) {
         .groups = "drop"
       ) |>
       tidyr::pivot_longer(-dplyr::all_of(group), names_to = "name", values_to = "value") |>
-      tidyr::separate(.data$name, into = c("variable", "stat"), sep = "__") |>
-      tidyr::pivot_wider(names_from = .data$stat, values_from = .data$value) |>
-      dplyr::rename(group = dplyr::all_of(group))
+      tidyr::separate("name", into = c("variable", "stat"), sep = "__") |>
+      tidyr::pivot_wider(names_from = "stat", values_from = "value") |>
+      dplyr::rename(group = !!rlang::sym(group))
   }
 }
 

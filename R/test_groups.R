@@ -23,7 +23,7 @@ test_groups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRU
   recommendation <- recommend_groups(normality, levene)
   formula <- stats::as.formula(paste(outcome_nm, "~", group_nm))
   aov_fit <- stats::aov(formula, data = df)
-  aov_test <- broom::tidy(aov_fit) |> dplyr::slice(1) |> dplyr::rename(p.value = .data$p.value)
+  aov_test <- broom::tidy(aov_fit) |> dplyr::slice(1) |> dplyr::rename(p.value = "p.value")
   welch <- stats::oneway.test(formula, data = df, var.equal = FALSE)
   kruskal <- stats::kruskal.test(formula, data = df)
   primary <- switch(recommendation, "One-way ANOVA" = list_obj_from_tidy(aov_test, "One-way ANOVA"), "Welch ANOVA" = welch, "Kruskal-Wallis test" = kruskal)
