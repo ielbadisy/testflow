@@ -14,6 +14,7 @@
 test_proportion <- function(data, outcome, success, p = 0.5, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))
   df <- drop_missing(data, outcome_nm, na.rm = na.rm)
+  warn_if(!success %in% unique(stats::na.omit(df[[outcome_nm]])), "The declared `success` level is not present in the data.")
   success_n <- sum(df[[outcome_nm]] == success, na.rm = TRUE)
   total_n <- sum(!is.na(df[[outcome_nm]]))
   binom <- stats::binom.test(success_n, total_n, p = p)
@@ -21,6 +22,7 @@ test_proportion <- function(data, outcome, success, p = 0.5, alpha = 0.05, plot 
   expected_success <- total_n * p
   expected_failure <- total_n * (1 - p)
   approx_ok <- expected_success >= 5 && expected_failure >= 5
+  warn_if(!approx_ok && expected_success >= 3 && expected_failure >= 3, "Proportion test approximation is borderline; exact binomial results are safer.")
   effect <- tibble::tibble(name = "Observed proportion", estimate = success_n / total_n, magnitude = NA_character_)
   plt <- if (plot) {
     counts <- c(success_n, total_n - success_n)

@@ -11,6 +11,11 @@ require_columns <- function(data, cols) {
   invisible(data)
 }
 
+warn_if <- function(cond, message) {
+  if (isTRUE(cond)) warning(message, call. = FALSE)
+  invisible(cond)
+}
+
 drop_missing <- function(data, cols, na.rm = TRUE) {
   require_columns(data, cols)
   if (!na.rm) {
@@ -26,6 +31,28 @@ assert_two_groups <- function(data, group) {
     stop("`group` must contain exactly two non-missing groups.", call. = FALSE)
   }
   groups
+}
+
+warn_if_two_groups_for_factorial <- function(factor_nms) {
+  warn_if(length(factor_nms) < 2, "Factorial ANOVA requires at least two factors; use `test_groups()` for a single-factor design.")
+}
+
+warn_if_two_measures_repeated <- function(measure_nms) {
+  warn_if(length(measure_nms) == 2, "Two repeated measures are closer to a paired design; consider `test_paired()` if there are only two time points.")
+}
+
+warn_if_screening_workflow <- function(workflow) {
+  warn_if(workflow %in% c("correlation_matrix", "outliers"), paste0("`", workflow, "` is a screening workflow, not a single hypothesis test."))
+}
+
+warn_if_small_correlation_n <- function(df, x_nm, y_nm) {
+  cc <- stats::complete.cases(df[[x_nm]], df[[y_nm]])
+  warn_if(sum(cc) < 5, "Correlation is based on very few complete observations; results may be unstable.")
+}
+
+warn_if_nonbinary <- function(x, label) {
+  vals <- unique(stats::na.omit(as.character(x)))
+  warn_if(length(vals) > 2, paste0(label, " should be binary for this workflow."))
 }
 
 safe_tidy_htest <- function(x, method = NULL) {
