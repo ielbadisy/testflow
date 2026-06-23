@@ -198,11 +198,13 @@ plot(correlation)
 
 ### Correlation Matrix
 
+Cell labels show the pairwise correlation coefficient (`r`).
+
 ``` r
 plot(cor_matrix)
 ```
 
-![](README_files/figure-gfm/correlation-matrix-plot-1.png)<!-- -->
+![](README_files/figure-gfm/correlation-matrix-labeled-plot-1.png)<!-- -->
 
 ### Categorical Association
 
