@@ -131,7 +131,9 @@ plot(correlation)
 
 ### Correlation Matrix
 
-```{r correlation-matrix-plot, fig.width = 6, fig.height = 5}
+Cell labels show the pairwise correlation coefficient (`r`).
+
+```{r correlation-matrix-labeled-plot, fig.width = 6, fig.height = 5}
 plot(cor_matrix)
 ```
 
