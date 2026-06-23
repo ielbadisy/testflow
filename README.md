@@ -6,6 +6,8 @@ testflow
 MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![R \>= 4.1.0](https://img.shields.io/badge/R-%3E%3D%204.1.0-blue.svg)
 
+Current development release: `0.8.2`. First public release: `0.7.0`.
+
 `testflow` helps choose, run, and report common statistical tests from
 the study design. The package returns a consistent object with
 assumptions, the recommended test, the null hypothesis, the result, an
@@ -35,7 +37,7 @@ library(testflow)
 
 cardio <- make_cardio_data()
 
-res <- test_two_groups(sbp_3m ~ sex, data = cardio, plot = FALSE)
+res <- test_two_groups(sbp_3m ~ sex, data = cardio, plot = TRUE)
 res
 #> Statistical test workflow
 #> 
@@ -78,6 +80,12 @@ as_tibble(res)
 #> #   decision <chr>
 ```
 
+``` r
+plot(res)
+```
+
+![](README_files/figure-gfm/quick-start-plot-1.png)<!-- -->
+
 Printed results use `cli` styling in interactive R sessions. GitHub
 strips terminal colors, but the structure is the same in the console. To
 control colors explicitly, use:
@@ -86,6 +94,120 @@ control colors explicitly, use:
 options(testflow.cli_colors = FALSE)
 options(testflow.cli_colors = TRUE)
 ```
+
+## Complete Workflow
+
+A typical analysis starts with the study question, lets `testflow` check
+the assumptions, then uses the returned object for the report, tidy
+result, and plot.
+
+``` r
+paired <- test_paired(sbp_3m ~ sbp_baseline, data = cardio, plot = TRUE)
+
+paired
+#> Statistical test workflow
+#> 
+#> Outcome: sbp_3m - sbp_baseline
+#> Design: paired measurements
+#> 
+#> Assumptions
+#> * Independence of observations: assumed: Paired observations from the same subjects are assumed by design.
+#> * Normality: diff: acceptable: Approximate normality looks reasonable. (method=Shapiro-Wilk; statistic=0.99; p=0.557)
+#> * Symmetry of paired differences: not checked: Normality made the symmetry check unnecessary.
+#> * Extreme outliers: warning: 1 potential outlier(s) flagged by IQR. (IQR rule, n = 1)
+#> 
+#> Recommended test
+#> Paired t-test
+#> 
+#> Result
+#> H0: the mean or median paired difference (sbp_3m - sbp_baseline) equals 0.
+#> statistic = -9.20, df = 179.00, p = <0.001, 95% CI [-9.53, -6.16]
+#> 
+#> Effect size
+#> Cohen's dz: -0.69, moderate
+#> 
+#> Report
+#> The paired measurements workflow for sbp_3m - sbp_baseline showed a statistically significant result using Paired t-test, statistic = -9.20, df = 179.00, p = <0.001. The 95% confidence interval was [-9.53, -6.16]. The effect size was moderate (Cohen's dz = -0.69). H0: the mean or median paired difference (sbp_3m - sbp_baseline) equals 0.
+report(paired)
+#> [1] "The paired measurements workflow for sbp_3m - sbp_baseline showed a statistically significant result using Paired t-test, statistic = -9.20, df = 179.00, p = <0.001. The 95% confidence interval was [-9.53, -6.16]. The effect size was moderate (Cohen's dz = -0.69). H0: the mean or median paired difference (sbp_3m - sbp_baseline) equals 0."
+as_tibble(paired)
+#> # A tibble: 1 × 15
+#>   workflow design outcome group recommended_test null_hypothesis statistic    df
+#>   <chr>    <chr>  <chr>   <chr> <chr>            <chr>               <dbl> <dbl>
+#> 1 paired   paire… sbp_3m… <NA>  Paired t-test    H0: the mean o…     -9.20   179
+#> # ℹ 7 more variables: p <dbl>, conf.low <dbl>, conf.high <dbl>,
+#> #   effect_size <dbl>, effect_size_name <chr>, effect_size_magnitude <chr>,
+#> #   decision <chr>
+```
+
+``` r
+plot(paired)
+```
+
+![](README_files/figure-gfm/complete-workflow-plot-1.png)<!-- -->
+
+## Plot Gallery
+
+Different designs produce different visual summaries. These examples use
+the same teaching dataset so the function call, statistical result, and
+plot stay together.
+
+``` r
+groups <- test_groups(sbp_3m ~ treatment, data = cardio, plot = TRUE)
+repeated <- test_repeated(cardio, c(sbp_baseline, sbp_3m, sbp_6m), id = id, plot = TRUE)
+correlation <- test_correlation(sbp_3m ~ age, data = cardio, plot = TRUE)
+cor_matrix <- suppressWarnings(test_correlation_matrix(cardio, c(age, sbp_3m, ldl), plot = TRUE))
+categorical <- test_categorical(treatment ~ controlled_3m, data = cardio, plot = TRUE)
+outliers <- suppressWarnings(test_outliers(c(sbp_3m, ldl, crp), data = cardio, plot = TRUE))
+```
+
+### More Than Two Groups
+
+``` r
+plot(groups)
+```
+
+![](README_files/figure-gfm/groups-plot-1.png)<!-- -->
+
+### Repeated Measurements
+
+``` r
+plot(repeated)
+```
+
+![](README_files/figure-gfm/repeated-plot-1.png)<!-- -->
+
+### Correlation
+
+``` r
+plot(correlation)
+```
+
+![](README_files/figure-gfm/correlation-plot-1.png)<!-- -->
+
+### Correlation Matrix
+
+``` r
+plot(cor_matrix)
+```
+
+![](README_files/figure-gfm/correlation-matrix-plot-1.png)<!-- -->
+
+### Categorical Association
+
+``` r
+plot(categorical)
+```
+
+![](README_files/figure-gfm/categorical-plot-1.png)<!-- -->
+
+### Outlier Screening
+
+``` r
+plot(outliers)
+```
+
+![](README_files/figure-gfm/outlier-plot-1.png)<!-- -->
 
 ## Summary Tables
 

@@ -6,7 +6,7 @@ output:
 ---
 
 ```{r, echo = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE)
 if (requireNamespace("pkgload", quietly = TRUE)) {
   pkgload::load_all(".", quiet = TRUE)
 }
@@ -15,6 +15,8 @@ if (requireNamespace("pkgload", quietly = TRUE)) {
 ![Version 0.8.2](https://img.shields.io/badge/version-0.8.2-blue.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![R >= 4.1.0](https://img.shields.io/badge/R-%3E%3D%204.1.0-blue.svg)
+
+Current development release: `0.8.2`. First public release: `0.7.0`.
 
 `testflow` helps choose, run, and report common statistical tests from the
 study design. The package returns a consistent object with assumptions,
@@ -43,13 +45,17 @@ library(testflow)
 
 cardio <- make_cardio_data()
 
-res <- test_two_groups(sbp_3m ~ sex, data = cardio, plot = FALSE)
+res <- test_two_groups(sbp_3m ~ sex, data = cardio, plot = TRUE)
 res
 ```
 
 ```{r}
 report(res)
 as_tibble(res)
+```
+
+```{r quick-start-plot, fig.width = 7, fig.height = 4.5}
+plot(res)
 ```
 
 Printed results use `cli` styling in interactive R sessions. GitHub strips
@@ -59,6 +65,75 @@ colors explicitly, use:
 ```r
 options(testflow.cli_colors = FALSE)
 options(testflow.cli_colors = TRUE)
+```
+
+## Complete Workflow
+
+A typical analysis starts with the study question, lets `testflow` check the
+assumptions, then uses the returned object for the report, tidy result, and
+plot.
+
+```{r complete-workflow}
+paired <- test_paired(sbp_3m ~ sbp_baseline, data = cardio, plot = TRUE)
+
+paired
+report(paired)
+as_tibble(paired)
+```
+
+```{r complete-workflow-plot, fig.width = 7, fig.height = 4.5}
+plot(paired)
+```
+
+## Plot Gallery
+
+Different designs produce different visual summaries. These examples use the
+same teaching dataset so the function call, statistical result, and plot stay
+together.
+
+```{r plot-gallery-setup}
+groups <- test_groups(sbp_3m ~ treatment, data = cardio, plot = TRUE)
+repeated <- test_repeated(cardio, c(sbp_baseline, sbp_3m, sbp_6m), id = id, plot = TRUE)
+correlation <- test_correlation(sbp_3m ~ age, data = cardio, plot = TRUE)
+cor_matrix <- suppressWarnings(test_correlation_matrix(cardio, c(age, sbp_3m, ldl), plot = TRUE))
+categorical <- test_categorical(treatment ~ controlled_3m, data = cardio, plot = TRUE)
+outliers <- suppressWarnings(test_outliers(c(sbp_3m, ldl, crp), data = cardio, plot = TRUE))
+```
+
+### More Than Two Groups
+
+```{r groups-plot, fig.width = 7, fig.height = 4.5}
+plot(groups)
+```
+
+### Repeated Measurements
+
+```{r repeated-plot, fig.width = 7, fig.height = 4.5}
+plot(repeated)
+```
+
+### Correlation
+
+```{r correlation-plot, fig.width = 7, fig.height = 4.5}
+plot(correlation)
+```
+
+### Correlation Matrix
+
+```{r correlation-matrix-plot, fig.width = 6, fig.height = 5}
+plot(cor_matrix)
+```
+
+### Categorical Association
+
+```{r categorical-plot, fig.width = 7, fig.height = 4.5}
+plot(categorical)
+```
+
+### Outlier Screening
+
+```{r outlier-plot, fig.width = 7, fig.height = 4.5}
+plot(outliers)
 ```
 
 ## Summary Tables
