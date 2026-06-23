@@ -106,10 +106,15 @@ test_correlation_matrix <- function(data, vars, method = c("spearman", "pearson"
   )
   plt <- if (plot) {
     hm <- as.data.frame(as.table(mat))
+    hm$label <- sprintf("%.2f", hm$Freq)
+    hm$text_color <- ifelse(abs(hm$Freq) >= 0.65, "light", "dark")
     ggplot2::ggplot(hm, ggplot2::aes(x = .data$Var1, y = .data$Var2, fill = .data$Freq)) +
-      ggplot2::geom_tile() +
+      ggplot2::geom_tile(color = "white", linewidth = 0.6) +
+      ggplot2::geom_text(ggplot2::aes(label = .data$label, color = .data$text_color), size = 4) +
       ggplot2::scale_fill_gradient2(limits = c(-1, 1)) +
-      ggplot2::labs(title = "Correlation matrix workflow", x = NULL, y = NULL, fill = "r") +
+      ggplot2::scale_color_manual(values = c(dark = "#1F2933", light = "white"), guide = "none") +
+      ggplot2::coord_equal() +
+      ggplot2::labs(title = "Correlation matrix", x = NULL, y = NULL, fill = "r") +
       ggplot2::theme_minimal()
   } else NULL
   method_label <- title_case_method(paste(method, "correlation matrix"))
