@@ -1,15 +1,31 @@
 ---
 title: "testflow"
-output: github_document
+output:
+  github_document:
+    md_extensions: -smart
 ---
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+if (requireNamespace("pkgload", quietly = TRUE)) {
+  pkgload::load_all(".", quiet = TRUE)
+}
 ```
 
 ![Version 0.8.2](https://img.shields.io/badge/version-0.8.2-blue.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![R >= 4.1.0](https://img.shields.io/badge/R-%3E%3D%204.1.0-blue.svg)
+
+`testflow` helps choose, run, and report common statistical tests from the
+study design. The package returns a consistent object with assumptions,
+the recommended test, the null hypothesis, the result, an effect size when
+appropriate, a plain-language report, and an optional plot.
+
+The guiding idea is:
+
+```r
+testflow = design + assumptions + test + effect size + report + plot
+```
 
 ## Installation
 
@@ -20,47 +36,45 @@ install.packages("remotes")
 remotes::install_github("ielbadisy/testflow")
 ```
 
-`testflow` is organized around study design, not test names.
-Instead of asking "which function runs a t-test?", testflow asks:
-"what is the design of my study question?"
-
-The core grammar is:
-
-```r
-testflow = test + interpret + plot
-```
+## Quick Start
 
 ```{r}
 library(testflow)
 
 cardio <- make_cardio_data()
 
-x <- cardio |>
-  test_two_groups(sbp_3m ~ sex)
-
-x
-plot(x)
-report(x)
-as_tibble(x)
+res <- test_two_groups(sbp_3m ~ sex, data = cardio, plot = FALSE)
+res
 ```
 
-Printed `testflow` objects use `cli`-styled headings, labels, and values in
-the R console. GitHub strips terminal colors, but the rendered example above
-shows the updated console structure.
-Colors are enabled by default in interactive sessions. Disable them with
-`options(testflow.cli_colors = FALSE)`, or force them in non-interactive scripts
-with `options(testflow.cli_colors = TRUE)`.
+```{r}
+report(res)
+as_tibble(res)
+```
 
-## Summary tables
+Printed results use `cli` styling in interactive R sessions. GitHub strips
+terminal colors, but the structure is the same in the console. To control
+colors explicitly, use:
 
-Use `sumtab()` to build a descriptive table and, when requested, add
-automatically selected p-values by variable type and group structure.
+```r
+options(testflow.cli_colors = FALSE)
+options(testflow.cli_colors = TRUE)
+```
+
+## Summary Tables
+
+`sumtab()` creates descriptive tables and can add automatically selected
+p-values based on variable type and grouping structure.
 
 ```{r}
 sumtab(~ age + sex + sbp_3m | treatment, cardio, p_value = TRUE)
 ```
 
-The public workflows are named for common study designs:
+## Common Workflows
+
+Use formulas when there is an outcome and a grouping, predictor, or repeated
+measure structure. Use tidyselect-style column selection for multi-column
+workflows such as repeated measures, correlation matrices, and outlier screens.
 
 ```{r eval = FALSE}
 test_one_sample(cardio, sbp_3m, mu = 140)
@@ -68,57 +82,112 @@ test_two_groups(sbp_3m ~ sex, data = cardio)
 test_paired(sbp_3m ~ sbp_baseline, data = cardio)
 test_groups(sbp_3m ~ treatment, data = cardio)
 test_factorial(sbp_3m ~ sex * treatment, data = cardio)
+test_repeated(cardio, c(sbp_baseline, sbp_3m, sbp_6m), id = id)
 test_categorical(treatment ~ controlled_3m, data = cardio)
+test_paired_categorical(cardio, controlled_baseline, controlled_3m)
+test_repeated_categorical(cardio, c(controlled_baseline, controlled_3m, controlled_6m))
+test_proportion(cardio, controlled_3m, success = "yes", p = 0.5)
+test_multinomial(cardio, treatment)
 test_correlation(sbp_3m ~ age, data = cardio)
+test_correlation_matrix(cardio, c(age, sbp_3m, ldl))
 test_outliers(c(sbp_3m, ldl, crp), data = cardio)
 sumtab(~ age + sex + sbp_3m | treatment, cardio, p_value = TRUE)
 ```
 
-## Implemented workflows and tests
+## What Is Implemented
 
-Each workflow returns a `testflow` object with the recommended test, H0, p-value,
-confidence interval when available, appropriate effect size, report text, and plot.
-For descriptive reporting, `sumtab()` builds a formula-driven summary table and
-can add automatically selected p-values.
-
-The exact formulas used for Cohen's d and the other reported effect-size
-estimates are documented in `vignettes/effect-size-formulas.Rmd`.
-
-| Workflow | Formula-oriented call | Tests considered |
+| Study design | Main function | Tests considered |
 |---|---|---|
-| Summary table | `sumtab(~ age + sex + sbp_3m \| treatment, cardio, p_value = TRUE)` | Student t-test, Welch t-test, Wilcoxon rank-sum, ANOVA, Welch ANOVA, Kruskal-Wallis, chi-square, Fisher exact |
-| One sample | `test_one_sample(cardio, sbp_3m, mu = 140)` | one-sample t-test, Wilcoxon signed-rank, sign test |
-| Two independent groups | `test_two_groups(sbp_3m ~ sex, data = cardio)` | Student t-test, Welch t-test, Wilcoxon rank-sum |
-| Paired measurements | `test_paired(sbp_3m ~ sbp_baseline, data = cardio)` | paired t-test, Wilcoxon signed-rank, sign test |
-| More than two groups | `test_groups(sbp_3m ~ treatment, data = cardio)` | one-way ANOVA + Tukey, Welch ANOVA + Welch pairwise t-tests, Kruskal-Wallis + pairwise Wilcoxon |
-| Factorial design | `test_factorial(sbp_3m ~ sex * treatment, data = cardio)` | factorial ANOVA with main effects and interactions |
-| Repeated measurements | `test_repeated(cardio, c(sbp_baseline, sbp_3m, sbp_6m), id = id)` | repeated-measures ANOVA + paired t-tests, Friedman + paired Wilcoxon |
-| Categorical association | `test_categorical(treatment ~ controlled_3m, data = cardio)` | chi-square independence test, Fisher exact test |
-| Paired categorical | `test_paired_categorical(cardio, controlled_baseline, controlled_3m)` | McNemar test |
-| Repeated categorical | `test_repeated_categorical(cardio, c(controlled_baseline, controlled_3m, controlled_6m))` | Cochran Q test + pairwise McNemar tests |
-| One proportion | `test_proportion(cardio, controlled_3m, success = "yes", p = 0.5)` | exact binomial test, one-sample proportion test |
-| Multinomial | `test_multinomial(cardio, treatment)` | chi-square goodness-of-fit, pairwise binomial checks |
-| Correlation | `test_correlation(sbp_3m ~ age, data = cardio)` | Pearson, Spearman, Kendall |
-| Correlation matrix | `test_correlation_matrix(cardio, c(age, sbp_3m, ldl))` | matrix of Pearson/Spearman/Kendall correlations |
-| Outliers | `test_outliers(c(sbp_3m, ldl, crp), data = cardio)` | IQR outliers, Mahalanobis distance |
+| Summary table | `sumtab()` | Student t-test, Welch t-test, Wilcoxon rank-sum, ANOVA, Welch ANOVA, Kruskal-Wallis, chi-square, Fisher exact |
+| One numeric sample | `test_one_sample()` | one-sample t-test, Wilcoxon signed-rank, sign test |
+| Two independent groups | `test_two_groups()` | Student t-test, Welch t-test, Wilcoxon rank-sum |
+| Paired numeric measurements | `test_paired()` | paired t-test, Wilcoxon signed-rank, sign test |
+| More than two groups | `test_groups()` | one-way ANOVA, Welch ANOVA, Kruskal-Wallis, post hoc comparisons |
+| Factorial numeric design | `test_factorial()` | factorial ANOVA with main effects and interactions |
+| Repeated numeric measurements | `test_repeated()`, `test_repeated_long()` | repeated-measures ANOVA, Friedman test, paired post hoc tests |
+| Two categorical variables | `test_categorical()` | chi-square independence test, Fisher exact test |
+| Paired categorical measurements | `test_paired_categorical()` | McNemar test |
+| Repeated categorical measurements | `test_repeated_categorical()` | Cochran Q test, pairwise McNemar tests |
+| One proportion | `test_proportion()` | exact binomial test, one-sample proportion test |
+| Multinomial categories | `test_multinomial()` | chi-square goodness-of-fit, pairwise binomial checks |
+| Two numeric variables | `test_correlation()` | Pearson, Spearman, Kendall |
+| Correlation matrix | `test_correlation_matrix()` | pairwise Pearson, Spearman, or Kendall correlations |
+| Outlier screening | `test_outliers()` | IQR rule, Mahalanobis distance |
+
+Effect-size formulas are documented in
+`vignettes/effect-size-formulas.Rmd`.
 
 ## References
 
-- Fisher, R. A. (1925). \emph{Statistical Methods for Research Workers}.
-- Gosset, W. S. (1908). The probable error of a mean.
-- Welch, B. L. (1947). Generalization of Student's problem with unequal variances.
-- Wilcoxon, F. (1945). Individual comparisons by ranking methods.
-- Mann, H. B., & Whitney, D. R. (1947). On a test of whether one of two random variables is stochastically larger than the other.
-- Levene, H. (1960). Robust tests for equality of variances.
-- Kruskal, W. H., & Wallis, W. A. (1952). Use of ranks in one-criterion variance analysis.
-- Tukey, J. W. (1949). Comparing individual means in the analysis of variance.
-- Dunn, O. J. (1964). Multiple comparisons using rank sums.
-- Friedman, M. (1937). The use of ranks to avoid the assumption of normality implicit in the analysis of variance.
-- Cochran, W. G. (1950). The comparison of percentages in matched samples.
-- McNemar, Q. (1947). Note on the sampling error of the difference between correlated proportions or percentages.
-- Pearson, K. (1895, 1900).
-- Spearman, C. (1904). The proof and measurement of association between two things.
-- Kendall, M. G. (1938). A new measure of rank correlation.
-- Cramer, H. (1946). \emph{Mathematical Methods of Statistics}.
-- Clopper, C. J., & Pearson, E. S. (1934). The use of confidence or fiducial limits illustrated in the case of the binomial.
-- Cohen, J. (1988). \emph{Statistical Power Analysis for the Behavioral Sciences}.
+Bartlett, M. S. (1937). Properties of sufficiency and statistical tests.
+*Proceedings of the Royal Society of London. Series A, Mathematical and
+Physical Sciences, 160*(901), 268-282.
+
+Clopper, C. J., & Pearson, E. S. (1934). The use of confidence or fiducial
+limits illustrated in the case of the binomial. *Biometrika, 26*(4), 404-413.
+
+Cochran, W. G. (1950). The comparison of percentages in matched samples.
+*Biometrika, 37*(3/4), 256-266.
+
+Cohen, J. (1988). *Statistical power analysis for the behavioral sciences*
+(2nd ed.). Lawrence Erlbaum Associates.
+
+Cramer, H. (1946). *Mathematical methods of statistics*. Princeton University
+Press.
+
+Dunn, O. J. (1964). Multiple comparisons using rank sums. *Technometrics,
+6*(3), 241-252.
+
+Fisher, R. A. (1925). *Statistical methods for research workers*. Oliver and
+Boyd.
+
+Friedman, M. (1937). The use of ranks to avoid the assumption of normality
+implicit in the analysis of variance. *Journal of the American Statistical
+Association, 32*(200), 675-701.
+
+Kendall, M. G. (1938). A new measure of rank correlation. *Biometrika,
+30*(1/2), 81-93.
+
+Kruskal, W. H., & Wallis, W. A. (1952). Use of ranks in one-criterion variance
+analysis. *Journal of the American Statistical Association, 47*(260), 583-621.
+
+Levene, H. (1960). Robust tests for equality of variances. In I. Olkin,
+S. G. Ghurye, W. Hoeffding, W. G. Madow, & H. B. Mann (Eds.),
+*Contributions to probability and statistics: Essays in honor of Harold
+Hotelling* (pp. 278-292). Stanford University Press.
+
+Mahalanobis, P. C. (1936). On the generalized distance in statistics.
+*Proceedings of the National Institute of Sciences of India, 2*(1), 49-55.
+
+Mann, H. B., & Whitney, D. R. (1947). On a test of whether one of two random
+variables is stochastically larger than the other. *The Annals of Mathematical
+Statistics, 18*(1), 50-60.
+
+McNemar, Q. (1947). Note on the sampling error of the difference between
+correlated proportions or percentages. *Psychometrika, 12*(2), 153-157.
+
+Pearson, K. (1895). Notes on regression and inheritance in the case of two
+parents. *Proceedings of the Royal Society of London, 58*, 240-242.
+
+Pearson, K. (1900). On the criterion that a given system of deviations from the
+probable in the case of a correlated system of variables is such that it can be
+reasonably supposed to have arisen from random sampling. *The London,
+Edinburgh, and Dublin Philosophical Magazine and Journal of Science, 50*(302),
+157-175.
+
+Shapiro, S. S., & Wilk, M. B. (1965). An analysis of variance test for
+normality (complete samples). *Biometrika, 52*(3/4), 591-611.
+
+Spearman, C. (1904). The proof and measurement of association between two
+things. *The American Journal of Psychology, 15*(1), 72-101.
+
+Student. (1908). The probable error of a mean. *Biometrika, 6*(1), 1-25.
+
+Tukey, J. W. (1949). Comparing individual means in the analysis of variance.
+*Biometrics, 5*(2), 99-114.
+
+Welch, B. L. (1947). The generalization of Student's problem when several
+different population variances are involved. *Biometrika, 34*(1/2), 28-35.
+
+Wilcoxon, F. (1945). Individual comparisons by ranking methods. *Biometrics
+Bulletin, 1*(6), 80-83.
