@@ -63,6 +63,8 @@
 
 # testflow 0.7.0
 
+First public release.
+
 ## Workflow API
 
 - Added formula-first support for core study designs:
