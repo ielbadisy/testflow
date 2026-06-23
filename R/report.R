@@ -1,6 +1,9 @@
 #' Return a ready-to-use testflow report
 #' @param x A testflow object.
 #' @param ... Unused.
+#' @return A length-one character vector containing a plain-language summary of
+#' the workflow result, including the design, recommended test, p-value, effect
+#' size when reported, and null hypothesis when available.
 #' @export
 report <- function(x, ...) {
   UseMethod("report")
@@ -13,6 +16,8 @@ report.testflow <- function(x, ...) {
 
 #' Return a ready-to-use testflow report
 #' @param x A testflow object.
+#' @return A length-one character vector containing the same report text as
+#' [report()] for a `testflow` object.
 #' @export
 report_test <- function(x) {
   report(x)

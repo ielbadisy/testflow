@@ -29,6 +29,14 @@ test_proportion(
 
 \item{na.rm}{Logical; remove missing values.}
 }
+\value{
+A \code{testflow} object with class \code{testflow_proportion}. The object is
+a list containing the cleaned data, categorical descriptives, assumption
+checks, recommended exact or approximate one-sample proportion test, primary
+test result with null hypothesis, alternative exact and approximate results,
+observed proportion summary, optional \code{ggplot}, original call, and report
+text.
+}
 \description{
 Test a one-sample proportion
 }

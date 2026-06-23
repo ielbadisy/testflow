@@ -6,6 +6,11 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @return A `testflow` object with class `testflow_paired`. The object is a
+#' list containing the cleaned paired data, paired difference, descriptive
+#' statistics, assumption checks, recommended paired test, primary test result
+#' with null hypothesis, alternative test results, effect size, optional
+#' `ggplot`, original call, and report text.
 #' @export
 test_paired <- function(formula, data, after = NULL, alternative = c("two.sided", "less", "greater"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   alternative <- match.arg(alternative)

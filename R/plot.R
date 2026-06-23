@@ -1,3 +1,14 @@
+#' Plot a testflow object
+#' @param x A testflow object.
+#' @param title Optional plot title override. Defaults to the stored title.
+#' @param subtitle Optional plot subtitle override. Defaults to the stored
+#' subtitle.
+#' @param caption Optional plot caption override. Defaults to the stored
+#' caption.
+#' @param ... Unused.
+#' @return A `ggplot` object stored in the `testflow` object, with optional
+#' title, subtitle, and caption overrides applied. If the workflow was created
+#' with `plot = FALSE`, returns `NULL`.
 #' @export
 plot.testflow <- function(x, title = NULL, subtitle = NULL, caption = NULL, ...) {
   customize_plot_labels(x$plot, title = title, subtitle = subtitle, caption = caption)

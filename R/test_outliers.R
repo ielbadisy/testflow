@@ -5,6 +5,11 @@
 #' @param method Outlier method.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @return A `testflow` object with class `testflow_outliers`. The object is a
+#' list containing the cleaned data, numeric descriptives, screening
+#' assumptions, selected outlier-screening method, flagged IQR and/or
+#' Mahalanobis rows, outlier-count summary, optional `ggplot`, original call,
+#' and report text. This is a screening workflow, not a single hypothesis test.
 #' @export
 test_outliers <- function(formula, data, group = NULL, method = c("iqr", "mahalanobis", "both"), plot = TRUE, na.rm = TRUE) {
   method <- match.arg(method)

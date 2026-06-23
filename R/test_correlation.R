@@ -6,6 +6,11 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @return A `testflow` object with class `testflow_correlation`. The object is
+#' a list containing the cleaned complete-case data, numeric descriptives,
+#' assumption checks, recommended correlation method, primary correlation test
+#' with null hypothesis, Pearson/Spearman/Kendall results, a correlation table,
+#' effect size, optional `ggplot`, original call, and report text.
 #' @references
 #' Pearson, K. (1895). Notes on regression and inheritance in the case of two
 #' parents. \emph{Proceedings of the Royal Society of London}, 58, 240-242.
@@ -87,6 +92,12 @@ iqr_outlier_flags <- function(data, vars) {
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @return A `testflow` object with class `testflow_correlation_matrix`. The
+#' object is a list containing the cleaned data, numeric descriptives,
+#' screening assumptions, selected correlation-matrix method, pairwise
+#' correlation matrix, pairwise p-value table, maximum absolute correlation as
+#' an effect-size summary, optional heatmap `ggplot`, original call, and report
+#' text.
 #' @export
 test_correlation_matrix <- function(data, vars, method = c("spearman", "pearson", "kendall"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   method <- match.arg(method)

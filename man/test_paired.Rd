@@ -29,6 +29,13 @@ test_paired(
 
 \item{na.rm}{Logical; remove missing values.}
 }
+\value{
+A \code{testflow} object with class \code{testflow_paired}. The object is a
+list containing the cleaned paired data, paired difference, descriptive
+statistics, assumption checks, recommended paired test, primary test result
+with null hypothesis, alternative test results, effect size, optional
+\code{ggplot}, original call, and report text.
+}
 \description{
 Compare paired before and after numeric measurements
 }

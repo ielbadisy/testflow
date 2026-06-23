@@ -29,6 +29,13 @@ test_correlation(
 
 \item{na.rm}{Logical; remove missing values.}
 }
+\value{
+A \code{testflow} object with class \code{testflow_correlation}. The object is
+a list containing the cleaned complete-case data, numeric descriptives,
+assumption checks, recommended correlation method, primary correlation test
+with null hypothesis, Pearson/Spearman/Kendall results, a correlation table,
+effect size, optional \code{ggplot}, original call, and report text.
+}
 \description{
 Test correlation between two numeric variables
 }

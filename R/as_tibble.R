@@ -1,6 +1,10 @@
 #' Convert a testflow object to a one-row tibble
 #' @param x A testflow object.
 #' @param ... Unused.
+#' @return A one-row tibble with the workflow name, design, variables,
+#' recommended test, null hypothesis, statistic, degrees of freedom when
+#' available, p-value, confidence interval when available, effect-size fields,
+#' and decision text.
 #' @export
 as_tibble <- function(x, ...) {
   UseMethod("as_tibble")

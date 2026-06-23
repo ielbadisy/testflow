@@ -6,6 +6,11 @@
 #' @param posthoc Logical; compute post-hoc comparisons.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @return A `testflow` object with class `testflow_groups`. The object is a
+#' list containing the cleaned data, grouped descriptive statistics, assumption
+#' checks, recommended omnibus test, primary test result with null hypothesis,
+#' alternative omnibus results, post-hoc comparisons when requested, effect
+#' size, optional `ggplot`, original call, and report text.
 #' @export
 test_groups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRUE, plot = TRUE, na.rm = TRUE) {
   vars <- resolve_formula_pair(substitute(formula), substitute(data), substitute(group), missing(group))

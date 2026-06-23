@@ -29,6 +29,13 @@ test_groups(
 
 \item{na.rm}{Logical; remove missing values.}
 }
+\value{
+A \code{testflow} object with class \code{testflow_groups}. The object is a
+list containing the cleaned data, grouped descriptive statistics, assumption
+checks, recommended omnibus test, primary test result with null hypothesis,
+alternative omnibus results, post-hoc comparisons when requested, effect
+size, optional \code{ggplot}, original call, and report text.
+}
 \description{
 Compare a numeric outcome across more than two groups
 }
