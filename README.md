@@ -216,6 +216,10 @@ plot(categorical)
 
 ### Outlier Screening
 
+For IQR screening, points below `Q1 - 1.5 x IQR` or above
+`Q3 + 1.5 x IQR` are flagged. The dashed lines show those fences and red
+points are detected outliers.
+
 ``` r
 plot(outliers)
 ```
