@@ -2,6 +2,19 @@ test_that("plot.testflow returns stored plot", {
   dat <- make_cardio_data(80)
   x <- test_groups(dat, sbp_3m, treatment)
   expect_s3_class(plot(x), "ggplot")
+  expect_equal(plot(x)$labels$title, x$plot$labels$title)
+})
+
+test_that("plot.testflow allows label overrides", {
+  dat <- make_cardio_data(80)
+  x <- test_two_groups(sbp_3m ~ sex, data = dat)
+  p <- plot(x, title = "Custom title", subtitle = "Custom subtitle", caption = "Custom caption")
+
+  expect_s3_class(p, "ggplot")
+  expect_equal(p$labels$title, "Custom title")
+  expect_equal(p$labels$subtitle, "Custom subtitle")
+  expect_equal(p$labels$caption, "Custom caption")
+  expect_equal(plot(x)$labels$title, x$plot$labels$title)
 })
 
 test_that("correlation matrix plot shows cell labels", {

@@ -1,6 +1,16 @@
 #' @export
-plot.testflow <- function(x, ...) {
-  x$plot
+plot.testflow <- function(x, title = NULL, subtitle = NULL, caption = NULL, ...) {
+  customize_plot_labels(x$plot, title = title, subtitle = subtitle, caption = caption)
+}
+
+customize_plot_labels <- function(plot, title = NULL, subtitle = NULL, caption = NULL) {
+  if (is.null(plot)) return(NULL)
+  labels <- list()
+  if (!is.null(title)) labels$title <- title
+  if (!is.null(subtitle)) labels$subtitle <- subtitle
+  if (!is.null(caption)) labels$caption <- caption
+  if (!length(labels)) return(plot)
+  plot + do.call(ggplot2::labs, labels)
 }
 
 plot_subtitle <- function(recommended, primary) {
