@@ -25,15 +25,38 @@ test_outliers <- function(formula, data, group = NULL, method = c("iqr", "mahala
   primary <- tibble::tibble(method = method_label, statistic = sum((iqr$is_outlier %||% FALSE), na.rm = TRUE), parameter = NA_real_, p.value = NA_real_)
   plt <- if (plot) {
     long <- tidyr::pivot_longer(df, dplyr::all_of(vars), names_to = "variable", values_to = "value")
+    if (!is.null(iqr)) {
+      iqr_flags <- dplyr::select(iqr, "row", "variable", "is_outlier", "is_extreme")
+      long <- dplyr::left_join(
+        dplyr::mutate(long, row = dplyr::row_number(), .by = "variable"),
+        iqr_flags,
+        by = c("row", "variable")
+      )
+    }
+    fences <- iqr_fences(df, vars)
     ggplot2::ggplot(long, ggplot2::aes(x = .data$variable, y = .data$value)) +
-      ggplot2::geom_boxplot(fill = "#4C78A8", alpha = 0.4) +
-      ggplot2::geom_jitter(width = 0.12, alpha = 0.55) +
-      ggplot2::labs(title = "Outlier workflow", x = NULL, y = NULL) +
-      ggplot2::theme_minimal()
+      ggplot2::geom_hline(data = fences, ggplot2::aes(yintercept = .data$lower_fence), linetype = "dashed", color = "#B23A48") +
+      ggplot2::geom_hline(data = fences, ggplot2::aes(yintercept = .data$upper_fence), linetype = "dashed", color = "#B23A48") +
+      ggplot2::geom_boxplot(fill = "#D9E2EC", color = "#334E68", width = 0.38, outlier.shape = NA) +
+      ggplot2::geom_jitter(ggplot2::aes(color = .data$is_outlier), width = 0.08, alpha = 0.7, size = 1.6, na.rm = TRUE) +
+      ggplot2::scale_color_manual(values = c(`FALSE` = "#52606D", `TRUE` = "#D64545"), breaks = c(FALSE, TRUE), labels = c("inside fence", "IQR outlier"), na.translate = FALSE) +
+      ggplot2::facet_wrap(~variable, scales = "free_y", nrow = 1) +
+      ggplot2::labs(title = "Outlier screening", subtitle = "Dashed lines mark Q1 - 1.5 x IQR and Q3 + 1.5 x IQR", x = NULL, y = NULL, color = NULL) +
+      ggplot2::theme_minimal() +
+      ggplot2::theme(axis.text.x = ggplot2::element_blank(), panel.grid.major.x = ggplot2::element_blank())
   } else NULL
   out <- new_testflow("outliers", "outlier screening", paste(vars, collapse = ", "), group_nm, data = df, descriptives = descriptives_numeric(df, vars, group_nm), assumptions = assumptions, recommended = list(test = method_label), primary_test = primary, alternative_tests = list(iqr = iqr, mahalanobis = mahal), effect_size = tibble::tibble(name = "Outlier count", estimate = primary$statistic[1], magnitude = NA_character_), plot = plt, call = match.call(), subclass = "outliers")
   out$interpretation <- make_report(out)
   out
+}
+
+iqr_fences <- function(data, vars) {
+  purrr::map_dfr(vars, function(v) {
+    q1 <- stats::quantile(data[[v]], 0.25, na.rm = TRUE, names = FALSE)
+    q3 <- stats::quantile(data[[v]], 0.75, na.rm = TRUE, names = FALSE)
+    i <- q3 - q1
+    tibble::tibble(variable = v, lower_fence = q1 - 1.5 * i, upper_fence = q3 + 1.5 * i)
+  })
 }
 
 iqr_outliers <- function(data, vars, group = NULL) {
