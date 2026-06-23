@@ -71,3 +71,14 @@ test_that("screening workflows do not print fake test statistics", {
   expect_true(any(grepl("pairwise correlations reported", corr_txt, fixed = TRUE)))
   expect_true(any(grepl("flagged rows", outlier_txt, fixed = TRUE)))
 })
+
+test_that("wide repeated workflow prints measure labels", {
+  dat <- make_cardio_data(80)
+  x <- test_repeated(dat, c(sbp_baseline, sbp_3m, sbp_6m), id = id)
+
+  txt <- capture.output(print(x))
+
+  expect_true(any(grepl("Outcome: sbp_baseline, sbp_3m, sbp_6m", txt, fixed = TRUE)))
+  expect_false(any(grepl("Normality: value", txt, fixed = TRUE)))
+  expect_false(any(grepl("population mean or location of value", txt, fixed = TRUE)))
+})

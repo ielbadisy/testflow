@@ -26,7 +26,7 @@ test_repeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.0
   df <- data
   if (id_nm == ".testflow_id") df[[id_nm]] <- seq_len(nrow(df))
   long <- tidyr::pivot_longer(df, dplyr::all_of(measure_nms), names_to = "time", values_to = "value")
-  repeated_core(long, "value", "time", id_nm, outcome_label = paste(measure_nms, collapse = ", "), alpha = alpha, plot = plot, na.rm = na.rm, call = match.call())
+  repeated_core(long, "value", "time", id_nm, outcome_label = paste(measure_nms, collapse = ", "), display_by_within = TRUE, alpha = alpha, plot = plot, na.rm = na.rm, call = match.call())
 }
 
 #' Run a repeated-measures workflow from long data
@@ -43,13 +43,17 @@ test_repeated_long <- function(data, outcome, within, id, between = NULL, alpha 
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))
   within_nm <- rlang::as_name(rlang::ensym(within))
   id_nm <- rlang::as_name(rlang::ensym(id))
-  repeated_core(data, outcome_nm, within_nm, id_nm, outcome_label = outcome_nm, alpha = alpha, plot = plot, na.rm = na.rm, call = match.call())
+  repeated_core(data, outcome_nm, within_nm, id_nm, outcome_label = outcome_nm, display_by_within = FALSE, alpha = alpha, plot = plot, na.rm = na.rm, call = match.call())
 }
 
-repeated_core <- function(data, outcome_nm, within_nm, id_nm, outcome_label = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE, call = NULL) {
+repeated_core <- function(data, outcome_nm, within_nm, id_nm, outcome_label = NULL, display_by_within = FALSE, alpha = 0.05, plot = TRUE, na.rm = TRUE, call = NULL) {
   if (is.null(outcome_label)) outcome_label <- outcome_nm
   df <- drop_missing(data, c(outcome_nm, within_nm, id_nm), na.rm = na.rm)
   normality <- check_normality(df, outcome_nm, within_nm, alpha)
+  if (isTRUE(display_by_within)) {
+    normality$name <- sub(paste0("^Normality: ", outcome_nm, " \\((.*)\\)$"), "Normality: \\1", normality$name)
+    normality$variable <- normality$group
+  }
   sphericity <- check_sphericity_or_note()
   wide <- tidyr::pivot_wider(df, names_from = dplyr::all_of(within_nm), values_from = dplyr::all_of(outcome_nm), id_cols = dplyr::all_of(id_nm))
   measure_nms <- setdiff(names(wide), id_nm)
@@ -57,7 +61,7 @@ repeated_core <- function(data, outcome_nm, within_nm, id_nm, outcome_label = NU
   friedman <- stats::friedman.test(as.matrix(complete))
   anova <- repeated_anova_test(df, outcome_nm, within_nm, id_nm)
   recommendation <- if (all(normality$status == "acceptable")) "Repeated-measures ANOVA" else "Friedman test"
-  h0 <- h0_mean_equal(outcome_nm, within_nm)
+  h0 <- h0_mean_equal(outcome_label, within_nm)
   primary <- if (recommendation == "Friedman test") {
     add_null_hypothesis(safe_tidy_htest(friedman, "Friedman test"), h0)
   } else {
