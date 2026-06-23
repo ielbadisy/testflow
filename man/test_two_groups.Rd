@@ -29,6 +29,13 @@ test_two_groups(
 
 \item{na.rm}{Logical; remove missing values.}
 }
+\value{
+A \code{testflow} object with class \code{testflow_two_groups}. The object is
+a list containing the cleaned data, descriptive statistics by group,
+assumption checks, recommended test, primary test result with null
+hypothesis, alternative test results, effect size, optional \code{ggplot},
+original call, and report text.
+}
 \description{
 Compare a numeric outcome between two independent groups
 }

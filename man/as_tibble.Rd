@@ -11,6 +11,12 @@ as_tibble(x, ...)
 
 \item{...}{Unused.}
 }
+\value{
+A one-row tibble with the workflow name, design, variables,
+recommended test, null hypothesis, statistic, degrees of freedom when
+available, p-value, confidence interval when available, effect-size fields,
+and decision text.
+}
 \description{
 Convert a testflow object to a one-row tibble
 }

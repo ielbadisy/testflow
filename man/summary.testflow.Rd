@@ -11,6 +11,12 @@
 
 \item{...}{Unused.}
 }
+\value{
+A \code{summary.testflow} list containing the workflow metadata,
+descriptives, assumptions, recommended test, primary and alternative test
+results, post-hoc results when available, effect size, decision, and report
+text.
+}
 \description{
 Summarize a testflow object.
 }

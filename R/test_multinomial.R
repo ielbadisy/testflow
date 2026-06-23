@@ -5,6 +5,11 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @return A `testflow` object with class `testflow_multinomial`. The object is
+#' a list containing the cleaned data, categorical descriptives, assumption
+#' checks, recommended goodness-of-fit test, primary chi-square result with null
+#' hypothesis, pairwise binomial checks, effect-size summary, optional
+#' `ggplot`, original call, and report text.
 #' @references
 #' Pearson, K. (1900). On the criterion that a given system of deviations from
 #' the probable in the case of a correlated system of variables is such that it

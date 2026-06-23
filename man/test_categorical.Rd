@@ -29,6 +29,13 @@ test_categorical(
 
 \item{na.rm}{Logical; remove missing values.}
 }
+\value{
+A \code{testflow} object with class \code{testflow_categorical}. The object is
+a list containing the cleaned data, categorical descriptives, assumption
+checks, recommended association test, primary test result with null
+hypothesis, alternative chi-square and Fisher results, effect size, optional
+\code{ggplot}, original call, and report text.
+}
 \description{
 Test association between two categorical variables
 }

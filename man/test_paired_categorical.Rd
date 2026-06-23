@@ -26,6 +26,12 @@ test_paired_categorical(
 
 \item{na.rm}{Logical; remove missing values.}
 }
+\value{
+A \code{testflow} object with class \code{testflow_paired_categorical}. The
+object is a list containing the cleaned paired categorical data, categorical
+descriptives, assumption checks, McNemar test result, discordant-pair table,
+optional \code{ggplot}, original call, and report text.
+}
 \description{
 Test paired categorical measurements
 }

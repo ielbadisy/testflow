@@ -26,6 +26,13 @@ test_repeated_categorical(
 
 \item{na.rm}{Logical; remove missing values.}
 }
+\value{
+A \code{testflow} object with class \code{testflow_repeated_categorical}. The
+object is a list containing the cleaned repeated categorical data,
+descriptive counts, assumption checks, Cochran Q test result with null
+hypothesis, pairwise McNemar post-hoc comparisons, effect size, optional
+\code{ggplot}, original call, and report text.
+}
 \description{
 Test repeated categorical measurements
 }

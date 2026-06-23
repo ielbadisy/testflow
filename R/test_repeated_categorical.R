@@ -5,6 +5,11 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @return A `testflow` object with class `testflow_repeated_categorical`. The
+#' object is a list containing the cleaned repeated categorical data,
+#' descriptive counts, assumption checks, Cochran Q test result with null
+#' hypothesis, pairwise McNemar post-hoc comparisons, effect size, optional
+#' `ggplot`, original call, and report text.
 #' @references
 #' Cochran, W. G. (1950). The comparison of percentages in matched samples.
 #' \emph{Biometrika}, 37(3/4), 256-266.

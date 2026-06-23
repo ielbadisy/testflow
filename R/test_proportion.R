@@ -6,6 +6,12 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @return A `testflow` object with class `testflow_proportion`. The object is
+#' a list containing the cleaned data, categorical descriptives, assumption
+#' checks, recommended exact or approximate one-sample proportion test, primary
+#' test result with null hypothesis, alternative exact and approximate results,
+#' observed proportion summary, optional `ggplot`, original call, and report
+#' text.
 #' @references
 #' Clopper, C. J., & Pearson, E. S. (1934). The use of confidence or fiducial
 #' limits illustrated in the case of the binomial. \emph{Biometrika},

@@ -29,6 +29,13 @@ test_factorial(
 
 \item{na.rm}{Logical; remove missing values.}
 }
+\value{
+A \code{testflow} object with class \code{testflow_factorial}. The object is a
+list containing the cleaned data, descriptive statistics, residual and
+variance assumption checks, recommended factorial ANOVA, primary ANOVA term
+result with null hypothesis, ANOVA table, effect size, optional \code{ggplot},
+original call, and report text.
+}
 \description{
 Run a factorial ANOVA workflow
 }
