@@ -20,6 +20,17 @@ The guiding idea is:
 testflow = design + assumptions + test + effect size + report + plot
 ```
 
+## About
+
+`testflow` is an R package for teaching and applied statistical
+workflows. It keeps the statistical question organized around the study
+design, then combines assumption checks, test selection, effect sizes,
+visual diagnostics, and ready-to-use reporting in one object.
+
+It is designed for analysts, students, and instructors who want a
+reproducible path from a data question to a statistical test, a plot,
+and a concise written interpretation.
+
 ## Installation
 
 `testflow` is not on CRAN yet. Install the development version from
