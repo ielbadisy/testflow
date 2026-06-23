@@ -10,7 +10,10 @@ test_that("one-sample workflow matches base R reference calculations", {
 
 test_that("proportion workflow matches binomial reference", {
   xdat <- tibble::tibble(y = c("yes", "yes", "no", "yes", "no", "yes", "yes", "no"))
-  x <- test_proportion(xdat, y, success = "yes", p = 0.5)
+  expect_warning(
+    x <- test_proportion(xdat, y, success = "yes", p = 0.5),
+    "approximation is borderline"
+  )
   ref <- stats::binom.test(sum(xdat$y == "yes"), nrow(xdat), p = 0.5)
   expect_equal(x$primary_test$p.value[1], ref$p.value, tolerance = 1e-12)
   expect_equal(x$primary_test$conf.low[1], ref$conf.int[1], tolerance = 1e-12)
