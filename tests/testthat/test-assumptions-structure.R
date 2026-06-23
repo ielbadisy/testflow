@@ -12,10 +12,10 @@ test_that("workflows return non-empty assumptions and print Assumptions", {
     test_paired_categorical(dat, controlled_baseline, controlled_3m, plot = FALSE),
     test_repeated_categorical(dat, c(controlled_baseline, controlled_3m, controlled_6m), plot = FALSE),
     test_proportion(dat, controlled_3m, success = "yes", p = 0.5, plot = FALSE),
-    test_multinomial(dat, treatment, plot = FALSE),
+    suppressWarnings(test_multinomial(dat, treatment, plot = FALSE)),
     test_correlation(sbp_3m ~ age, data = dat, plot = FALSE),
-    test_correlation_matrix(dat, c(age, sbp_3m, ldl), plot = FALSE),
-    test_outliers(c(sbp_3m, ldl, crp), data = dat, plot = FALSE)
+    suppressWarnings(test_correlation_matrix(dat, c(age, sbp_3m, ldl), plot = FALSE)),
+    suppressWarnings(test_outliers(c(sbp_3m, ldl, crp), data = dat, plot = FALSE))
   )
 
   for (x in objs) {

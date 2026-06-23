@@ -28,7 +28,11 @@ test_paired <- function(formula, data, after = NULL, alternative = c("two.sided"
   df$row_id <- seq_len(nrow(df))
   df$diff <- df[[after_nm]] - df[[before_nm]]
   normality <- check_normality(df, "diff", alpha = alpha)
-  symmetry <- assumption_check("Symmetry of paired differences", ifelse(normality$status[1] == "acceptable", "not checked", "warning"), "Wilcoxon signed-rank assumes approximate symmetry of paired differences.")
+  symmetry <- assumption_check(
+    "Symmetry of paired differences",
+    ifelse(normality$status[1] == "acceptable", "not checked", "warning"),
+    ifelse(normality$status[1] == "acceptable", "Normality made the symmetry check unnecessary.", "Wilcoxon signed-rank assumes approximate symmetry of paired differences.")
+  )
   outliers <- check_outliers(df$diff)
   recommendation <- recommend_paired(normality)
   ttest <- stats::t.test(df[[after_nm]], df[[before_nm]], paired = TRUE, alternative = alternative)
