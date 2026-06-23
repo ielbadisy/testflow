@@ -26,6 +26,13 @@ test_outliers(
 
 \item{na.rm}{Logical; remove missing values.}
 }
+\value{
+A \code{testflow} object with class \code{testflow_outliers}. The object is a
+list containing the cleaned data, numeric descriptives, screening
+assumptions, selected outlier-screening method, flagged IQR and/or
+Mahalanobis rows, outlier-count summary, optional \code{ggplot}, original call,
+and report text. This is a screening workflow, not a single hypothesis test.
+}
 \description{
 Detect numeric outliers
 }

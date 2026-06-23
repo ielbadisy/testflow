@@ -3,7 +3,7 @@
 #' @param vars Numeric columns as character names.
 #' @param group Optional grouping column name.
 #' @param alpha Significance level.
-#' @keywords internal
+#' @noRd
 check_normality <- function(data, vars, group = NULL, alpha = 0.05) {
   run_one <- function(x) {
     x <- x[!is.na(x)]
@@ -42,7 +42,7 @@ check_normality <- function(data, vars, group = NULL, alpha = 0.05) {
 }
 
 #' Check monotonicity
-#' @keywords internal
+#' @noRd
 check_monotonicity <- function(x, y, alpha = 0.05) {
   x <- x[stats::complete.cases(x, y)]
   y <- y[stats::complete.cases(x, y)]
@@ -61,7 +61,7 @@ check_monotonicity <- function(x, y, alpha = 0.05) {
 }
 
 #' Check outliers
-#' @keywords internal
+#' @noRd
 check_outliers <- function(x) {
   x <- x[!is.na(x)]
   if (length(x) < 4) {
@@ -75,7 +75,7 @@ check_outliers <- function(x) {
 }
 
 #' Check expected counts
-#' @keywords internal
+#' @noRd
 check_expected_counts <- function(tab, threshold = 5) {
   chi <- suppressWarnings(stats::chisq.test(tab, correct = FALSE))
   expected <- as.vector(chi$expected)
@@ -90,13 +90,13 @@ check_expected_counts <- function(tab, threshold = 5) {
 }
 
 #' Check sphericity or note
-#' @keywords internal
+#' @noRd
 check_sphericity_or_note <- function(...) {
   assumption_check("Sphericity", "not checked", "Sphericity is not checked here; use this as a teaching note unless a formal test is added.")
 }
 
 #' Check homogeneity of variance
-#' @keywords internal
+#' @noRd
 check_variance_homogeneity <- function(data, outcome, group, alpha = 0.05) {
   formula <- stats::as.formula(paste(outcome, "~", group))
   if (requireNamespace("car", quietly = TRUE)) {
@@ -133,7 +133,7 @@ check_variance_homogeneity <- function(data, outcome, group, alpha = 0.05) {
 }
 
 #' Check variance for two groups
-#' @keywords internal
+#' @noRd
 check_variance_two_groups <- function(data, outcome, group, alpha = 0.05) {
   formula <- stats::as.formula(paste(outcome, "~", group))
   test <- stats::var.test(formula, data = data)
@@ -151,7 +151,7 @@ check_variance_two_groups <- function(data, outcome, group, alpha = 0.05) {
 }
 
 #' Check Bartlett homogeneity
-#' @keywords internal
+#' @noRd
 check_bartlett <- function(data, outcome, group, alpha = 0.05) {
   test <- stats::bartlett.test(stats::as.formula(paste(outcome, "~", group)), data = data)
   tibble::tibble(
@@ -165,7 +165,7 @@ check_bartlett <- function(data, outcome, group, alpha = 0.05) {
   )
 }
 #' Build a standardized assumption check
-#' @keywords internal
+#' @noRd
 assumption_check <- function(name, status, message, method = NA_character_, statistic = NA_real_, p_value = NA_real_, details = NA_character_, ...) {
   tibble::tibble(
     name = name,
@@ -180,13 +180,13 @@ assumption_check <- function(name, status, message, method = NA_character_, stat
 }
 
 #' Combine assumption checks
-#' @keywords internal
+#' @noRd
 assumption_checks <- function(...) {
   dplyr::bind_rows(...)
 }
 
 #' Format assumption checks
-#' @keywords internal
+#' @noRd
 format_assumptions <- function(assumptions) {
   if (is.null(assumptions)) {
     return(tibble::tibble())
@@ -208,7 +208,7 @@ format_assumptions <- function(assumptions) {
 }
 
 #' Check independence note
-#' @keywords internal
+#' @noRd
 check_independence_note <- function(message = "Assumed from study design.") {
   assumption_check("Independence of observations", "assumed", message)
 }

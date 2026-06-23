@@ -11,6 +11,8 @@
 #'
 #' @param x A testflow object.
 #' @param ... Unused.
+#' @return The input `testflow` object, invisibly. Called for its side effect of
+#' printing a formatted workflow summary to the console.
 #' @export
 print.testflow <- function(x, ...) {
   tf_with_cli_colors({
@@ -69,7 +71,7 @@ print_assumption_line <- function(assumptions) {
   } else {
     assumptions$name <- ifelse(is.na(assumptions$name) | !nzchar(as.character(assumptions$name)), paste0("Assumption ", seq_len(nrow(assumptions))), assumptions$name)
   }
-  assumptions <- dplyr::select(assumptions, any_of(c("name", "status", "message", "method", "statistic", "p_value", "details")))
+  assumptions <- dplyr::select(assumptions, dplyr::any_of(c("name", "status", "message", "method", "statistic", "p_value", "details")))
   purrr::pwalk(assumptions, function(name, status, message, method, statistic, p_value, details) {
     line <- paste0(tf_label(name), " ", tf_value(status), ": ", message)
     extras <- c()
@@ -116,6 +118,10 @@ format_primary_result <- function(x) {
 #'
 #' @param object A testflow object.
 #' @param ... Unused.
+#' @return A `summary.testflow` list containing the workflow metadata,
+#' descriptives, assumptions, recommended test, primary and alternative test
+#' results, post-hoc results when available, effect size, decision, and report
+#' text.
 #' @export
 summary.testflow <- function(object, ...) {
   out <- list(

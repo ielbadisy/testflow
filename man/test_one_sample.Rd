@@ -29,6 +29,13 @@ test_one_sample(
 
 \item{na.rm}{Logical; remove missing values.}
 }
+\value{
+A \code{testflow} object with class \code{testflow_one_sample}. The object is
+a list containing the cleaned data, descriptive statistics, assumption
+checks, recommended test, primary test result with null hypothesis,
+alternative test results, effect size, optional \code{ggplot}, original call, and
+report text.
+}
 \description{
 Test one numeric sample against a reference value
 }

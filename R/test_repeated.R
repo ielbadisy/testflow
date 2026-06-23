@@ -6,6 +6,12 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @return A `testflow` object with class `testflow_repeated`. The object is a
+#' list containing long-form repeated-measures data, numeric descriptives,
+#' assumption checks, recommended repeated-measures ANOVA or Friedman test,
+#' primary test result with null hypothesis, alternative repeated-measures
+#' results, post-hoc paired comparisons, effect size, optional `ggplot`,
+#' original call, and report text.
 #' @references
 #' Fisher, R. A. (1925). \emph{Statistical Methods for Research Workers}.
 #' Oliver and Boyd.
@@ -38,6 +44,12 @@ test_repeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.0
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @return A `testflow` object with class `testflow_repeated`. The object is a
+#' list containing the cleaned long-format data, numeric descriptives,
+#' assumption checks, recommended repeated-measures ANOVA or Friedman test,
+#' primary test result with null hypothesis, alternative repeated-measures
+#' results, post-hoc paired comparisons, effect size, optional `ggplot`,
+#' original call, and report text.
 #' @export
 test_repeated_long <- function(data, outcome, within, id, between = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))

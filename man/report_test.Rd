@@ -9,6 +9,10 @@ report_test(x)
 \arguments{
 \item{x}{A testflow object.}
 }
+\value{
+A length-one character vector containing the same report text as
+\code{\link[=report]{report()}} for a \code{testflow} object.
+}
 \description{
 Return a ready-to-use testflow report
 }

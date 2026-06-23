@@ -11,6 +11,11 @@ report(x, ...)
 
 \item{...}{Unused.}
 }
+\value{
+A length-one character vector containing a plain-language summary of
+the workflow result, including the design, recommended test, p-value, effect
+size when reported, and null hypothesis when available.
+}
 \description{
 Return a ready-to-use testflow report
 }

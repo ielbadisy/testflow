@@ -5,6 +5,10 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @return A `testflow` object with class `testflow_paired_categorical`. The
+#' object is a list containing the cleaned paired categorical data, categorical
+#' descriptives, assumption checks, McNemar test result, discordant-pair table,
+#' optional `ggplot`, original call, and report text.
 #' @export
 test_paired_categorical <- function(data, before, after, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   before_nm <- rlang::as_name(rlang::ensym(before)); after_nm <- rlang::as_name(rlang::ensym(after))

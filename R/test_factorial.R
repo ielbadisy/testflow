@@ -6,6 +6,11 @@
 #' @param type ANOVA type placeholder for future car integration.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @return A `testflow` object with class `testflow_factorial`. The object is a
+#' list containing the cleaned data, descriptive statistics, residual and
+#' variance assumption checks, recommended factorial ANOVA, primary ANOVA term
+#' result with null hypothesis, ANOVA table, effect size, optional `ggplot`,
+#' original call, and report text.
 #' @references
 #' Fisher, R. A. (1925). \emph{Statistical Methods for Research Workers}.
 #' Oliver and Boyd.
