@@ -2,7 +2,7 @@
 #' @param data A data frame.
 #' @param vars Numeric columns.
 #' @param group Optional grouping column.
-#' @keywords internal
+#' @noRd
 descriptives_numeric <- function(data, vars, group = NULL) {
   vars <- as.character(vars)
   if (is.null(group)) {
@@ -49,7 +49,7 @@ descriptives_numeric <- function(data, vars, group = NULL) {
 #' Categorical descriptive statistics
 #' @param data A data frame.
 #' @param vars Categorical columns.
-#' @keywords internal
+#' @noRd
 descriptives_categorical <- function(data, vars) {
   vars <- as.character(vars)
   purrr::map_dfr(vars, function(v) {

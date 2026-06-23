@@ -26,6 +26,14 @@ test_correlation_matrix(
 
 \item{na.rm}{Logical; remove missing values.}
 }
+\value{
+A \code{testflow} object with class \code{testflow_correlation_matrix}. The
+object is a list containing the cleaned data, numeric descriptives,
+screening assumptions, selected correlation-matrix method, pairwise
+correlation matrix, pairwise p-value table, maximum absolute correlation as
+an effect-size summary, optional heatmap \code{ggplot}, original call, and report
+text.
+}
 \description{
 Test a correlation matrix
 }

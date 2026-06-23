@@ -29,6 +29,14 @@ test_repeated(
 
 \item{na.rm}{Logical; remove missing values.}
 }
+\value{
+A \code{testflow} object with class \code{testflow_repeated}. The object is a
+list containing long-form repeated-measures data, numeric descriptives,
+assumption checks, recommended repeated-measures ANOVA or Friedman test,
+primary test result with null hypothesis, alternative repeated-measures
+results, post-hoc paired comparisons, effect size, optional \code{ggplot},
+original call, and report text.
+}
 \description{
 Run a repeated-measures workflow from wide data
 }

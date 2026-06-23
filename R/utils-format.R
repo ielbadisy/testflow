@@ -1,5 +1,5 @@
 #' Format a p-value
-#' @keywords internal
+#' @noRd
 format_p <- function(p, digits = 3) {
   ifelse(
     is.na(p), NA_character_,
@@ -12,13 +12,13 @@ format_p <- function(p, digits = 3) {
 }
 
 #' Format a statistic
-#' @keywords internal
+#' @noRd
 format_stat <- function(x, digits = 2) {
   ifelse(is.na(x), NA_character_, formatC(x, format = "f", digits = digits))
 }
 
 #' Classify Cohen's d magnitude
-#' @keywords internal
+#' @noRd
 magnitude_cohens_d <- function(d) {
   ad <- abs(d)
   dplyr::case_when(
@@ -31,7 +31,7 @@ magnitude_cohens_d <- function(d) {
 }
 
 #' Classify eta squared magnitude
-#' @keywords internal
+#' @noRd
 magnitude_eta2 <- function(eta2) {
   dplyr::case_when(
     is.na(eta2) ~ NA_character_,
@@ -43,7 +43,7 @@ magnitude_eta2 <- function(eta2) {
 }
 
 #' Classify Cramer's V magnitude
-#' @keywords internal
+#' @noRd
 magnitude_cramers_v <- function(v) {
   dplyr::case_when(
     is.na(v) ~ NA_character_,

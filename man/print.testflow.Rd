@@ -11,6 +11,10 @@
 
 \item{...}{Unused.}
 }
+\value{
+The input \code{testflow} object, invisibly. Called for its side effect of
+printing a formatted workflow summary to the console.
+}
 \description{
 Print a testflow object.
 }
