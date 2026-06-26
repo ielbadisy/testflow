@@ -8,3 +8,6 @@
 ^[.]git$
 ^[.]github$
 ^[.]Rproj[.]user$
+
+^vignettes/.*[.]html$
+^inst/doc/.*[.]html$
