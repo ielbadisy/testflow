@@ -41,6 +41,7 @@ sample_size_binary(
   p1,
   p2,
   margin = NULL,
+  method = c("pooled", "anticipated"),
   discordant_or = NULL,
   discordance_rate = NULL,
   p10 = NULL,
@@ -49,8 +50,7 @@ sample_size_binary(
   power = 0.9,
   allocation = 1,
   dropout = 0,
-  n_time = 2,
-  correlation = 0.5
+  n_time = 2
 )
 
 sample_size_survival(
@@ -89,6 +89,7 @@ sample_size_adjust_dropout(n, dropout = 0)
 \item{sd_diff}{Paired-difference standard deviation.}
 \item{expected_difference}{Planned difference from the null boundary.}
 \item{margin}{Non-inferiority or equivalence margin on the risk-difference or continuous scale.}
+\item{method}{For \code{sample_size_binary()}, the parallel superiority variance estimator: \code{pooled} (null variance) or \code{anticipated} (alternative-hypothesis variance). For \code{sample_size_survival()}, the event-count method: \code{exponential} or \code{ph_only}.}
 \item{p1, p2}{Anticipated binary response probabilities.}
 \item{discordant_or}{Discordant odds ratio for paired binary planning.}
 \item{discordance_rate}{Probability of a discordant pair.}
@@ -102,15 +103,16 @@ sample_size_adjust_dropout(n, dropout = 0)
 \item{power}{Target power.}
 \item{allocation}{Allocation ratio \eqn{n_B / n_A}.}
 \item{dropout}{Expected dropout proportion.}
+\item{n_time}{Number of repeated measures.}
 \item{correlation}{Within-subject correlation for repeated measures when \code{design = "repeated"} and \code{n_time > 2}.}
-\item{method}{Survival event-count method.}
 \item{n}{Evaluable sample size before dropout adjustment.}
+\item{...}{Endpoint-specific arguments passed to the selected helper.}
 }
 \value{
-A \code{sample_size} object with the raw sample size, dropout-adjusted sample size, formula label, reference, report text, and a plot-ready summary.
+A \code{sample_size} object with the raw sample size, dropout-adjusted sample size, method label, assumptions, report text, and a plot-ready summary. Formulas and literature references are documented in the individual function help pages, not returned in the object.
 }
 \description{
-Planning functions for common trial designs using formulas drawn from Julious \emph{Sample Sizes for Clinical Trials}.
+Planning functions for common trial designs across continuous, binary, survival, and ordinal endpoints.
 }
 \details{
 The implementation currently covers:
@@ -122,6 +124,11 @@ The implementation currently covers:
 }
 
 The helper \code{sample_size_adjust_dropout()} applies \eqn{\lceil n / (1 - d) \rceil}.
+
+See the individual function help pages (e.g. \code{?sample_size_continuous}) for the underlying formulas and their literature references.
+}
+\references{
+Julious SA. \emph{Sample Sizes for Clinical Trials}. Chapman & Hall/CRC; 2010.
 }
 \examples{
 sample_size_continuous(

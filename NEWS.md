@@ -1,5 +1,30 @@
 # testflow 0.8.2
 
+## Sample size planning
+
+- Fixed `sample_size_survival()` understating total sample size by a factor
+  of 2 whenever `survival_a`/`survival_b` were supplied: the events-to-N
+  conversion now correctly applies `N_total = 2 * D_total / (qA + qB)`
+  instead of `D_total / (qA + qB)`. This affected superiority,
+  non-inferiority, and equivalence planning alike.
+- Fixed the sample-size power curve for paired and repeated-measures
+  continuous superiority planning, which used a two-sample (parallel-group)
+  power formula on a one-sample (paired-difference) result and understated
+  plotted power at the target sample size.
+- Fixed `sample_size_binary(objective = "equivalence")` silently ignoring
+  the `allocation` ratio when `p1 == p2`, which produced incorrect per-group
+  sizes for unequal allocation designs.
+- Fixed `plot(x, type = "curve")` and `plot(x, type = "both")` erroring for
+  every `sample_size` object with curve data: a local tibble column named
+  `x` shadowed the `x` (sample-size object) argument during construction.
+- Moved sample-size formulas and literature references out of the values
+  returned by `sample_size()` and its helpers and into the function
+  documentation (`?sample_size_continuous`, etc.), consistent with normal R
+  package conventions. `summary()`, `print()`, and `as_tibble()` output no
+  longer carries a `formula`/`reference` field.
+- Added a "Sample size planning" vignette walking through the supported
+  endpoints, designs, and objectives with worked examples.
+
 ## Outlier workflow
 
 - Standardized `test_outliers()` on the same `test_*(formula, data, ...)`
