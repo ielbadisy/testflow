@@ -299,6 +299,8 @@ result$formula
 result$reference
 report(result)
 plot(result)
+plot(result, type = "curve")
+plot(result, type = "summary")
 as_tibble(result)
 ```
 
@@ -331,6 +333,7 @@ repeated_ss <- sample_size_continuous(
 
 repeated_ss
 plot(repeated_ss)
+plot(repeated_ss, type = "curve")
 ```
 
 The formulas and reporting language are based on:
