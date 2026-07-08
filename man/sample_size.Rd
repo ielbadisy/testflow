@@ -31,7 +31,8 @@ sample_size_continuous(
   power = 0.9,
   allocation = 1,
   dropout = 0,
-  n_time = 2
+  n_time = 2,
+  correlation = 0.5
 )
 
 sample_size_binary(
@@ -48,7 +49,8 @@ sample_size_binary(
   power = 0.9,
   allocation = 1,
   dropout = 0,
-  n_time = 2
+  n_time = 2,
+  correlation = 0.5
 )
 
 sample_size_survival(
@@ -100,6 +102,7 @@ sample_size_adjust_dropout(n, dropout = 0)
 \item{power}{Target power.}
 \item{allocation}{Allocation ratio \eqn{n_B / n_A}.}
 \item{dropout}{Expected dropout proportion.}
+\item{correlation}{Within-subject correlation for repeated measures when \code{design = "repeated"} and \code{n_time > 2}.}
 \item{method}{Survival event-count method.}
 \item{n}{Evaluable sample size before dropout adjustment.}
 }
@@ -112,7 +115,7 @@ Planning functions for common trial designs using formulas drawn from Julious \e
 \details{
 The implementation currently covers:
 \itemize{
-\item Continuous endpoints: parallel and paired superiority, non-inferiority, and equivalence.
+\item Continuous endpoints: parallel and paired superiority, non-inferiority, and equivalence, plus repeated-measures approximation for 3+ time points.
 \item Binary endpoints: parallel risk-difference planning, paired discordant-pair planning, non-inferiority, and equivalence.
 \item Survival endpoints: event-based superiority, non-inferiority, and equivalence.
 \item Ordinal endpoints: Noether's superiority approximation.
@@ -135,6 +138,17 @@ sample_size_binary(
   objective = "superiority",
   p10 = 0.2,
   p01 = 0.1,
+  alpha = 0.05,
+  power = 0.90
+)
+
+sample_size_continuous(
+  design = "repeated",
+  n_time = 4,
+  correlation = 0.5,
+  objective = "superiority",
+  delta = 5,
+  sd_diff = 10,
   alpha = 0.05,
   power = 0.90
 )
