@@ -254,6 +254,74 @@ sumtab(~ age + sex + sbp_3m | treatment, cardio, p_value = TRUE)
 #> # ℹ 3 more variables: `medication (n = 54)` <chr>, p.value <chr>, test <chr>
 ```
 
+## Sample Size Planning
+
+`testflow` now includes planning functions for common sample-size problems.
+The API is organized by endpoint family, design, and objective:
+
+``` r
+sample_size(
+  endpoint = "continuous",
+  design = "parallel",
+  objective = "superiority",
+  delta = 5,
+  sd = 10,
+  alpha = 0.05,
+  power = 0.90
+)
+```
+
+Current helpers:
+
+``` r
+sample_size_continuous()
+sample_size_binary()
+sample_size_survival()
+sample_size_ordinal()
+sample_size_adjust_dropout()
+```
+
+Supported planning settings:
+
+| Endpoint | Supported design(s) | Supported objective(s) | Formula family |
+|---|---|---|---|
+| Continuous | parallel, paired, repeated(2 time points) | superiority, non-inferiority, equivalence | normal-approximation formulas for mean difference and paired differences |
+| Binary | parallel, paired, repeated(2 time points) | superiority, non-inferiority, equivalence | risk-difference planning and discordant-pair planning |
+| Survival | parallel | superiority, non-inferiority, equivalence | event-based proportional hazards planning |
+| Ordinal | parallel | superiority | Noether approximation |
+
+The result object exposes:
+
+``` r
+result$n
+result$n_adjusted
+result$formula
+result$reference
+report(result)
+plot(result)
+as_tibble(result)
+```
+
+Example:
+
+``` r
+paired_ss <- sample_size_continuous(
+  design = "paired",
+  objective = "superiority",
+  delta = 5,
+  sd_diff = 10,
+  alpha = 0.05,
+  power = 0.90
+)
+
+paired_ss
+plot(paired_ss)
+```
+
+The formulas and reporting language are based on:
+
+Julious, S. A. (2010). *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC.
+
 ## Common Workflows
 
 Use formulas when there is an outcome and a grouping, predictor, or
