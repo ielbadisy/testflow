@@ -41,6 +41,8 @@ sample_size <- function(endpoint = c("continuous", "binary", "survival", "ordina
 #' @param allocation Allocation ratio `n_B / n_A` for parallel designs.
 #' @param dropout Expected dropout proportion.
 #' @param n_time Number of repeated measures.
+#' @param correlation Within-subject correlation for repeated measures when
+#'   `design = "repeated"` and `n_time > 2`.
 #' @return A `sample_size` object.
 #' @export
 sample_size_continuous <- function(
@@ -55,7 +57,8 @@ sample_size_continuous <- function(
   power = 0.90,
   allocation = 1,
   dropout = 0,
-  n_time = 2
+  n_time = 2,
+  correlation = 0.5
 ) {
   design <- match.arg(design)
   objective <- match.arg(objective)
@@ -63,18 +66,31 @@ sample_size_continuous <- function(
   sample_size_validate_probability(power, "power")
   sample_size_validate_dropout(dropout)
   sample_size_validate_positive(allocation, "allocation")
-  if (design == "repeated" && n_time > 2) {
-    stop("Repeated-measures sample size is currently supported only when `n_time = 2`.", call. = FALSE)
+  sample_size_validate_probability(correlation, "correlation", allow_zero = TRUE)
+  if (design == "repeated" && n_time < 2) {
+    stop("Repeated-measures sample size requires at least 2 time points.", call. = FALSE)
   }
 
   z_power <- stats::qnorm(power)
   z_alpha_two <- stats::qnorm(1 - alpha / 2)
   z_alpha_one <- stats::qnorm(1 - alpha)
   paired_design <- design %in% c("paired", "repeated")
+  repeated_design <- identical(design, "repeated") && n_time > 2
+  design_label <- if (repeated_design) {
+    paste0("repeated (", n_time, " time points)")
+  } else if (design == "repeated") {
+    "paired (two time points)"
+  } else {
+    "paired"
+  }
+  planning_label <- if (repeated_design) "subjects" else "pairs"
 
   if (paired_design) {
     scale_sd <- sd_diff %||% sd
     sample_size_validate_positive(scale_sd, "sd_diff")
+    if (repeated_design) {
+      scale_sd <- sample_size_repeated_effective_sd(scale_sd, n_time = n_time, correlation = correlation)
+    }
 
     if (objective == "superiority") {
       sample_size_validate_positive(delta, "delta")
@@ -83,25 +99,38 @@ sample_size_continuous <- function(
       n_adj <- sample_size_apply_dropout(n_main, dropout)
       return(sample_size_result(
         endpoint = "continuous",
-        design = if (design == "repeated") "paired (two time points)" else "paired",
+        design = design_label,
         objective = objective,
-        method = "paired normal approximation",
+        method = if (repeated_design) "repeated-measures normal approximation" else "paired normal approximation",
         n = n_raw,
         n_adjusted = n_adj,
         n_total = n_adj,
         assumptions = sample_size_assumptions(
-          "Paired observations are assumed.",
-          paste0("Paired-difference SD = ", format_sample_value(scale_sd), ".")
+          if (repeated_design) {
+            paste0("Repeated measurements from the same subject are assumed (", n_time, " time points).")
+          } else {
+            "Paired observations are assumed."
+          },
+          paste0("Effective SD = ", format_sample_value(scale_sd), "."),
+          if (repeated_design) paste0("Within-subject correlation = ", format_sample_value(correlation), ".") else NULL
         ),
         formula = "n = ((z_{1-alpha/2} + z_{1-beta})^2 * sd_diff^2) / delta^2",
         reference = SAMPLE_SIZE_REFERENCE,
         report = paste0(
-          "Paired continuous superiority sample size was calculated with delta = ",
+          if (repeated_design) "Repeated-measures continuous superiority sample size was calculated with delta = " else "Paired continuous superiority sample size was calculated with delta = ",
           format_sample_value(delta), ", sd_diff = ", format_sample_value(scale_sd),
           ", alpha = ", format_sample_value(alpha), ", power = ", format_sample_value(power),
-          "; required pairs = ", format_sample_count(n_adj), "."
+          "; required ", planning_label, " = ", format_sample_count(n_adj), "."
         ),
-        plot_data = sample_size_plot_frame("Required pairs", n_raw, n_adj)
+        plot_data = sample_size_plot_frame(paste0("Required ", planning_label), n_raw, n_adj),
+        curve_data = sample_size_curve_bundle(
+          n_target = n_adj,
+          power_target = power,
+          n_grid = sample_size_curve_grid(n_adj),
+          power_grid = sample_size_curve_power_continuous_superiority(sample_size_curve_grid(n_adj), delta, scale_sd, alpha = alpha),
+          unit_label = "sample size",
+          power_label = "test power = 1 - \u03b2"
+        )
       ))
     }
 
@@ -116,24 +145,30 @@ sample_size_continuous <- function(
       n_adj <- sample_size_apply_dropout(n_main, dropout)
       return(sample_size_result(
         endpoint = "continuous",
-        design = if (design == "repeated") "paired (two time points)" else "paired",
+        design = design_label,
         objective = objective,
-        method = "paired non-inferiority normal approximation",
+        method = if (repeated_design) "repeated-measures non-inferiority normal approximation" else "paired non-inferiority normal approximation",
         n = n_raw,
         n_adjusted = n_adj,
         n_total = n_adj,
         assumptions = sample_size_assumptions(
-          "Paired observations are assumed.",
+          if (repeated_design) {
+            paste0("Repeated measurements from the same subject are assumed (", n_time, " time points).")
+          } else {
+            "Paired observations are assumed."
+          },
+          paste0("Effective SD = ", format_sample_value(scale_sd), "."),
+          if (repeated_design) paste0("Within-subject correlation = ", format_sample_value(correlation), ".") else NULL,
           paste0("Distance to the non-inferiority boundary = ", format_sample_value(d_ni), ".")
         ),
         formula = "n = ((z_{1-alpha} + z_{1-beta})^2 * sd_diff^2) / (expected_difference + margin)^2",
         reference = SAMPLE_SIZE_REFERENCE,
         report = paste0(
-          "Paired continuous non-inferiority sample size was calculated with expected_difference = ",
+          if (repeated_design) "Repeated-measures continuous non-inferiority sample size was calculated with expected_difference = " else "Paired continuous non-inferiority sample size was calculated with expected_difference = ",
           format_sample_value(expected_difference), ", margin = ", format_sample_value(delta),
-          ", sd_diff = ", format_sample_value(scale_sd), "; required pairs = ", format_sample_count(n_adj), "."
+          ", sd_diff = ", format_sample_value(scale_sd), "; required ", planning_label, " = ", format_sample_count(n_adj), "."
         ),
-        plot_data = sample_size_plot_frame("Required pairs", n_raw, n_adj)
+        plot_data = sample_size_plot_frame(paste0("Required ", planning_label), n_raw, n_adj)
       ))
     }
 
@@ -155,24 +190,30 @@ sample_size_continuous <- function(
       n_adj <- sample_size_apply_dropout(n_main, dropout)
       return(sample_size_result(
         endpoint = "continuous",
-        design = if (design == "repeated") "paired (two time points)" else "paired",
+        design = design_label,
         objective = objective,
-        method = "paired equivalence approximation",
+        method = if (repeated_design) "repeated-measures equivalence approximation" else "paired equivalence approximation",
         n = n_raw,
         n_adjusted = n_adj,
         n_total = n_adj,
         assumptions = sample_size_assumptions(
-          "Paired observations are assumed.",
+          if (repeated_design) {
+            paste0("Repeated measurements from the same subject are assumed (", n_time, " time points).")
+          } else {
+            "Paired observations are assumed."
+          },
+          paste0("Effective SD = ", format_sample_value(scale_sd), "."),
+          if (repeated_design) paste0("Within-subject correlation = ", format_sample_value(correlation), ".") else NULL,
           paste0("Distance to the nearest equivalence boundary = ", format_sample_value(d_eq), ".")
         ),
         formula = formula_text,
         reference = SAMPLE_SIZE_REFERENCE,
         report = paste0(
-          "Paired continuous equivalence sample size was calculated with expected_difference = ",
+          if (repeated_design) "Repeated-measures continuous equivalence sample size was calculated with expected_difference = " else "Paired continuous equivalence sample size was calculated with expected_difference = ",
           format_sample_value(expected_difference), ", margin = ", format_sample_value(delta),
-          ", sd_diff = ", format_sample_value(scale_sd), "; required pairs = ", format_sample_count(n_adj), "."
+          ", sd_diff = ", format_sample_value(scale_sd), "; required ", planning_label, " = ", format_sample_count(n_adj), "."
         ),
-        plot_data = sample_size_plot_frame("Required pairs", n_raw, n_adj)
+        plot_data = sample_size_plot_frame(paste0("Required ", planning_label), n_raw, n_adj)
       ))
     }
 
@@ -754,25 +795,63 @@ sample_size_adjust_dropout <- function(n, dropout = 0) {
 #' Plot a sample size object
 #'
 #' @param x A sample-size object returned by `sample_size()`.
+#' @param type Plot style: `both`, `curve`, or `summary`.
 #' @param ... Unused.
-#' @return A `ggplot2` object.
+#' @return A `ggplot2` object, or a combined patchwork object when `type =
+#'   "both"`.
 #' @export
-plot.sample_size <- function(x, ...) {
-  if (is.null(x$plot_data) || !nrow(x$plot_data)) {
-    return(NULL)
+plot.sample_size <- function(x, type = c("both", "curve", "summary"), ...) {
+  type <- match.arg(type)
+  summary_plot <- NULL
+  curve_plot <- NULL
+
+  if (type != "curve" && !is.null(x$plot_data) && nrow(x$plot_data)) {
+    summary_plot <- ggplot2::ggplot(x$plot_data, ggplot2::aes(x = .data$label, y = .data$value, fill = .data$type)) +
+      ggplot2::geom_col(width = 0.7, color = "white", position = ggplot2::position_dodge(width = 0.75)) +
+      ggplot2::geom_text(ggplot2::aes(label = .data$display), vjust = -0.35, size = 3.6, position = ggplot2::position_dodge(width = 0.75)) +
+      ggplot2::labs(
+        title = paste0("Sample size planning: ", x$endpoint, " / ", x$design),
+        subtitle = paste0(x$objective, " using ", x$method),
+        x = NULL,
+        y = "Sample size"
+      ) +
+      ggplot2::scale_fill_manual(values = c(raw = "#4C78A8", adjusted = "#F58518")) +
+      ggplot2::theme_minimal() +
+      ggplot2::theme(legend.position = "none")
   }
-  ggplot2::ggplot(x$plot_data, ggplot2::aes(x = .data$label, y = .data$value, fill = .data$type)) +
-    ggplot2::geom_col(width = 0.7, color = "white", position = ggplot2::position_dodge(width = 0.75)) +
-    ggplot2::geom_text(ggplot2::aes(label = .data$display), vjust = -0.35, size = 3.6, position = ggplot2::position_dodge(width = 0.75)) +
-    ggplot2::labs(
-      title = paste0("Sample size planning: ", x$endpoint, " / ", x$design),
-      subtitle = paste0(x$objective, " using ", x$method),
-      x = NULL,
-      y = "Sample size"
-    ) +
-    ggplot2::scale_fill_manual(values = c(raw = "#4C78A8", adjusted = "#F58518")) +
-    ggplot2::theme_minimal() +
-    ggplot2::theme(legend.position = "none")
+
+  if (type != "summary" && !is.null(x$curve_data) && is.data.frame(x$curve_data) && nrow(x$curve_data)) {
+    label_df <- tibble::tibble(
+      x = x$curve_data$target_n[1],
+      y = max(x$curve_data$power, na.rm = TRUE) * 0.18,
+      label = paste0("optimal sample size\nn = ", format_sample_count(x$curve_data$target_n[1]))
+    )
+    curve_plot <- ggplot2::ggplot(x$curve_data, ggplot2::aes(x = .data$n, y = .data$power)) +
+      ggplot2::geom_line(color = "#4C78A8", linewidth = 1.0) +
+      ggplot2::geom_point(color = "#1f1f1f", size = 1.9) +
+      ggplot2::geom_vline(xintercept = x$curve_data$target_n[1], linetype = "dotted", color = "#5B5BD6", linewidth = 0.9) +
+      ggplot2::geom_label(data = label_df, ggplot2::aes(x = .data$x, y = .data$y, label = .data$label), inherit.aes = FALSE, hjust = 0, vjust = 0, label.size = 0, fill = "white", alpha = 0.85, color = "#5B5BD6") +
+      ggplot2::geom_hline(yintercept = x$curve_data$power_target[1], linetype = "dashed", color = "#F58518", linewidth = 0.7) +
+      ggplot2::scale_y_continuous(labels = function(x) paste0(formatC(100 * x, format = "f", digits = 0), "%"), limits = c(0, 1.05)) +
+      ggplot2::labs(
+        title = paste0("Sample size planning: ", x$endpoint, " / ", x$design),
+        subtitle = paste0(x$objective, " using ", x$method, " | ", x$curve_data$power_label[1]),
+        x = x$curve_data$n_label[1],
+        y = "test power = 1 - \u03b2"
+      ) +
+      ggplot2::theme_minimal() +
+      ggplot2::theme(panel.grid.minor = ggplot2::element_blank())
+  }
+
+  if (type == "summary") return(summary_plot)
+  if (type == "curve") return(curve_plot %||% summary_plot)
+  if (!is.null(curve_plot) && !is.null(summary_plot)) {
+    if (requireNamespace("patchwork", quietly = TRUE)) {
+      return(patchwork::wrap_plots(curve_plot, summary_plot, ncol = 1))
+    }
+    return(curve_plot)
+  }
+  curve_plot %||% summary_plot
 }
 
 #' Print a sample size object
@@ -903,7 +982,7 @@ report.sample_size <- function(x, ...) {
 
 SAMPLE_SIZE_REFERENCE <- "Julious SA. Sample Sizes for Clinical Trials. Chapman & Hall/CRC; 2010."
 
-sample_size_result <- function(endpoint, design, objective, method, n, n_adjusted, n_per_group = NULL, n_total = NULL, required_events = NULL, assumptions = NULL, formula, reference, report, plot_data = NULL) {
+sample_size_result <- function(endpoint, design, objective, method, n, n_adjusted, n_per_group = NULL, n_total = NULL, required_events = NULL, assumptions = NULL, formula, reference, report, plot_data = NULL, curve_data = NULL) {
   x <- list(
     endpoint = endpoint,
     design = design,
@@ -918,7 +997,8 @@ sample_size_result <- function(endpoint, design, objective, method, n, n_adjuste
     formula = formula,
     reference = reference,
     report = report,
-    plot_data = plot_data
+    plot_data = plot_data,
+    curve_data = curve_data
   )
   class(x) <- c("sample_size", "testflow_sample_size")
   x
@@ -932,6 +1012,39 @@ sample_size_plot_frame <- function(labels, raw_values, adjusted_values) {
   raw_df <- tibble::tibble(label = labels, type = "raw", value = as.numeric(raw_values), display = vapply(raw_values, format_sample_size_value, character(1)))
   adj_df <- tibble::tibble(label = labels, type = "adjusted", value = as.numeric(adjusted_values), display = vapply(adjusted_values, format_sample_size_value, character(1)))
   dplyr::bind_rows(raw_df, adj_df)
+}
+
+sample_size_curve_bundle <- function(n_target, power_target, n_grid, power_grid, unit_label, power_label) {
+  tibble::tibble(
+    n = as.numeric(n_grid),
+    power = as.numeric(power_grid),
+    target_n = as.numeric(n_target),
+    power_target = as.numeric(power_target),
+    n_label = unit_label,
+    power_label = power_label
+  )
+}
+
+sample_size_curve_grid <- function(n_target, n_min = NULL, n_max = NULL, length.out = 20) {
+  n_target <- max(1, as.numeric(n_target))
+  if (is.null(n_min)) n_min <- max(2, floor(n_target * 0.25))
+  if (is.null(n_max)) n_max <- max(10, ceiling(n_target * 1.35))
+  seq.int(n_min, n_max, length.out = length.out)
+}
+
+sample_size_curve_power_continuous_superiority <- function(n, delta, sd, allocation = 1, alpha = 0.05) {
+  sample_size_validate_positive(delta, "delta")
+  sample_size_validate_positive(sd, "sd")
+  sample_size_validate_positive(allocation, "allocation")
+  z_alpha <- stats::qnorm(1 - alpha / 2)
+  stats::pnorm(sqrt(n * allocation / (allocation + 1)) * delta / sd - z_alpha)
+}
+
+sample_size_repeated_effective_sd <- function(sd, n_time, correlation) {
+  sample_size_validate_positive(sd, "sd")
+  sample_size_validate_positive(n_time, "n_time")
+  sample_size_validate_probability(correlation, "correlation", allow_zero = TRUE)
+  sd * sqrt((1 + (n_time - 1) * correlation) / n_time)
 }
 
 sample_size_assumptions <- function(...) {

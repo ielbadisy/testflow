@@ -27,6 +27,21 @@ test_that("continuous sample size supports paired and parallel planning", {
   )
   expect_equal(y$n_adjusted, 43)
   expect_true(grepl("paired normal approximation", y$method, fixed = TRUE))
+
+  r <- sample_size_continuous(
+    design = "repeated",
+    n_time = 4,
+    correlation = 0.5,
+    objective = "superiority",
+    delta = 5,
+    sd_diff = 10,
+    alpha = 0.05,
+    power = 0.90
+  )
+  expect_equal(r$design, "repeated (4 time points)")
+  expect_true(grepl("repeated-measures normal approximation", r$method, fixed = TRUE))
+  expect_equal(r$n_adjusted, 27)
+  expect_true(inherits(plot(r, type = "summary"), "ggplot"))
 })
 
 test_that("binary paired planning uses discordant pairs", {

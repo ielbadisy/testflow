@@ -204,7 +204,7 @@ Supported planning settings:
 
 | Endpoint | Supported design(s) | Supported objective(s) | Formula family |
 |---|---|---|---|
-| Continuous | parallel, paired, repeated(2 time points) | superiority, non-inferiority, equivalence | normal-approximation formulas for mean difference and paired differences |
+| Continuous | parallel, paired, repeated(2+ time points) | superiority, non-inferiority, equivalence | normal-approximation formulas for mean difference and repeated-measures approximations |
 | Binary | parallel, paired, repeated(2 time points) | superiority, non-inferiority, equivalence | risk-difference planning and discordant-pair planning |
 | Survival | parallel | superiority, non-inferiority, equivalence | event-based proportional hazards planning |
 | Ordinal | parallel | superiority | Noether approximation |
@@ -223,6 +223,21 @@ paired_ss <- sample_size_continuous(
 
 paired_ss
 plot(paired_ss)
+plot(paired_ss, type = "summary")
+
+repeated_ss <- sample_size_continuous(
+  design = "repeated",
+  n_time = 4,
+  correlation = 0.5,
+  objective = "superiority",
+  delta = 5,
+  sd_diff = 10,
+  alpha = 0.05,
+  power = 0.90
+)
+
+repeated_ss
+plot(repeated_ss)
 ```
 
 The formulas and reporting language are based on:
