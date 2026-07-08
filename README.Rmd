@@ -238,6 +238,7 @@ repeated_ss <- sample_size_continuous(
 
 repeated_ss
 plot(repeated_ss)
+plot(repeated_ss, type = "curve")
 ```
 
 The formulas and reporting language are based on:
