@@ -1,0 +1,478 @@
+---
+title: "Sample size: complete API reference and formulas"
+output: rmarkdown::pdf_document
+vignette: >
+  %\VignetteIndexEntry{Sample size: complete API reference and formulas}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = TRUE)
+```
+
+```{r setup}
+library(testflow)
+```
+
+## Purpose
+
+The "Sample size planning" vignette introduces the `sample_size()` API and
+its main use cases. This vignette is a complete reference: every
+`design`/`objective`/`method` combination each planning function accepts,
+paired with the exact formula it evaluates, and a runnable example. Use it
+as a lookup table when you already know which planning function you need
+and want to see (or check) precisely what it computes.
+
+Notation used throughout, matching the function documentation:
+
+- \(\alpha\): type I error rate; \(1-\beta\): power.
+- \(z_{1-\alpha}\), \(z_{1-\alpha/2}\): one- and two-sided standard normal
+  quantiles; \(z_{1-\beta}\): power quantile.
+- \(r = n_B/n_A\): allocation ratio (`allocation`), with \(n_B = rn_A\).
+- Dropout adjustment is always \(n_{recruit} = \lceil n_{eval}/(1-d)\rceil\).
+
+Superiority tests use two-sided \(\alpha\); non-inferiority and equivalence
+use one-sided \(\alpha\) (pass `alpha = 0.025` for a one-sided-0.025 design,
+or keep `alpha = 0.05` for a one-sided-0.05 design — `testflow` does not
+rescale `alpha` for you).
+
+## `sample_size_continuous()`
+
+```{r, eval = FALSE}
+sample_size_continuous(
+  design = c("parallel", "paired", "repeated"),
+  objective = c("superiority", "noninferiority", "equivalence"),
+  delta = NULL, sd = NULL, sd_diff = NULL, expected_difference = 0,
+  margin = NULL, alpha = 0.05, power = 0.90, allocation = 1, dropout = 0,
+  n_time = 2, correlation = 0.5
+)
+```
+
+`delta` doubles as the superiority effect size *or* the non-inferiority/
+equivalence margin, depending on `objective`; `expected_difference` is the
+planned/observed difference \(\Delta\) used only for non-inferiority and
+equivalence.
+
+### `design = "parallel"`
+
+#### `objective = "superiority"`
+
+\[
+n_A = \frac{(r+1)\sigma^2(z_{1-\beta}+z_{1-\alpha/2})^2}{r\Delta^2},
+\qquad n_B = rn_A
+\]
+
+```{r}
+sample_size_continuous(
+  design = "parallel", objective = "superiority",
+  delta = 5, sd = 10, allocation = 1, alpha = 0.05, power = 0.90
+)
+```
+
+#### `objective = "noninferiority"`
+
+With \(d_{NI} = \Delta + \delta\) (`delta` is the margin \(\delta\)),
+requiring \(d_{NI} > 0\):
+
+\[
+n_A = \frac{(r+1)\sigma^2(z_{1-\beta}+z_{1-\alpha})^2}{rd_{NI}^2}
+\]
+
+```{r}
+sample_size_continuous(
+  design = "parallel", objective = "noninferiority",
+  delta = 2, expected_difference = 0.5, sd = 10, alpha = 0.025, power = 0.90
+)
+```
+
+#### `objective = "equivalence"`
+
+General case, with \(d_{EQ} = \delta - |\Delta|\), requiring \(d_{EQ} > 0\):
+
+\[
+n_A \approx \frac{(r+1)\sigma^2(z_{1-\beta}+z_{1-\alpha})^2}{rd_{EQ}^2}
+\]
+
+```{r}
+sample_size_continuous(
+  design = "parallel", objective = "equivalence",
+  delta = 4, expected_difference = 1, sd = 10, alpha = 0.05, power = 0.90
+)
+```
+
+Special case \(\Delta = 0\) (`testflow` switches formulas automatically):
+
+\[
+n_A = \frac{(r+1)\sigma^2(z_{1-\beta/2}+z_{1-\alpha})^2}{r\delta^2}
+\]
+
+```{r}
+sample_size_continuous(
+  design = "parallel", objective = "equivalence",
+  delta = 4, expected_difference = 0, sd = 10, alpha = 0.05, power = 0.90
+)
+```
+
+### `design = "paired"`
+
+Paired designs use the same three forms with the paired-difference standard
+deviation `sd_diff` in place of \(\sigma\), and no allocation ratio (a
+paired analysis is a one-sample test on the differences):
+
+\[
+n_{pairs} = \frac{(z_{1-\alpha/2}+z_{1-\beta})^2\sigma_{diff}^2}{\Delta^2}
+\qquad\text{(superiority)}
+\]
+
+```{r}
+sample_size_continuous(
+  design = "paired", objective = "superiority",
+  delta = 5, sd_diff = 10, alpha = 0.05, power = 0.90
+)
+
+sample_size_continuous(
+  design = "paired", objective = "noninferiority",
+  delta = 2, expected_difference = 0.5, sd_diff = 10, alpha = 0.025, power = 0.90
+)
+
+sample_size_continuous(
+  design = "paired", objective = "equivalence",
+  delta = 4, expected_difference = 0, sd_diff = 10, alpha = 0.05, power = 0.90
+)
+```
+
+If `sd_diff` is omitted, `sd` is used in its place.
+
+### `design = "repeated"`
+
+With `n_time = 2` this is identical to `design = "paired"`. With
+`n_time > 2`, `sd_diff` (or `sd`) is rescaled to an effective standard
+deviation under a compound-symmetry working correlation before being
+plugged into the same paired formulas above:
+
+\[
+\sigma_{eff} = \sigma_{diff}\sqrt{\frac{1+(m-1)\rho}{m}}
+\]
+
+where \(m\) is `n_time` and \(\rho\) is `correlation`. This design-effect
+step is a `testflow` extension for planning an average treatment-effect
+test across exchangeably correlated repeated measurements; it is not itself
+a closed-form textbook formula.
+
+```{r}
+sample_size_continuous(
+  design = "repeated", n_time = 4, correlation = 0.5,
+  objective = "superiority", delta = 5, sd_diff = 10, alpha = 0.05, power = 0.90
+)
+
+sample_size_continuous(
+  design = "repeated", n_time = 4, correlation = 0.3,
+  objective = "noninferiority", delta = 2, expected_difference = 0.5,
+  sd_diff = 10, alpha = 0.025, power = 0.90
+)
+
+sample_size_continuous(
+  design = "repeated", n_time = 4, correlation = 0.3,
+  objective = "equivalence", delta = 4, expected_difference = 0,
+  sd_diff = 10, alpha = 0.05, power = 0.90
+)
+```
+
+## `sample_size_binary()`
+
+```{r, eval = FALSE}
+sample_size_binary(
+  design = c("parallel", "paired", "repeated"),
+  objective = c("superiority", "noninferiority", "equivalence"),
+  p1, p2, margin = NULL, method = c("pooled", "anticipated"),
+  discordant_or = NULL, discordance_rate = NULL, p10 = NULL, p01 = NULL,
+  alpha = 0.05, power = 0.90, allocation = 1, dropout = 0, n_time = 2
+)
+```
+
+### `design = "parallel"`
+
+#### `objective = "superiority"`, `method = "pooled"`
+
+With pooled proportion \(\bar p = (p_A+rp_B)/(1+r)\):
+
+\[
+n_A = \frac{\left[z_{1-\alpha/2}\sqrt{(1+1/r)\bar p(1-\bar p)}
+  + z_{1-\beta}\sqrt{p_A(1-p_A)+p_B(1-p_B)/r}\right]^2}{(p_A-p_B)^2}
+\]
+
+```{r}
+sample_size_binary(
+  design = "parallel", objective = "superiority",
+  p1 = 0.4, p2 = 0.25, method = "pooled", alpha = 0.05, power = 0.90
+)
+```
+
+#### `objective = "superiority"`, `method = "anticipated"`
+
+\[
+n_A \approx \frac{(z_{1-\alpha/2}+z_{1-\beta})^2
+  \left[p_A(1-p_A)+p_B(1-p_B)/r\right]}{(p_A-p_B)^2}
+\]
+
+```{r}
+sample_size_binary(
+  design = "parallel", objective = "superiority",
+  p1 = 0.4, p2 = 0.25, method = "anticipated", alpha = 0.05, power = 0.90
+)
+```
+
+#### `objective = "noninferiority"`
+
+With \(d_{NI} = (p_A-p_B)+\delta\) (`margin` is \(\delta\)):
+
+\[
+n_A \approx \frac{(z_{1-\alpha}+z_{1-\beta})^2
+  \left[p_A(1-p_A)+p_B(1-p_B)/r\right]}{d_{NI}^2}
+\]
+
+```{r}
+sample_size_binary(
+  design = "parallel", objective = "noninferiority",
+  p1 = 0.5, p2 = 0.45, margin = 0.1, alpha = 0.025, power = 0.90
+)
+```
+
+#### `objective = "equivalence"`
+
+General case, with \(d_{EQ} = \delta - |p_A-p_B|\):
+
+\[
+n_A \approx \frac{(z_{1-\alpha}+z_{1-\beta})^2
+  \left[p_A(1-p_A)+p_B(1-p_B)/r\right]}{d_{EQ}^2}
+\]
+
+```{r}
+sample_size_binary(
+  design = "parallel", objective = "equivalence",
+  p1 = 0.42, p2 = 0.4, margin = 0.15, alpha = 0.05, power = 0.90
+)
+```
+
+Special case \(p_A=p_B=p\), which still scales with the allocation ratio
+`r` through an \((r+1)/r\) factor:
+
+\[
+n_A = \frac{(r+1)(z_{1-\beta/2}+z_{1-\alpha})^2p(1-p)}{r\delta^2}
+\]
+
+```{r}
+sample_size_binary(
+  design = "parallel", objective = "equivalence",
+  p1 = 0.3, p2 = 0.3, margin = 0.15, allocation = 2, alpha = 0.05, power = 0.90
+)
+```
+
+### `design = "paired"` / `design = "repeated"` (`n_time = 2`)
+
+Discordant-pairs (McNemar-type) planning, entered either directly via
+`discordant_or`/`discordance_rate`, or via the discordant-cell probabilities
+`p10` (A-only) and `p01` (B-only), from which
+\(OR_D = p_{10}/p_{01}\) and \(\lambda_D = p_{10}+p_{01}\) are derived:
+
+\[
+n_{total} = \left\lceil
+\frac{(z_{1-\alpha/2}+z_{1-\beta})^2(OR_D+1)^2}{(OR_D-1)^2\lambda_D}
+\right\rceil
+\]
+
+```{r}
+sample_size_binary(
+  design = "paired", objective = "superiority",
+  discordant_or = 2, discordance_rate = 0.3, alpha = 0.05, power = 0.90
+)
+
+sample_size_binary(
+  design = "paired", objective = "superiority",
+  p10 = 0.2, p01 = 0.1, alpha = 0.05, power = 0.90
+)
+
+sample_size_binary(
+  design = "repeated", n_time = 2, objective = "superiority",
+  p10 = 0.2, p01 = 0.1, alpha = 0.05, power = 0.90
+)
+```
+
+`design = "repeated"` for binary endpoints only supports `n_time = 2` (it is
+routed to the same discordant-pairs formula as `design = "paired"`);
+`n_time > 2` is not implemented for binary endpoints.
+
+## `sample_size_survival()`
+
+```{r, eval = FALSE}
+sample_size_survival(
+  design = c("parallel"),
+  objective = c("superiority", "noninferiority", "equivalence"),
+  hr, margin_hr = NULL, lower = NULL, upper = NULL,
+  survival_a = NULL, survival_b = NULL,
+  alpha = 0.05, power = 0.90, allocation = 1, dropout = 0,
+  method = c("exponential", "ph_only")
+)
+```
+
+Only `design = "parallel"` with equal allocation is implemented.
+
+### `objective = "superiority"`, `method = "exponential"`
+
+Required total events, assuming an exponential hazard:
+
+\[
+D_{total} = \frac{4(z_{1-\alpha/2}+z_{1-\beta})^2}{[\log(HR)]^2}
+\]
+
+```{r}
+sample_size_survival(
+  hr = 0.7, method = "exponential", alpha = 0.05, power = 0.90
+)
+```
+
+### `objective = "superiority"`, `method = "ph_only"`
+
+Proportional-hazards-only approximation:
+
+\[
+D_{total} = \frac{2(HR+1)^2(z_{1-\alpha/2}+z_{1-\beta})^2}{(HR-1)^2}
+\]
+
+```{r}
+sample_size_survival(
+  hr = 0.7, method = "ph_only", alpha = 0.05, power = 0.90
+)
+```
+
+### Converting events to a total sample size
+
+Supplying `survival_a`/`survival_b` (planned survival probabilities at the
+analysis horizon) converts required events to a total sample size, under
+equal allocation:
+
+\[
+N_{total} = \frac{2D_{total}}{(1-S_A(t))+(1-S_B(t))}
+\]
+
+which follows from setting expected events
+\(\tfrac{N}{2}(1-S_A(t)) + \tfrac{N}{2}(1-S_B(t))\) equal to \(D_{total}\).
+Without `survival_a`/`survival_b`, `n` is the required event count itself.
+
+```{r}
+sample_size_survival(
+  hr = 0.7, survival_a = 0.8, survival_b = 0.7, alpha = 0.05, power = 0.90
+)
+```
+
+### `objective = "noninferiority"`
+
+On the log-hazard-ratio scale, with \(d_{NI} = \log(HR_M) - \log(HR)\)
+(`margin_hr` is \(HR_M\)), requiring \(d_{NI} > 0\):
+
+\[
+D_{total} \approx \frac{4(z_{1-\alpha}+z_{1-\beta})^2}{d_{NI}^2}
+\]
+
+```{r}
+sample_size_survival(
+  hr = 0.85, objective = "noninferiority", margin_hr = 1.25,
+  survival_a = 0.75, survival_b = 0.75, alpha = 0.025, power = 0.90
+)
+```
+
+### `objective = "equivalence"`
+
+With log-hazard-ratio bounds `lower`/`upper` (\(\theta_L,\theta_U\)), and
+\(d_{EQ} = \min(\theta-\theta_L,\ \theta_U-\theta)\) where
+\(\theta=\log(HR)\), requiring \(d_{EQ} > 0\):
+
+\[
+D_{total} \approx \frac{4(z_{1-\alpha}+z_{1-\beta})^2}{d_{EQ}^2}
+\]
+
+```{r}
+sample_size_survival(
+  hr = 1.0, objective = "equivalence", lower = 0.8, upper = 1.25,
+  survival_a = 0.75, survival_b = 0.75, alpha = 0.05, power = 0.90
+)
+```
+
+## `sample_size_ordinal()`
+
+```{r, eval = FALSE}
+sample_size_ordinal(
+  design = c("parallel"), objective = c("superiority"),
+  p_superiority, alpha = 0.05, power = 0.90, dropout = 0
+)
+```
+
+Only `design = "parallel"` and `objective = "superiority"` are implemented.
+Noether's method for two independent groups, with
+\(P = P(A>B) + \tfrac12P(A=B)\) (`p_superiority`, must exceed 0.5):
+
+\[
+n_{per\ group} = \frac{(z_{1-\alpha/2}+z_{1-\beta})^2}{6(P-0.5)^2}
+\]
+
+```{r}
+sample_size_ordinal(p_superiority = 0.65, alpha = 0.05, power = 0.90)
+```
+
+## `sample_size()` dispatcher
+
+`sample_size()` routes to the four functions above by `endpoint`:
+
+```{r}
+sample_size(
+  endpoint = "binary", design = "parallel", objective = "noninferiority",
+  p1 = 0.5, p2 = 0.45, margin = 0.1, alpha = 0.025, power = 0.90
+)
+```
+
+## `sample_size_adjust_dropout()`
+
+Exposes the dropout adjustment directly, independent of the planning
+functions above:
+
+\[
+n_{recruit} = \left\lceil \frac{n_{eval}}{1-d} \right\rceil
+\]
+
+```{r}
+sample_size_adjust_dropout(100, dropout = 0.15)
+```
+
+## Methods on `sample_size` objects
+
+Every call above returns a `sample_size` object with the following methods:
+
+```{r}
+x <- sample_size_continuous(
+  design = "paired", objective = "superiority",
+  delta = 5, sd_diff = 10, alpha = 0.05, power = 0.90
+)
+
+x                       # print.sample_size(): formatted console report
+summary(x)              # summary.sample_size(): compact summary list
+report(x)               # report.sample_size(): report-ready sentence
+as_tibble(x)            # as_tibble.sample_size(): one-row tidy summary
+plot(x, type = "summary") # raw vs. dropout-adjusted n bar chart
+plot(x, type = "curve")   # power curve, when curve data is available
+plot(x, type = "both")    # both plots stacked (requires the patchwork package)
+```
+
+`curve_data` (and therefore `plot(x, type = "curve"/"both")`) is currently
+only populated for `sample_size_continuous(design = "paired"/"repeated",
+objective = "superiority")`; other endpoint/design/objective combinations
+return a `NULL` curve and fall back to the summary bar chart.
+
+None of these objects carry a `formula` or `reference` field — the formula
+for each specific call is documented on its function's help page
+(`?sample_size_continuous`, `?sample_size_binary`, `?sample_size_survival`,
+`?sample_size_ordinal`) and reproduced above.
+
+## Reference
+
+Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
