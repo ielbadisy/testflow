@@ -312,7 +312,8 @@ sample_size_survival(
   hr, margin_hr = NULL, lower = NULL, upper = NULL,
   survival_a = NULL, survival_b = NULL,
   alpha = 0.05, power = 0.90, allocation = 1, dropout = 0,
-  method = c("exponential", "ph_only")
+  method = c("exponential", "ph_only"),
+  accrual_duration = NULL, follow_up = NULL
 )
 ```
 
@@ -366,6 +367,27 @@ sample_size_survival(
 )
 ```
 
+### Uniform accrual
+
+Adding `accrual_duration` (\(R\)) and `follow_up` replaces the flat
+\(1-S_g(t)\) event probability with the accrual-averaged
+
+\[
+\bar q_g = 1 - \frac{e^{-\lambda_g(T-R)} - e^{-\lambda_g T}}{\lambda_g R},
+\qquad T = R + \text{follow\_up},
+\]
+
+with \(\lambda_g\) implied by \(S_g(T)\) under an exponential-survival
+assumption; this always requires more subjects than instantaneous accrual
+for the same event target, and reduces to the flat conversion as \(R\to0\):
+
+```{r}
+sample_size_survival(
+  hr = 0.7, survival_a = 0.8, survival_b = 0.7, alpha = 0.05, power = 0.90,
+  accrual_duration = 12, follow_up = 24
+)
+```
+
 ### `objective = "noninferiority"`
 
 On the log-hazard-ratio scale, with \(d_{NI} = \log(HR_M) - \log(HR)\)
@@ -404,11 +426,16 @@ sample_size_survival(
 ```{r, eval = FALSE}
 sample_size_ordinal(
   design = c("parallel"), objective = c("superiority"),
-  p_superiority, alpha = 0.05, power = 0.90, dropout = 0
+  method = c("noether", "whitehead"),
+  p_superiority = NULL, probs = NULL, odds_ratio = NULL,
+  alpha = 0.05, power = 0.90, dropout = 0
 )
 ```
 
 Only `design = "parallel"` and `objective = "superiority"` are implemented.
+
+### `method = "noether"` (default)
+
 Noether's method for two independent groups, with
 \(P = P(A>B) + \tfrac12P(A=B)\) (`p_superiority`, must exceed 0.5):
 
@@ -419,6 +446,137 @@ n_{per\ group} = \frac{(z_{1-\alpha/2}+z_{1-\beta})^2}{6(P-0.5)^2}
 ```{r}
 sample_size_ordinal(p_superiority = 0.65, alpha = 0.05, power = 0.90)
 ```
+
+### `method = "whitehead"`
+
+Proportional-odds model, with \(K\) categories, anticipated average
+category probabilities \(\pi_1,\ldots,\pi_K\) (`probs`, summing to 1), and
+planned proportional odds ratio \(\theta=\log(OR_{PO})\) (`odds_ratio`):
+
+\[
+n_{per\ group} \approx \frac{6(z_{1-\alpha/2}+z_{1-\beta})^2}
+{\left(1-\sum_{j=1}^{K}\pi_j^3\right)\theta^2}
+\]
+
+```{r}
+sample_size_ordinal(
+  method = "whitehead", probs = c(0.3, 0.3, 0.4), odds_ratio = 2,
+  alpha = 0.05, power = 0.90
+)
+```
+
+This approximation is sensitive to the category-probability distribution
+and the odds-ratio direction; validate against a design-specific worked
+example before relying on it for a registered protocol.
+
+## `sample_size_bioequivalence()`
+
+```{r, eval = FALSE}
+sample_size_bioequivalence(
+  design = c("crossover", "parallel"), gmr = 1,
+  cv_within = NULL, cv_between = NULL,
+  lower = 0.80, upper = 1.25, alpha = 0.05, power = 0.90,
+  allocation = 1, dropout = 0,
+  method = c("iterative_tost", "normal_approx")
+)
+```
+
+Two one-sided tests (TOST) on the log scale, with \(\theta_0=\log(GMR)\),
+\(\theta_L=\log(L)\), \(\theta_U=\log(U)\), and
+\(d_{BE}=\min(\theta_0-\theta_L,\ \theta_U-\theta_0)\) (must be positive:
+the anticipated GMR must lie strictly inside the bounds).
+
+### `method = "iterative_tost"` (default)
+
+Searches for the smallest \(n\) achieving the exact TOST power:
+
+\[
+Power(n) = \Phi\!\left(\frac{\theta_U-\theta_0}{SE(n)}-z_{1-\alpha}\right)
++ \Phi\!\left(\frac{\theta_0-\theta_L}{SE(n)}-z_{1-\alpha}\right) - 1
+\]
+
+with \(SE(n)=\sqrt{2\sigma_w^2/n}\) (crossover, total \(n\)) or
+\(SE(n_A)=\sigma_b\sqrt{(r+1)/(rn_A)}\) (parallel, per-arm \(n_A\)), and
+coefficients of variation converted via \(\sigma=\sqrt{\log(1+CV^2)}\):
+
+```{r}
+sample_size_bioequivalence(
+  design = "crossover", gmr = 0.95, cv_within = 0.30,
+  alpha = 0.05, power = 0.90
+)
+
+sample_size_bioequivalence(
+  design = "parallel", gmr = 0.95, cv_between = 0.35, allocation = 1.5,
+  alpha = 0.05, power = 0.90
+)
+```
+
+### `method = "normal_approx"`
+
+Closed-form approximation, switching to \(z_{1-\beta/2}\) when \(GMR=1\)
+exactly (matching the analogous special case in
+`sample_size_continuous()`):
+
+\[
+n_{total} \approx \frac{2\sigma_w^2(z_{1-\beta}+z_{1-\alpha})^2}{d_{BE}^2}
+\]
+
+```{r}
+sample_size_bioequivalence(
+  design = "crossover", gmr = 0.95, cv_within = 0.30,
+  alpha = 0.05, power = 0.90, method = "normal_approx"
+)
+```
+
+`iterative_tost` is preferred: the two methods agree closely near
+\(GMR=1\) but can diverge further away from it.
+
+## `sample_size_precision()`
+
+```{r, eval = FALSE}
+sample_size_precision(
+  endpoint = c("continuous", "binary"),
+  design = c("one_sample", "two_sample", "odds_ratio"),
+  width, sd = NULL, p = NULL, p1 = NULL, p2 = NULL,
+  alpha = 0.05, allocation = 1, dropout = 0, conservative = FALSE
+)
+```
+
+Driven by a target CI half-width `width` rather than power; there is no
+`power` argument. `design = "odds_ratio"` is binary-only.
+
+```{r}
+sample_size_precision(endpoint = "continuous", design = "one_sample", width = 2, sd = 10)
+sample_size_precision(endpoint = "continuous", design = "two_sample", width = 2, sd = 10, allocation = 1.5)
+sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3)
+sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, conservative = TRUE)
+sample_size_precision(endpoint = "binary", design = "two_sample", width = 0.08, p1 = 0.4, p2 = 0.3)
+sample_size_precision(endpoint = "binary", design = "odds_ratio", width = 0.3, p1 = 0.4, p2 = 0.3, allocation = 2)
+```
+
+`endpoint = "binary"`, `design = "two_sample"` is equal-allocation only;
+`allocation` is otherwise respected for `two_sample` (continuous) and
+`odds_ratio`.
+
+## `sample_size_cluster_adjust()`
+
+```{r, eval = FALSE}
+sample_size_cluster_adjust(n_ind, m, rho, cv_m = NULL)
+```
+
+Inflates an individually randomized sample size `n_ind` by the design
+effect \(DE=1+(m-1)\rho\) for equal cluster size \(m\) and intracluster
+correlation \(\rho\), or \(DE\approx1+((1+CV_m^2)m-1)\rho\) when cluster
+sizes vary (`cv_m`, their coefficient of variation):
+
+```{r}
+sample_size_cluster_adjust(100, m = 20, rho = 0.02)
+sample_size_cluster_adjust(100, m = 20, rho = 0.02, cv_m = 0.3)
+```
+
+Like `sample_size_adjust_dropout()`, this returns a plain integer, not a
+`sample_size` object — it is a post-processing adjustment, not a full
+planning calculation.
 
 ## `sample_size()` dispatcher
 
@@ -471,8 +629,19 @@ return a `NULL` curve and fall back to the summary bar chart.
 None of these objects carry a `formula` or `reference` field. The formula
 for each specific call is documented on its function's help page
 (`?sample_size_continuous`, `?sample_size_binary`, `?sample_size_survival`,
-`?sample_size_ordinal`) and reproduced above.
+`?sample_size_ordinal`, `?sample_size_bioequivalence`,
+`?sample_size_precision`, `?sample_size_cluster_adjust`) and reproduced
+above.
 
-## Reference
+## References
 
 Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
+
+Phillips KF. Power of the two one-sided tests procedure in bioequivalence.
+*Journal of Pharmacokinetics and Biopharmaceutics*. 1990;18(2):137-144.
+
+Whitehead J. Sample size calculations for ordered categorical data.
+*Statistics in Medicine*. 1993;12(24):2257-2271.
+
+Donner A, Klar N. *Design and Analysis of Cluster Randomization Trials in
+Health Research*. Arnold; 2000.

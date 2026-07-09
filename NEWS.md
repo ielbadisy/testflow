@@ -1,5 +1,44 @@
 # testflow 0.8.2
 
+## New sample-size functions
+
+- Added `sample_size_bioequivalence()`: two one-sided test (TOST)
+  bioequivalence planning on the log scale, for `crossover` or `parallel`
+  designs. `method = "iterative_tost"` (default) searches via
+  `stats::uniroot()` for the smallest n achieving the exact TOST power,
+  verified to recover the documented closed-form special case at GMR=1
+  exactly and to match an independently computed `uniroot()` search
+  off-center; `method = "normal_approx"` offers the closed-form
+  approximation for comparison.
+- Added `sample_size_precision()`: sample size for a target confidence-
+  interval half-width instead of power against an effect size, covering one-
+  and two-sample continuous and binary designs plus log-odds-ratio
+  precision.
+- Added `sample_size_cluster_adjust()`: design-effect adjustment
+  (`DE = 1+(m-1)rho`, plus an unequal-cluster-size approximation) for
+  converting an individually randomized sample size to a cluster-randomized
+  one. Like `sample_size_adjust_dropout()`, it returns a plain integer, not
+  a `sample_size` object.
+- `sample_size_ordinal()` gained `method = c("noether", "whitehead")`;
+  Whitehead's proportional-odds formula is included with an explicit
+  caveat (in both the documentation and the returned assumptions) that,
+  unlike every other formula in this release, it has not been validated
+  against a published worked example and is sensitive to the anticipated
+  category-probability distribution.
+- `sample_size_survival()` gained optional `accrual_duration`/`follow_up`
+  arguments: when supplied with `survival_a`/`survival_b`, event
+  probabilities use a closed-form uniform-accrual adjustment instead of
+  assuming every subject is followed for the full study duration. Verified
+  to reduce to the existing flat conversion as `accrual_duration -> 0`, and
+  to always require more subjects than instantaneous accrual for the same
+  event target.
+- This is Phase 4 (the last currently planned phase) of the teaching/
+  clinical-research expansion that began with regression, survival
+  analysis, and diagnostic/agreement statistics. A Bayesian assurance
+  function (`ss_assurance` in the original formula spec) remains explicitly
+  out of scope: it is simulation-based rather than closed-form and was
+  flagged in the spec itself as "a later module, not v1."
+
 ## New workflows: diagnostic and agreement statistics
 
 - Added `test_diagnostic()`: sensitivity, specificity, positive/negative
