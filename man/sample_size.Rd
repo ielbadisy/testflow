@@ -66,13 +66,18 @@ sample_size_survival(
   power = 0.9,
   allocation = 1,
   dropout = 0,
-  method = c("exponential", "ph_only")
+  method = c("exponential", "ph_only"),
+  accrual_duration = NULL,
+  follow_up = NULL
 )
 
 sample_size_ordinal(
   design = c("parallel"),
   objective = c("superiority"),
-  p_superiority,
+  method = c("noether", "whitehead"),
+  p_superiority = NULL,
+  probs = NULL,
+  odds_ratio = NULL,
   alpha = 0.05,
   power = 0.9,
   dropout = 0
@@ -89,7 +94,7 @@ sample_size_adjust_dropout(n, dropout = 0)
 \item{sd_diff}{Paired-difference standard deviation.}
 \item{expected_difference}{Planned difference from the null boundary.}
 \item{margin}{Non-inferiority or equivalence margin on the risk-difference or continuous scale.}
-\item{method}{For \code{sample_size_binary()}, the parallel superiority variance estimator: \code{pooled} (null variance) or \code{anticipated} (alternative-hypothesis variance). For \code{sample_size_survival()}, the event-count method: \code{exponential} or \code{ph_only}.}
+\item{method}{For \code{sample_size_binary()}, the parallel superiority variance estimator: \code{pooled} (null variance) or \code{anticipated} (alternative-hypothesis variance). For \code{sample_size_survival()}, the event-count method: \code{exponential} or \code{ph_only}. For \code{sample_size_ordinal()}, \code{noether} or \code{whitehead}.}
 \item{p1, p2}{Anticipated binary response probabilities.}
 \item{discordant_or}{Discordant odds ratio for paired binary planning.}
 \item{discordance_rate}{Probability of a discordant pair.}
@@ -98,7 +103,9 @@ sample_size_adjust_dropout(n, dropout = 0)
 \item{margin_hr}{Non-inferiority hazard-ratio margin.}
 \item{lower, upper}{Equivalence bounds on the hazard-ratio scale.}
 \item{survival_a, survival_b}{Survival probabilities at the planning horizon.}
-\item{p_superiority}{Probability that a randomly selected subject from group A exceeds one from group B.}
+\item{p_superiority}{Probability that a randomly selected subject from group A exceeds one from group B. Required for \code{method = "noether"}.}
+\item{probs}{Anticipated average category probabilities under the proportional-odds model, summing to 1. Required for \code{method = "whitehead"}.}
+\item{odds_ratio}{Planned proportional odds ratio. Required for \code{method = "whitehead"}.}
 \item{alpha}{Type I error rate.}
 \item{power}{Target power.}
 \item{allocation}{Allocation ratio \eqn{n_B / n_A}.}
@@ -106,6 +113,8 @@ sample_size_adjust_dropout(n, dropout = 0)
 \item{n_time}{Number of repeated measures.}
 \item{correlation}{Within-subject correlation for repeated measures when \code{design = "repeated"} and \code{n_time > 2}.}
 \item{n}{Evaluable sample size before dropout adjustment.}
+\item{accrual_duration}{Uniform accrual (enrollment) duration for \code{sample_size_survival()}. When supplied with \code{follow_up}, event probabilities account for staggered enrollment. Requires \code{survival_a}/\code{survival_b}.}
+\item{follow_up}{Additional follow-up duration after accrual ends, for \code{sample_size_survival()}. Total study duration is \code{accrual_duration + follow_up}.}
 \item{...}{Endpoint-specific arguments passed to the selected helper.}
 }
 \value{

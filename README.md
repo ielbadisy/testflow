@@ -279,17 +279,22 @@ sample_size_continuous()
 sample_size_binary()
 sample_size_survival()
 sample_size_ordinal()
+sample_size_bioequivalence()
+sample_size_precision()
 sample_size_adjust_dropout()
+sample_size_cluster_adjust()
 ```
 
 Supported planning settings:
 
-| Endpoint   | Supported design(s)                        | Supported objective(s)                    | Formula family                                                                         |
-|------------|--------------------------------------------|-------------------------------------------|----------------------------------------------------------------------------------------|
-| Continuous | parallel, paired, repeated(2+ time points) | superiority, non-inferiority, equivalence | normal-approximation formulas for mean difference and repeated-measures approximations |
-| Binary     | parallel, paired, repeated(2 time points)  | superiority, non-inferiority, equivalence | risk-difference planning and discordant-pair planning                                  |
-| Survival   | parallel                                   | superiority, non-inferiority, equivalence | event-based proportional hazards planning                                              |
-| Ordinal    | parallel                                   | superiority                               | Noether approximation                                                                  |
+| Endpoint       | Supported design(s)                        | Supported objective(s)                    | Formula family                                                                         |
+|----------------|--------------------------------------------|-------------------------------------------|----------------------------------------------------------------------------------------|
+| Continuous     | parallel, paired, repeated(2+ time points) | superiority, non-inferiority, equivalence | normal-approximation formulas for mean difference and repeated-measures approximations |
+| Binary         | parallel, paired, repeated(2 time points)  | superiority, non-inferiority, equivalence | risk-difference planning and discordant-pair planning                                  |
+| Survival       | parallel                                   | superiority, non-inferiority, equivalence | event-based proportional hazards planning, optional uniform-accrual adjustment         |
+| Ordinal        | parallel                                   | superiority                               | Noether approximation, or Whitehead proportional-odds                                  |
+| Bioequivalence | crossover, parallel                        | equivalence (TOST)                        | iterative TOST or normal approximation, log scale                                      |
+| Precision      | one-sample, two-sample, log-OR             | CI half-width (no power/objective)        | continuous and binary CI-width formulas                                                |
 
 Example:
 
