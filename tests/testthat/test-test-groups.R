@@ -15,7 +15,7 @@ test_that("test_groups can recommend Kruskal", {
   dat <- tibble::tibble(y = c(rexp(25), rexp(25), rexp(25)), g = rep(c("a", "b", "c"), each = 25))
   x <- test_groups(dat, y, g)
   expect_equal(x$recommended$test, "Kruskal-Wallis test")
-  expect_equal(x$posthoc$method, "Dunn-style pairwise Wilcoxon rank-sum tests")
+  expect_equal(x$posthoc$method, "Pairwise Wilcoxon rank-sum tests (BH-adjusted)")
 })
 
 test_that("test_groups selects Welch posthoc when variances differ", {
@@ -26,5 +26,5 @@ test_that("test_groups selects Welch posthoc when variances differ", {
   )
   x <- test_groups(dat, y, g)
   expect_equal(x$recommended$test, "Welch ANOVA")
-  expect_equal(x$posthoc$method, "Games-Howell-style Welch pairwise t-tests")
+  expect_equal(x$posthoc$method, "Pairwise Welch t-tests (BH-adjusted)")
 })

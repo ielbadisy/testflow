@@ -8,7 +8,7 @@
 #' @return A `testflow` object with class `testflow_multinomial`. The object is
 #' a list containing the cleaned data, categorical descriptives, assumption
 #' checks, recommended goodness-of-fit test, primary chi-square result with null
-#' hypothesis, pairwise binomial checks, effect-size summary, optional
+#' hypothesis, BH-adjusted pairwise binomial checks, effect-size summary, optional
 #' `ggplot`, original call, and report text.
 #' @references
 #' Pearson, K. (1900). On the criterion that a given system of deviations from
@@ -33,6 +33,8 @@ test_multinomial <- function(data, outcome, p = NULL, alpha = 0.05, plot = TRUE,
     bt <- stats::binom.test(counts[i], sum(counts), p = p[i])
     tibble::tibble(level = levels[i], observed = counts[i], expected = expected[i], p = bt$p.value)
   })
+  pairwise$p.adj <- stats::p.adjust(pairwise$p, method = "BH")
+  pairwise$p.adjust.method <- "BH"
   effect <- tibble::tibble(name = "Chi-square goodness-of-fit", estimate = unname(chisq$statistic), magnitude = NA_character_)
   plt <- if (plot) {
     pd <- tibble::tibble(level = levels, observed = counts, expected = expected) |>
