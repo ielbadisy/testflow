@@ -426,15 +426,12 @@ sample_size_survival(
 ```{r, eval = FALSE}
 sample_size_ordinal(
   design = c("parallel"), objective = c("superiority"),
-  method = c("noether", "whitehead"),
-  p_superiority = NULL, probs = NULL, odds_ratio = NULL,
+  p_superiority = NULL,
   alpha = 0.05, power = 0.90, dropout = 0
 )
 ```
 
 Only `design = "parallel"` and `objective = "superiority"` are implemented.
-
-### `method = "noether"` (default)
 
 Noether's method for two independent groups, with
 \(P = P(A>B) + \tfrac12P(A=B)\) (`p_superiority`, must exceed 0.5):
@@ -446,28 +443,6 @@ n_{per\ group} = \frac{(z_{1-\alpha/2}+z_{1-\beta})^2}{6(P-0.5)^2}
 ```{r}
 sample_size_ordinal(p_superiority = 0.65, alpha = 0.05, power = 0.90)
 ```
-
-### `method = "whitehead"`
-
-Proportional-odds model, with \(K\) categories, anticipated average
-category probabilities \(\pi_1,\ldots,\pi_K\) (`probs`, summing to 1), and
-planned proportional odds ratio \(\theta=\log(OR_{PO})\) (`odds_ratio`):
-
-\[
-n_{per\ group} \approx \frac{6(z_{1-\alpha/2}+z_{1-\beta})^2}
-{\left(1-\sum_{j=1}^{K}\pi_j^3\right)\theta^2}
-\]
-
-```{r}
-sample_size_ordinal(
-  method = "whitehead", probs = c(0.3, 0.3, 0.4), odds_ratio = 2,
-  alpha = 0.05, power = 0.90
-)
-```
-
-This approximation is sensitive to the category-probability distribution
-and the odds-ratio direction; validate against a design-specific worked
-example before relying on it for a registered protocol.
 
 ## `sample_size_bioequivalence()`
 
@@ -639,9 +614,6 @@ Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
 
 Phillips KF. Power of the two one-sided tests procedure in bioequivalence.
 *Journal of Pharmacokinetics and Biopharmaceutics*. 1990;18(2):137-144.
-
-Whitehead J. Sample size calculations for ordered categorical data.
-*Statistics in Medicine*. 1993;12(24):2257-2271.
 
 Donner A, Klar N. *Design and Analysis of Cluster Randomization Trials in
 Health Research*. Arnold; 2000.

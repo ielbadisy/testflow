@@ -1,3 +1,17 @@
+# testflow (development version)
+
+## Sample size planning
+
+- Removed `sample_size_ordinal(method = "whitehead")`. Unlike every other
+  formula in the sample-size module, the proportional-odds formula had not
+  been checked against a published worked example or an external
+  reference implementation (only against itself), and the input
+  convention for `probs` (which arm's category distribution to supply) is
+  ambiguous across secondary sources describing Whitehead (1993).
+  `sample_size_ordinal()` now implements only Noether's method, which was
+  independently verified. It no longer takes `method`, `probs`, or
+  `odds_ratio` arguments.
+
 # testflow 0.9.0
 
 ## Display ergonomics: per-term results tables in console output

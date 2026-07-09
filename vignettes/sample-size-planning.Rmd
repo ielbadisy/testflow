@@ -346,30 +346,6 @@ ordinal_ss <- sample_size_ordinal(
 ordinal_ss
 ```
 
-`method = "whitehead"` implements the proportional-odds alternative, with
-\(K\) ordinal categories, anticipated average category probabilities
-\(\pi_1,\ldots,\pi_K\), and planned proportional odds ratio
-\(\theta=\log(OR_{PO})\):
-
-\[
-n_{per\ group} \approx \frac{6(z_{1-\alpha/2}+z_{1-\beta})^2}
-{\left(1-\sum_{j=1}^{K}\pi_j^3\right)\theta^2}
-\]
-
-```{r}
-sample_size_ordinal(
-  method = "whitehead",
-  probs = c(0.3, 0.3, 0.4),
-  odds_ratio = 2,
-  alpha = 0.05,
-  power = 0.90
-)
-```
-
-This approximation is sensitive to the category-probability distribution
-and the direction of the odds ratio; validate it against a design-specific
-worked example before relying on it for a registered protocol.
-
 ## Bioequivalence
 
 `sample_size_bioequivalence()` plans a two one-sided test (TOST)
@@ -479,7 +455,7 @@ as_tibble(paired_ss)
 | Continuous | parallel, paired, repeated (2+ time points) | superiority, non-inferiority, equivalence | normal-approximation formulas for the mean difference, plus a compound-symmetry repeated-measures extension |
 | Binary | parallel, paired, repeated (2 time points) | superiority, non-inferiority, equivalence | risk-difference planning and discordant-pair planning |
 | Survival | parallel | superiority, non-inferiority, equivalence | event-based proportional-hazards planning, optional uniform-accrual adjustment |
-| Ordinal | parallel | superiority | Noether approximation, or Whitehead proportional-odds |
+| Ordinal | parallel | superiority | Noether approximation |
 | Bioequivalence | crossover, parallel | equivalence (TOST) | iterative TOST or normal approximation, log scale |
 | Precision | one-sample, two-sample, log-OR | CI half-width (no power/objective) | continuous and binary CI-width formulas |
 
@@ -493,9 +469,6 @@ Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
 
 Phillips KF. Power of the two one-sided tests procedure in bioequivalence.
 *Journal of Pharmacokinetics and Biopharmaceutics*. 1990;18(2):137-144.
-
-Whitehead J. Sample size calculations for ordered categorical data.
-*Statistics in Medicine*. 1993;12(24):2257-2271.
 
 Donner A, Klar N. *Design and Analysis of Cluster Randomization Trials in
 Health Research*. Arnold; 2000.
