@@ -1,4 +1,4 @@
-# testflow 0.8.2
+# testflow 0.9.0
 
 ## Display ergonomics: per-term results tables in console output
 

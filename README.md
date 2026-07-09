@@ -1,12 +1,12 @@
 testflow
 ================
 
-![Version 0.8.2](https://img.shields.io/badge/version-0.8.2-blue.svg)
+![Version 0.9.0](https://img.shields.io/badge/version-0.9.0-blue.svg)
 [![License:
 MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![R \>= 4.1.0](https://img.shields.io/badge/R-%3E%3D%204.1.0-blue.svg)
 
-Current development release: `0.8.2`. First public release: `0.7.0`.
+Current development release: `0.9.0`. First public release: `0.7.0`.
 
 `testflow` helps choose, run, and report common statistical tests from
 the study design. The package returns a consistent object with
@@ -50,11 +50,10 @@ cardio <- make_cardio_data()
 
 res <- test_two_groups(sbp_3m ~ sex, data = cardio, plot = TRUE)
 res
-#> Statistical test workflow
+#> Two Independent Groups
 #> 
 #> Outcome: sbp_3m
 #> Group: sex
-#> Design: two independent groups
 #> 
 #> Assumptions
 #> * Independence of observations: assumed: Assumed from study design.
@@ -116,10 +115,9 @@ result, and plot.
 paired <- test_paired(sbp_3m ~ sbp_baseline, data = cardio, plot = TRUE)
 
 paired
-#> Statistical test workflow
+#> Paired Measurements
 #> 
 #> Outcome: sbp_3m - sbp_baseline
-#> Design: paired measurements
 #> 
 #> Assumptions
 #> * Independence of observations: assumed: Paired observations from the same subjects are assumed by design.
