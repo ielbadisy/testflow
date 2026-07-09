@@ -1,5 +1,53 @@
 # testflow 0.8.2
 
+## New workflows: diagnostic and agreement statistics
+
+- Added `test_diagnostic()`: sensitivity, specificity, positive/negative
+  predictive values, and positive/negative likelihood ratios from a 2x2
+  table against a gold-standard reference, each with a confidence interval
+  (exact/Clopper-Pearson for the proportions, the closed-form log-scale
+  interval of Simel, Samsa & Matchar (1991) for the likelihood ratios). The
+  primary test compares overall accuracy to the no-information rate, the
+  same convention `caret::confusionMatrix()` uses.
+- Added `test_roc()`: AUC computed from the Mann-Whitney U statistic (the
+  same identity already used for the package's rank-biserial correlation),
+  with the closed-form Hanley & McNeil (1982) confidence interval and the
+  Youden's-J-optimal threshold, avoiding a `pROC` dependency.
+- Added `test_agreement()`: Cohen's kappa with the Fleiss, Cohen & Everitt
+  (1969) large-sample standard error (verified to match
+  `psych::cohen.kappa()`'s confidence interval exactly), not the simpler
+  approximation that understates variance under uneven category marginals.
+- Added `test_icc()`: ICC(1,1), ICC(2,1), and ICC(3,1) via Shrout & Fleiss
+  (1979) one-way/two-way ANOVA variance decomposition, with McGraw & Wong
+  (1996) F-distribution-based confidence intervals (verified to match
+  `irr::icc()` exactly for all three forms). ICC(2,1) (two-way random,
+  absolute agreement) is reported as the primary/effect-size estimate,
+  following the reliability-study recommendation of Koo & Li (2016).
+- None of these four functions needed a new package dependency; every
+  formula is implemented directly against a published closed-form reference
+  and cross-checked against `psych`/`irr` during development (not shipped
+  as dependencies).
+- AUC, Cohen's kappa, and ICC get real, citable magnitude conventions
+  (Hosmer/Lemeshow/Sturdivant 2013; Landis & Koch 1977; Koo & Li 2016
+  respectively) - unlike the hazard ratio and concordance index added in the
+  survival-analysis release, where no such convention exists in the
+  literature and none was invented.
+- Fixed a bug caught while building `test_icc()`: the ICC(2,1) F-test
+  (testing whether ICC exceeds 0) was accidentally using the same
+  Satterthwaite coefficients as the confidence interval, which are
+  evaluated at different points (the null value 0 for the test, the
+  estimated ICC for the interval) and must not be shared - this silently
+  produced a wildly wrong p-value (0.48 instead of <0.001) for data with
+  strong measured reliability.
+- Fixed a second, general bug this surfaced: `safe_tidy_htest()` (used by
+  most `test_*()` workflows) left stray name attributes on numeric columns
+  inherited from the underlying htest object (e.g. `binom.test()$statistic`
+  carrying the name `"number of successes"`), which could trip up
+  `all.equal()`-based comparisons against independently computed reference
+  values despite the numbers being identical.
+- This is Phase 3 of a broader expansion (additional sample-size functions
+  are planned next).
+
 ## New workflows: survival analysis
 
 - Added `test_survival()`: Kaplan-Meier estimation and the log-rank test

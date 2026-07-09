@@ -54,6 +54,45 @@ magnitude_cramers_v <- function(v) {
   )
 }
 
+#' Classify AUC magnitude (Hosmer, Lemeshow & Sturdivant, 2013, p. 177)
+#' @noRd
+magnitude_auc <- function(auc) {
+  a <- ifelse(is.na(auc), NA_real_, pmax(auc, 1 - auc))
+  dplyr::case_when(
+    is.na(a) ~ NA_character_,
+    a < 0.7 ~ "no better than chance / poor",
+    a < 0.8 ~ "acceptable",
+    a < 0.9 ~ "excellent",
+    TRUE ~ "outstanding"
+  )
+}
+
+#' Classify Cohen's kappa magnitude (Landis & Koch, 1977)
+#' @noRd
+magnitude_kappa <- function(kappa) {
+  dplyr::case_when(
+    is.na(kappa) ~ NA_character_,
+    kappa < 0 ~ "poor",
+    kappa < 0.21 ~ "slight",
+    kappa < 0.41 ~ "fair",
+    kappa < 0.61 ~ "moderate",
+    kappa < 0.81 ~ "substantial",
+    TRUE ~ "almost perfect"
+  )
+}
+
+#' Classify ICC magnitude (Koo & Li, 2016)
+#' @noRd
+magnitude_icc <- function(icc) {
+  dplyr::case_when(
+    is.na(icc) ~ NA_character_,
+    icc < 0.5 ~ "poor",
+    icc < 0.75 ~ "moderate",
+    icc < 0.9 ~ "good",
+    TRUE ~ "excellent"
+  )
+}
+
 significance_decision <- function(p, alpha = 0.05) {
   if (is.na(p)) {
     "No decision because the p-value is unavailable."
