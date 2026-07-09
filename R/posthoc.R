@@ -12,7 +12,7 @@ posthoc_groups <- function(data, outcome, group, recommendation, alpha = 0.05) {
       pool.sd = FALSE,
       p.adjust.method = "BH"
     )
-    return(list(method = "Games-Howell-style Welch pairwise t-tests", result = pw, p.adjust.method = "BH"))
+    return(list(method = "Pairwise Welch t-tests (BH-adjusted)", result = pw, p.adjust.method = "BH"))
   }
 
   pw <- stats::pairwise.wilcox.test(
@@ -21,7 +21,7 @@ posthoc_groups <- function(data, outcome, group, recommendation, alpha = 0.05) {
     p.adjust.method = "BH",
     exact = FALSE
   )
-  list(method = "Dunn-style pairwise Wilcoxon rank-sum tests", result = pw, p.adjust.method = "BH")
+  list(method = "Pairwise Wilcoxon rank-sum tests (BH-adjusted)", result = pw, p.adjust.method = "BH")
 }
 
 paired_posthoc_numeric <- function(wide, method = c("t", "wilcox"), p.adjust.method = "BH") {

@@ -23,7 +23,12 @@ test_factorial(
 
 \item{alpha}{Significance level.}
 
-\item{type}{ANOVA type placeholder for future car integration.}
+\item{type}{Sums-of-squares type: \code{1} (sequential, base \code{aov()}), \code{2}, or
+\code{3} (via \code{car::Anova()}, required for \code{type = 2}/\code{3}). For unbalanced
+designs these can give materially different p-values; \code{type = 2} is a
+reasonable default when there is no strong prior reason to test factors
+in a particular order. \code{type = 3} requires sum-to-zero contrasts, which
+this function sets automatically.}
 
 \item{plot}{Logical; include a ggplot object.}
 

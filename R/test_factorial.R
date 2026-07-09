@@ -3,7 +3,12 @@
 #' @param data A data frame, or the outcome column when using data-first style.
 #' @param factors Factor columns selected with tidyselect syntax. Optional when using formula style.
 #' @param alpha Significance level.
-#' @param type ANOVA type placeholder for future car integration.
+#' @param type Sums-of-squares type: `1` (sequential, base `aov()`), `2`, or
+#'   `3` (via `car::Anova()`, required for `type = 2`/`3`). For unbalanced
+#'   designs these can give materially different p-values; `type = 2` is a
+#'   reasonable default when there is no strong prior reason to test factors
+#'   in a particular order. `type = 3` requires sum-to-zero contrasts, which
+#'   this function sets automatically.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
 #' @return A `testflow` object with class `testflow_factorial`. The object is a
@@ -36,10 +41,30 @@ test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2
     formula_obj <- stats::as.formula(paste(outcome_nm, "~", paste(factor_nms, collapse = " * ")))
   }
   warn_if_two_groups_for_factorial(factor_nms)
+  stopifnot(type %in% c(1, 2, 3))
   df <- drop_missing(data_obj, c(outcome_nm, factor_nms), na.rm = na.rm)
   df[factor_nms] <- lapply(df[factor_nms], as.factor)
   fit <- stats::aov(formula_obj, data = df)
-  tab <- broom::tidy(fit)
+  ss_tab <- if (identical(type, 1)) {
+    stats::anova(fit)
+  } else {
+    if (!requireNamespace("car", quietly = TRUE)) {
+      stop("`type = 2` and `type = 3` sums of squares require the 'car' package. Install it, or use `type = 1`.", call. = FALSE)
+    }
+    if (identical(type, 3)) {
+      # Type III SS are only interpretable with sum-to-zero contrasts;
+      # under the default treatment contrasts they test a different (usually
+      # meaningless) hypothesis about a reference-level intercept.
+      old_contrasts <- options(contrasts = c("contr.sum", "contr.poly"))
+      on.exit(options(old_contrasts), add = TRUE)
+      lm_fit <- stats::lm(formula_obj, data = df)
+    } else {
+      lm_fit <- stats::lm(formula_obj, data = df)
+    }
+    car::Anova(lm_fit, type = type)
+  }
+  tab <- broom::tidy(ss_tab)
+  tab <- tab[tab$term != "(Intercept)", , drop = FALSE]
   residual_df <- tibble::tibble(.resid = stats::residuals(fit))
   residual_normality_test <- stats::shapiro.test(residual_df$.resid)
   normality <- assumption_check(
@@ -60,9 +85,10 @@ test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2
     p_value = levene_test$p[1],
     details = paste0("Df1=", levene_test$df1[1], "; Df2=", levene_test$df2[1])
   )
-  balanced <- assumption_check("Balanced design", "not required", ifelse(length(unique(table(df[factor_nms]))) > 1, "Cell sizes are unbalanced; the workflow still reports the design.", "Cell sizes are balanced."))
-  effect <- eta_squared_aov(fit)
-  primary <- tab |> dplyr::filter(.data$term != "Residuals") |> dplyr::slice(1) |> dplyr::transmute(method = "Factorial ANOVA", statistic = .data$statistic, parameter = .data$df, p.value = .data$p.value)
+  type_label <- c(`1` = "Type I (sequential)", `2` = "Type II", `3` = "Type III")[[as.character(type)]]
+  balanced <- assumption_check("Balanced design", "not required", ifelse(length(unique(table(df[factor_nms]))) > 1, paste0("Cell sizes are unbalanced; ", type_label, " sums of squares are used so the terms are not order-dependent.", if (identical(type, 1)) " Type I sums of squares depend on the order factors are listed in the formula for unbalanced designs; consider `type = 2` or `type = 3`." else ""), "Cell sizes are balanced; Type I, II, and III sums of squares agree."))
+  effect <- eta_squared_aov(fit, tab = ss_tab)
+  primary <- tab |> dplyr::filter(.data$term != "Residuals") |> dplyr::slice(1) |> dplyr::transmute(method = paste0("Factorial ANOVA (", type_label, ")"), statistic = .data$statistic, parameter = .data$df, p.value = .data$p.value)
   plt <- if (plot && length(factor_nms) >= 2) {
     ggplot2::ggplot(df, ggplot2::aes(x = .data[[factor_nms[1]]], y = .data[[outcome_nm]], color = .data[[factor_nms[2]]], group = .data[[factor_nms[2]]])) +
       ggplot2::stat_summary(fun = mean, geom = "line") +

@@ -25,8 +25,12 @@ drop_missing <- function(data, cols, na.rm = TRUE) {
 }
 
 assert_two_groups <- function(data, group) {
-  groups <- unique(data[[group]])
-  groups <- groups[!is.na(groups)]
+  # Factor-level order (alphabetical unless data[[group]] is already an
+  # ordered factor), matching what stats::t.test/wilcox.test's formula
+  # interface uses internally via as.factor(). Using first-appearance order
+  # here instead would make effect sizes point the opposite direction from
+  # the primary test whenever the data isn't already alphabetized by group.
+  groups <- levels(droplevels(as.factor(data[[group]])))
   if (length(groups) != 2) {
     stop("`group` must contain exactly two non-missing groups.", call. = FALSE)
   }

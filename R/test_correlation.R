@@ -37,8 +37,8 @@ test_correlation <- function(formula, data, y = NULL, method = c("auto", "pearso
   } else method
   linearity <- assumption_check(
     "Linearity",
-    ifelse(chosen == "pearson", "acceptable", "not checked"),
-    ifelse(chosen == "pearson", "A roughly linear relation is assumed for Pearson correlation.", "Linearity is not checked for rank-based correlations; monotonicity is the key check.")
+    "not checked",
+    ifelse(chosen == "pearson", "A roughly linear relation is assumed, not tested, for Pearson correlation; inspect a scatterplot to confirm.", "Linearity is not checked for rank-based correlations; monotonicity is the key check.")
   )
   monotonicity <- check_monotonicity(df[[x_nm]], df[[y_nm]], alpha = alpha)
   pearson <- stats::cor.test(df[[x_nm]], df[[y_nm]], method = "pearson")
@@ -104,10 +104,17 @@ test_correlation_matrix <- function(data, vars, method = c("spearman", "pearson"
   vars <- tidyselect_names(data, {{ vars }})
   warn_if_screening_workflow("correlation_matrix")
   df <- drop_missing(data, vars, na.rm = na.rm)
-  mat <- stats::cor(df[, vars, drop = FALSE], method = method, use = "pairwise.complete.obs")
+  # Each pair's correlation/test uses its own pairwise-complete rows, taken
+  # from the un-listwise-filtered columns; listwise-dropping across all
+  # `vars` first (as `df` does, for the stored/descriptive data) would
+  # needlessly discard rows for pairs that don't involve the variable
+  # carrying the missing value, and would make `use = "pairwise.complete.obs"`
+  # below a no-op.
+  full_vars <- as.data.frame(data)[, vars, drop = FALSE]
+  mat <- stats::cor(full_vars, method = method, use = "pairwise.complete.obs")
   pairs <- utils::combn(vars, 2, simplify = FALSE)
   long <- purrr::map_dfr(pairs, function(z) {
-    test <- suppressWarnings(stats::cor.test(df[[z[1]]], df[[z[2]]], method = method, exact = FALSE))
+    test <- suppressWarnings(stats::cor.test(full_vars[[z[1]]], full_vars[[z[2]]], method = method, exact = FALSE))
     tibble::tibble(var1 = z[1], var2 = z[2], estimate = unname(test$estimate), p = test$p.value)
   })
   assumptions <- assumption_checks(
