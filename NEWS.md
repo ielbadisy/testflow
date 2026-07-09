@@ -1,5 +1,34 @@
 # testflow 0.8.2
 
+## New workflows: survival analysis
+
+- Added `test_survival()`: Kaplan-Meier estimation and the log-rank test
+  (`survival::survfit()`/`survival::survdiff()`) for a two-group time-to-
+  event comparison, with a companion univariate Cox hazard ratio (and its
+  confidence interval) as the effect size.
+- Added `test_cox()`: Cox proportional hazards regression
+  (`survival::coxph()`), with the overall likelihood-ratio test as the
+  primary result, per-term hazard ratios, a proportional-hazards assumption
+  check via the Schoenfeld residual test (`survival::cox.zph()`), and the
+  concordance index as the effect size.
+- `survival` is now a hard dependency (`Imports`, not `Suggests`): it ships
+  with every standard R installation as a "Recommended" package, so
+  `requireNamespace()`-guarding it added complexity without meaningfully
+  widening compatibility. `Surv()` is re-exported from `testflow` so it's
+  available after `library(testflow)` alone.
+- Neither the hazard ratio nor the concordance index is assigned a
+  magnitude label (negligible/small/moderate/large): unlike Cohen's d or
+  R-squared, there is no widely agreed convention for either, and inventing
+  one would overstate how standardized that judgment is. The numeric
+  estimate is always reported.
+- Fixed a related pre-existing bug this surfaced: `print.testflow()` and
+  `make_report()` hid an effect size's estimate entirely whenever its
+  magnitude label was `NA`, even when the estimate itself was available.
+  Both now show the estimate unconditionally and append the magnitude label
+  only when one is assigned.
+- This is Phase 2 of a broader expansion (diagnostic/agreement statistics
+  and additional sample-size functions are planned next).
+
 ## New workflows: regression
 
 - Added `test_linear_regression()`: multiple linear regression via

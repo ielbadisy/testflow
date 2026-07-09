@@ -142,6 +142,34 @@ R^2_{McFadden} = 1 - \frac{\log L_{model}}{\log L_{null}}
 where \(L_{model}\) is the fitted model's likelihood and \(L_{null}\) is the
 likelihood of the intercept-only model.
 
+## Survival effect sizes
+
+### Hazard ratio
+
+For `test_survival()`, the effect size is the hazard ratio from a
+companion univariate Cox model on the same grouping factor used by the
+log-rank test:
+
+\[
+HR = e^{\hat\beta}
+\]
+
+reported with its Wald confidence interval. The hazard ratio is not part
+of the log-rank test itself and is not assigned a magnitude label: unlike
+Cohen's \(d\) or \(R^2\), there is no widely agreed small/moderate/large
+convention for hazard ratios, and inventing one would overstate how
+standardized that judgment is. The estimate is always reported; only the
+magnitude label is omitted.
+
+### Concordance index
+
+For `test_cox()`, the effect size is Harrell's concordance index (C), the
+proportion of comparable subject pairs for which the model correctly
+orders predicted risk and observed survival time. Like the hazard ratio,
+it is reported without a magnitude label for the same reason: 0.5
+corresponds to no better than chance and 1.0 to perfect discrimination,
+but there is no standard small/moderate/large convention in between.
+
 ## Categorical and rank-based effect sizes
 
 ### Cramer's V
@@ -231,3 +259,5 @@ Magnitude labels are descriptive thresholds used consistently by the package:
   practice, so treat the "large" label loosely for this estimate.)
 - Cramer's V, rank-biserial absolute value, and Kendall's W: negligible if
   \(< 0.1\), small if \(< 0.3\), moderate if \(< 0.5\), otherwise large.
+- Hazard ratio and concordance index: no magnitude label is assigned (see
+  "Survival effect sizes" above); the estimate itself is always reported.
