@@ -355,25 +355,27 @@ sumtab(~ age + sex + sbp_3m | treatment, cardio, p_value = TRUE)
 
 ## What Is Implemented
 
-| Study design                            | Main function                             | Tests considered                                                                                              |
-|-----------------------------------------|-------------------------------------------|---------------------------------------------------------------------------------------------------------------|
-| Summary table                           | `sumtab()`                                | Student t-test, Welch t-test, Wilcoxon rank-sum, ANOVA, Welch ANOVA, Kruskal-Wallis, chi-square, Fisher exact |
-| One numeric sample                      | `test_one_sample()`                       | one-sample t-test, Wilcoxon signed-rank, sign test                                                            |
-| Two independent groups                  | `test_two_groups()`                       | Student t-test, Welch t-test, Wilcoxon rank-sum                                                               |
-| Paired numeric measurements             | `test_paired()`                           | paired t-test, Wilcoxon signed-rank, sign test                                                                |
-| More than two groups                    | `test_groups()`                           | one-way ANOVA, Welch ANOVA, Kruskal-Wallis, post hoc comparisons                                              |
-| Factorial numeric design                | `test_factorial()`                        | factorial ANOVA with main effects and interactions                                                            |
-| Repeated numeric measurements           | `test_repeated()`, `test_repeated_long()` | repeated-measures ANOVA, Friedman test, paired post hoc tests                                                 |
-| Two categorical variables               | `test_categorical()`                      | chi-square independence test, Fisher exact test                                                               |
-| Paired categorical measurements         | `test_paired_categorical()`               | McNemar test                                                                                                  |
-| Repeated categorical measurements       | `test_repeated_categorical()`             | Cochran Q test, pairwise McNemar tests                                                                        |
-| One proportion                          | `test_proportion()`                       | exact binomial test, one-sample proportion test                                                               |
-| Multinomial categories                  | `test_multinomial()`                      | chi-square goodness-of-fit, pairwise binomial checks                                                          |
-| Two numeric variables                   | `test_correlation()`                      | Pearson, Spearman, Kendall                                                                                    |
-| Correlation matrix                      | `test_correlation_matrix()`               | pairwise Pearson, Spearman, or Kendall correlations                                                           |
-| Outlier screening                       | `test_outliers()`                         | IQR rule, Mahalanobis distance                                                                                |
-| Continuous outcome, multiple predictors | `test_linear_regression()`                | ordinary least squares, overall F-test                                                                        |
-| Binary outcome, multiple predictors     | `test_logistic_regression()`              | logistic regression, likelihood-ratio test                                                                    |
+| Study design                               | Main function                             | Tests considered                                                                                              |
+|--------------------------------------------|-------------------------------------------|---------------------------------------------------------------------------------------------------------------|
+| Summary table                              | `sumtab()`                                | Student t-test, Welch t-test, Wilcoxon rank-sum, ANOVA, Welch ANOVA, Kruskal-Wallis, chi-square, Fisher exact |
+| One numeric sample                         | `test_one_sample()`                       | one-sample t-test, Wilcoxon signed-rank, sign test                                                            |
+| Two independent groups                     | `test_two_groups()`                       | Student t-test, Welch t-test, Wilcoxon rank-sum                                                               |
+| Paired numeric measurements                | `test_paired()`                           | paired t-test, Wilcoxon signed-rank, sign test                                                                |
+| More than two groups                       | `test_groups()`                           | one-way ANOVA, Welch ANOVA, Kruskal-Wallis, post hoc comparisons                                              |
+| Factorial numeric design                   | `test_factorial()`                        | factorial ANOVA with main effects and interactions                                                            |
+| Repeated numeric measurements              | `test_repeated()`, `test_repeated_long()` | repeated-measures ANOVA, Friedman test, paired post hoc tests                                                 |
+| Two categorical variables                  | `test_categorical()`                      | chi-square independence test, Fisher exact test                                                               |
+| Paired categorical measurements            | `test_paired_categorical()`               | McNemar test                                                                                                  |
+| Repeated categorical measurements          | `test_repeated_categorical()`             | Cochran Q test, pairwise McNemar tests                                                                        |
+| One proportion                             | `test_proportion()`                       | exact binomial test, one-sample proportion test                                                               |
+| Multinomial categories                     | `test_multinomial()`                      | chi-square goodness-of-fit, pairwise binomial checks                                                          |
+| Two numeric variables                      | `test_correlation()`                      | Pearson, Spearman, Kendall                                                                                    |
+| Correlation matrix                         | `test_correlation_matrix()`               | pairwise Pearson, Spearman, or Kendall correlations                                                           |
+| Outlier screening                          | `test_outliers()`                         | IQR rule, Mahalanobis distance                                                                                |
+| Continuous outcome, multiple predictors    | `test_linear_regression()`                | ordinary least squares, overall F-test                                                                        |
+| Binary outcome, multiple predictors        | `test_logistic_regression()`              | logistic regression, likelihood-ratio test                                                                    |
+| Time-to-event outcome, two groups          | `test_survival()`                         | Kaplan-Meier, log-rank test                                                                                   |
+| Time-to-event outcome, multiple predictors | `test_cox()`                              | Cox proportional hazards regression, likelihood-ratio test                                                    |
 
 Effect-size formulas are documented in
 `vignettes/effect-size-formulas.Rmd`.

@@ -95,6 +95,10 @@ and pairwise McNemar tests for follow-up comparisons.
 - Cohen, J. (1988). \emph{Statistical Power Analysis for the Behavioral Sciences}.
 - Draper, N. R., & Smith, H. (1998). \emph{Applied Regression Analysis} (3rd ed.).
 - Hosmer, D. W., Lemeshow, S., & Sturdivant, R. X. (2013). \emph{Applied Logistic Regression} (3rd ed.).
+- Kaplan, E. L., & Meier, P. (1958). Nonparametric estimation from incomplete observations.
+- Mantel, N. (1966). Evaluation of survival data and two new rank order statistics arising in its consideration.
+- Cox, D. R. (1972). Regression models and life-tables.
+- Grambsch, P. M., & Therneau, T. M. (1994). Proportional hazards tests and diagnostics based on weighted residuals.
 
 ## Correlation
 
@@ -124,6 +128,38 @@ intercept-only model as the primary result, coefficients on both the
 log-odds and odds-ratio scale in `alternative_tests`, and McFadden's pseudo R
 squared as the effect size. Multicollinearity and influential observations
 (Cook's distance) are checked as assumptions.
+
+## Survival analysis
+
+`make_cardio_data()` does not include time-to-event data, so this section
+uses a small synthetic example instead.
+
+```{r}
+set.seed(1)
+n <- 100
+survival_dat <- tibble::tibble(
+  time = rexp(n, 0.1),
+  status = rbinom(n, 1, 0.7),
+  arm = rep(c("control", "treatment"), each = n / 2),
+  age = rnorm(n, 60, 10)
+)
+test_survival(Surv(time, status) ~ arm, data = survival_dat)
+```
+
+`test_survival()` reports the log-rank test as the primary result and a
+companion univariate Cox hazard ratio as the effect size; the hazard ratio
+is not itself part of the log-rank test and can disagree with it under
+strongly non-proportional hazards. `Surv()` is re-exported from the
+`survival` package, so it is available after `library(testflow)` alone.
+
+```{r}
+test_cox(Surv(time, status) ~ age + arm, data = survival_dat)
+```
+
+`test_cox()` reports the overall likelihood-ratio test as the primary
+result, hazard ratios per term, the concordance index as the effect size,
+and checks the proportional-hazards assumption via the Schoenfeld residual
+test (`survival::cox.zph()`).
 
 ## Outliers
 

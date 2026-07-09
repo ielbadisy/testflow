@@ -290,6 +290,8 @@ sumtab(~ age + sex + sbp_3m | treatment, cardio, p_value = TRUE)
 | Outlier screening | `test_outliers()` | IQR rule, Mahalanobis distance |
 | Continuous outcome, multiple predictors | `test_linear_regression()` | ordinary least squares, overall F-test |
 | Binary outcome, multiple predictors | `test_logistic_regression()` | logistic regression, likelihood-ratio test |
+| Time-to-event outcome, two groups | `test_survival()` | Kaplan-Meier, log-rank test |
+| Time-to-event outcome, multiple predictors | `test_cox()` | Cox proportional hazards regression, likelihood-ratio test |
 
 Effect-size formulas are documented in
 `vignettes/effect-size-formulas.Rmd`.
