@@ -39,19 +39,17 @@ print.testflow <- function(x, ...) {
     tf_blank()
 
     if (!is.null(x$effect_size) && nrow(x$effect_size) > 0) {
-      if (is.na(x$effect_size$estimate[1]) || is.na(x$effect_size$magnitude[1])) {
-        tf_section("Effect size")
-        tf_bullet("Effect size not reported.")
-        tf_blank()
-      } else {
       tf_section("Effect size")
-      tf_line(paste0(
-        tf_label(x$effect_size$name[1]), " ",
-        format_stat(x$effect_size$estimate[1]), ", ",
-        tf_value(x$effect_size$magnitude[1])
-      ))
-      tf_blank()
+      if (is.na(x$effect_size$estimate[1])) {
+        tf_bullet("Effect size not reported.")
+      } else {
+        tf_line(paste0(
+          tf_label(x$effect_size$name[1]), " ",
+          format_stat(x$effect_size$estimate[1]),
+          if (!is.na(x$effect_size$magnitude[1])) paste0(", ", tf_value(x$effect_size$magnitude[1])) else ""
+        ))
       }
+      tf_blank()
     }
 
     tf_section("Report")

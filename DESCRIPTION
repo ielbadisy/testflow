@@ -34,7 +34,8 @@ Imports:
     tibble,
     purrr,
     broom,
-    ggplot2
+    ggplot2,
+    survival
 Suggests:
     testthat (>= 3.0.0),
     knitr,
