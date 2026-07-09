@@ -2,7 +2,7 @@ test_that("print and as_tibble expose core text", {
   dat <- make_cardio_data(80)
   x <- test_two_groups(dat, sbp_3m, sex)
   txt <- capture.output(print(x))
-  expect_true(any(grepl("Statistical test workflow", txt)))
+  expect_true(any(grepl("Two Independent Groups", txt, fixed = TRUE)))
   expect_true(any(grepl("sbp_3m", txt)))
   expect_true(any(grepl(x$recommended$test, txt, fixed = TRUE)))
   expect_true(any(grepl("Report", txt)))
@@ -19,7 +19,7 @@ test_that("summary.testflow prints a compact vertical result", {
 
   txt <- capture.output(summary(x))
 
-  expect_true(any(grepl("testflow summary", txt, fixed = TRUE)))
+  expect_true(any(grepl("Two Independent Groups (summary)", txt, fixed = TRUE)))
   expect_true(any(grepl("Workflow:", txt, fixed = TRUE)))
   expect_true(any(grepl("Recommended test:", txt, fixed = TRUE)))
   expect_true(any(grepl(x$recommended$test, txt, fixed = TRUE)))
@@ -70,6 +70,28 @@ test_that("screening workflows do not print fake test statistics", {
   expect_false(any(grepl("p = NA", outlier_txt, fixed = TRUE)))
   expect_true(any(grepl("pairwise correlations reported", corr_txt, fixed = TRUE)))
   expect_true(any(grepl("flagged rows", outlier_txt, fixed = TRUE)))
+})
+
+test_that("print.testflow shows a workflow-specific title and relabeled fields", {
+  set.seed(1)
+  n <- 60
+  dat <- tibble::tibble(y = rnorm(n), x1 = rnorm(n), x2 = rnorm(n))
+  dat$y <- 1 + 0.5 * dat$x1 + rnorm(n, sd = 0.5)
+  reg <- test_linear_regression(y ~ x1 + x2, data = dat)
+  reg_txt <- capture.output(print(reg))
+  expect_true(any(grepl("^Linear Regression$", reg_txt)))
+  expect_true(any(grepl("Predictors: x1, x2", reg_txt, fixed = TRUE)))
+  expect_false(any(grepl("^Group:", reg_txt)))
+
+  icc_dat <- tibble::tibble(r1 = rnorm(20, 50, 10), r2 = rnorm(20, 50, 10), r3 = rnorm(20, 50, 10))
+  icc <- test_icc(icc_dat, c(r1, r2, r3))
+  icc_txt <- capture.output(print(icc))
+  expect_true(any(grepl("^Intraclass Correlation$", icc_txt)))
+  expect_false(any(grepl("^Group:", icc_txt)))
+
+  reg_summary_txt <- capture.output(print(summary(reg)))
+  expect_true(any(grepl("Linear Regression (summary)", reg_summary_txt, fixed = TRUE)))
+  expect_true(any(grepl("Predictors:", reg_summary_txt, fixed = TRUE)))
 })
 
 test_that("wide repeated workflow prints measure labels", {
