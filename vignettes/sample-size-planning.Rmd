@@ -293,6 +293,40 @@ distances \(d_{NI} = \log(HR_M) - \log(HR)\) and
 in \(D_{total} \approx 4(z_{1-\alpha}+z_{1-\beta})^2/d^2\) and converted to a
 total sample size the same way.
 
+### Uniform accrual
+
+The flat conversion above assumes every subject is followed for the full
+study duration. When enrollment is staggered, pass `accrual_duration`
+(enrollment window \(R\)) and `follow_up` (additional follow-up after
+accrual ends) together with `survival_a`/`survival_b`; the event
+probability for each arm becomes the accrual-averaged
+
+\[
+\bar q_g = 1 - \frac{e^{-\lambda_g(T-R)} - e^{-\lambda_g T}}{\lambda_g R},
+\qquad T = R + \text{follow\_up},
+\]
+
+with \(\lambda_g\) implied by \(S_g(T)\) under an exponential-survival
+assumption, in place of the flat \(1-S_g(t)\):
+
+```{r}
+accrual_ss <- sample_size_survival(
+  hr = 0.7,
+  survival_a = 0.8,
+  survival_b = 0.7,
+  alpha = 0.05,
+  power = 0.90,
+  accrual_duration = 12,
+  follow_up = 24
+)
+accrual_ss
+```
+
+Staggered accrual always requires *more* subjects than instantaneous
+accrual for the same number of events (later-enrolled subjects have less
+follow-up time), and the accrual-adjusted result reduces to the flat
+conversion as `accrual_duration` shrinks toward 0.
+
 ## Ordinal endpoints
 
 `sample_size_ordinal()` implements Noether's method for a
@@ -311,6 +345,115 @@ ordinal_ss <- sample_size_ordinal(
 )
 ordinal_ss
 ```
+
+`method = "whitehead"` implements the proportional-odds alternative, with
+\(K\) ordinal categories, anticipated average category probabilities
+\(\pi_1,\ldots,\pi_K\), and planned proportional odds ratio
+\(\theta=\log(OR_{PO})\):
+
+\[
+n_{per\ group} \approx \frac{6(z_{1-\alpha/2}+z_{1-\beta})^2}
+{\left(1-\sum_{j=1}^{K}\pi_j^3\right)\theta^2}
+\]
+
+```{r}
+sample_size_ordinal(
+  method = "whitehead",
+  probs = c(0.3, 0.3, 0.4),
+  odds_ratio = 2,
+  alpha = 0.05,
+  power = 0.90
+)
+```
+
+This approximation is sensitive to the category-probability distribution
+and the direction of the odds ratio; validate it against a design-specific
+worked example before relying on it for a registered protocol.
+
+## Bioequivalence
+
+`sample_size_bioequivalence()` plans a two one-sided test (TOST)
+bioequivalence study on the log scale, for a `crossover` or `parallel`
+design. With anticipated geometric mean ratio \(GMR\),
+\(\theta_0=\log(GMR)\), bounds \(\theta_L=\log(L)\), \(\theta_U=\log(U)\)
+(usually 0.80 and 1.25), and \(d_{BE}=\min(\theta_0-\theta_L,\
+\theta_U-\theta_0)\):
+
+```{r}
+be_ss <- sample_size_bioequivalence(
+  design = "crossover",
+  gmr = 0.95,
+  cv_within = 0.30,
+  alpha = 0.05,
+  power = 0.90
+)
+be_ss
+```
+
+The default `method = "iterative_tost"` searches for the smallest sample
+size achieving the *exact* TOST power,
+
+\[
+Power(n) = \Phi\!\left(\frac{\theta_U-\theta_0}{SE(n)}-z_{1-\alpha}\right)
++ \Phi\!\left(\frac{\theta_0-\theta_L}{SE(n)}-z_{1-\alpha}\right) - 1,
+\]
+
+rather than the closed-form approximation
+\(n_{total} \approx 2\sigma_w^2(z_{1-\beta}+z_{1-\alpha})^2/d_{BE}^2\)
+available via `method = "normal_approx"`; the two agree closely near
+\(GMR=1\) but can diverge further away from it. `design = "parallel"` uses
+`cv_between` in place of `cv_within` and respects the `allocation` ratio.
+
+## Precision-based sample size
+
+`sample_size_precision()` sizes a study to a target confidence-interval
+half-width \(w\) instead of power against an effect size — there is no
+`power` argument because there is no alternative hypothesis being tested.
+
+```{r}
+sample_size_precision(
+  endpoint = "continuous",
+  design = "one_sample",
+  width = 2,
+  sd = 10,
+  alpha = 0.05
+)
+
+sample_size_precision(
+  endpoint = "binary",
+  design = "two_sample",
+  width = 0.08,
+  p1 = 0.4,
+  p2 = 0.3,
+  alpha = 0.05
+)
+```
+
+`design` is `one_sample`, `two_sample`, or (binary only) `odds_ratio`
+(precision on the log-odds-ratio scale); `endpoint = "binary"`,
+`design = "one_sample"` also accepts `conservative = TRUE` to plan against
+the worst-case \(p=0.5\) instead of an anticipated `p`.
+
+## Cluster-randomized adjustment
+
+`sample_size_cluster_adjust()` inflates an individually randomized sample
+size for cluster randomization by the design effect
+\(DE = 1+(m-1)\rho\) (or, for unevenly sized clusters with coefficient of
+variation \(CV_m\), \(DE \approx 1+((1+CV_m^2)m-1)\rho\)):
+
+```{r}
+parallel_ss <- sample_size_continuous(
+  design = "parallel", objective = "superiority",
+  delta = 5, sd = 10, alpha = 0.05, power = 0.90
+)
+sample_size_cluster_adjust(unname(parallel_ss$n_adjusted["A"]), m = 20, rho = 0.02)
+```
+
+Unlike the other `sample_size_*()` functions, this one returns a plain
+integer rather than a `sample_size` object, since it is a post-processing
+adjustment applied to an already-computed sample size rather than a full
+planning calculation in its own right — the same shape as
+`sample_size_adjust_dropout()`.
 
 ## Dropout adjustment and reporting
 
@@ -335,9 +478,24 @@ as_tibble(paired_ss)
 |---|---|---|---|
 | Continuous | parallel, paired, repeated (2+ time points) | superiority, non-inferiority, equivalence | normal-approximation formulas for the mean difference, plus a compound-symmetry repeated-measures extension |
 | Binary | parallel, paired, repeated (2 time points) | superiority, non-inferiority, equivalence | risk-difference planning and discordant-pair planning |
-| Survival | parallel | superiority, non-inferiority, equivalence | event-based proportional-hazards planning |
-| Ordinal | parallel | superiority | Noether approximation |
+| Survival | parallel | superiority, non-inferiority, equivalence | event-based proportional-hazards planning, optional uniform-accrual adjustment |
+| Ordinal | parallel | superiority | Noether approximation, or Whitehead proportional-odds |
+| Bioequivalence | crossover, parallel | equivalence (TOST) | iterative TOST or normal approximation, log scale |
+| Precision | one-sample, two-sample, log-OR | CI half-width (no power/objective) | continuous and binary CI-width formulas |
+
+`sample_size_cluster_adjust()` and `sample_size_adjust_dropout()` are
+post-processing helpers that adjust an already-computed sample size rather
+than planning one from scratch.
 
 ## Reference
 
 Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
+
+Phillips KF. Power of the two one-sided tests procedure in bioequivalence.
+*Journal of Pharmacokinetics and Biopharmaceutics*. 1990;18(2):137-144.
+
+Whitehead J. Sample size calculations for ordered categorical data.
+*Statistics in Medicine*. 1993;12(24):2257-2271.
+
+Donner A, Klar N. *Design and Analysis of Cluster Randomization Trials in
+Health Research*. Arnold; 2000.
