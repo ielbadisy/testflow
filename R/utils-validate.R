@@ -61,6 +61,15 @@ warn_if_nonbinary <- function(x, label) {
 
 safe_tidy_htest <- function(x, method = NULL) {
   out <- suppressMessages(broom::tidy(x))
+  # broom::tidy()/glance() sometimes leave a stray name attribute on numeric
+  # columns (e.g. "number of successes", "value", "numdf"), inherited from
+  # the underlying htest object's own named vectors (binom.test$statistic,
+  # summary.lm()$fstatistic, ...). Strip it so equality checks against
+  # independently computed reference values aren't tripped up by a names
+  # mismatch on an otherwise-identical numeric value.
+  for (col in c("statistic", "parameter", "p.value", "conf.low", "conf.high", "estimate")) {
+    if (col %in% names(out)) out[[col]] <- unname(out[[col]])
+  }
   out <- standardize_result_columns(out)
   if (!is.null(method)) {
     out$method <- method

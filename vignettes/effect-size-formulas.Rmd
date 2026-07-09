@@ -219,6 +219,42 @@ W = \frac{Q}{n(k - 1)}
 
 where \(Q\) is the Cochran Q statistic.
 
+## Diagnostic and agreement effect sizes
+
+### Accuracy
+
+For `test_diagnostic()`, the effect size is overall accuracy:
+
+\[
+Accuracy = \frac{TP+TN}{TP+FP+FN+TN}
+\]
+
+No magnitude label is assigned; accuracy is only meaningful relative to the
+no-information rate reported alongside it (the primary test result).
+
+### AUC
+
+For `test_roc()`, the effect size is the area under the ROC curve (see
+"Diagnostic and agreement effect sizes" formulas in the function
+documentation for the full derivation). The magnitude label follows Hosmer,
+Lemeshow & Sturdivant (2013, p. 177): poor if \(< 0.7\), acceptable if
+\(< 0.8\), excellent if \(< 0.9\), otherwise outstanding (applied to
+\(\max(AUC, 1-AUC)\), since an AUC below 0.5 indicates the predictor
+discriminates in the opposite direction, not that it fails to discriminate).
+
+### Cohen's kappa
+
+For `test_agreement()`, the effect size is Cohen's kappa. The magnitude
+label follows Landis & Koch (1977): poor if \(<0\), slight if \(<0.21\),
+fair if \(<0.41\), moderate if \(<0.61\), substantial if \(<0.81\),
+otherwise almost perfect.
+
+### Intraclass correlation coefficient
+
+For `test_icc()`, the effect size is ICC(2,1) (two-way random effects,
+absolute agreement). The magnitude label follows Koo & Li (2016): poor if
+\(<0.5\), moderate if \(<0.75\), good if \(<0.9\), otherwise excellent.
+
 ## Other reported workflow summaries
 
 Some workflows expose a scalar summary in the effect-size field when a standard
@@ -261,3 +297,11 @@ Magnitude labels are descriptive thresholds used consistently by the package:
   \(< 0.1\), small if \(< 0.3\), moderate if \(< 0.5\), otherwise large.
 - Hazard ratio and concordance index: no magnitude label is assigned (see
   "Survival effect sizes" above); the estimate itself is always reported.
+- Accuracy: no magnitude label is assigned (see "Diagnostic and agreement
+  effect sizes" above); only meaningful relative to the no-information rate.
+- AUC: poor if \(\max(AUC,1-AUC) < 0.7\), acceptable if \(<0.8\), excellent
+  if \(<0.9\), otherwise outstanding.
+- Cohen's kappa: poor if \(<0\), slight if \(<0.21\), fair if \(<0.41\),
+  moderate if \(<0.61\), substantial if \(<0.81\), otherwise almost perfect.
+- Intraclass correlation coefficient: poor if \(<0.5\), moderate if
+  \(<0.75\), good if \(<0.9\), otherwise excellent.
