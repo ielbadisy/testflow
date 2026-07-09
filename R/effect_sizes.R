@@ -50,3 +50,18 @@ rank_biserial_two_groups <- function(data, outcome, group) {
   r <- 1 - (2 * unname(wt$statistic)) / (n1 * n2)
   tibble::tibble(name = "Rank-biserial correlation", estimate = r, magnitude = magnitude_cramers_v(abs(r)))
 }
+
+r_squared_lm <- function(fit) {
+  g <- broom::glance(fit)
+  tibble::tibble(name = "R squared", estimate = g$r.squared, magnitude = magnitude_eta2(g$r.squared))
+}
+
+adjusted_r_squared_lm <- function(fit) {
+  g <- broom::glance(fit)
+  tibble::tibble(name = "Adjusted R squared", estimate = g$adj.r.squared, magnitude = magnitude_eta2(g$adj.r.squared))
+}
+
+mcfadden_r2_glm <- function(fit, null_fit) {
+  r2 <- 1 - as.numeric(stats::logLik(fit)) / as.numeric(stats::logLik(null_fit))
+  tibble::tibble(name = "McFadden's pseudo R squared", estimate = r2, magnitude = magnitude_eta2(r2))
+}

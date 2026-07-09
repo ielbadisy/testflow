@@ -93,12 +93,37 @@ and pairwise McNemar tests for follow-up comparisons.
 - Cramer, H. (1946). \emph{Mathematical Methods of Statistics}.
 - Clopper, C. J., & Pearson, E. S. (1934). The use of confidence or fiducial limits illustrated in the case of the binomial.
 - Cohen, J. (1988). \emph{Statistical Power Analysis for the Behavioral Sciences}.
+- Draper, N. R., & Smith, H. (1998). \emph{Applied Regression Analysis} (3rd ed.).
+- Hosmer, D. W., Lemeshow, S., & Sturdivant, R. X. (2013). \emph{Applied Logistic Regression} (3rd ed.).
 
 ## Correlation
 
 ```{r}
 test_correlation(sbp_3m ~ age, data = cardio)
 ```
+
+## Regression
+
+```{r}
+test_linear_regression(sbp_3m ~ age + ldl, data = cardio)
+```
+
+Linear regression reports the overall model F-test as the primary result,
+the per-term coefficient table (with confidence intervals) in
+`alternative_tests$coefficients`, and R squared / adjusted R squared as the
+effect size. Residual normality (Shapiro-Wilk), homoscedasticity
+(Breusch-Pagan), and multicollinearity (variance inflation factor, when
+there is more than one predictor) are checked as assumptions.
+
+```{r}
+test_logistic_regression(controlled_3m ~ age + ldl, data = cardio)
+```
+
+Logistic regression reports the likelihood-ratio test against the
+intercept-only model as the primary result, coefficients on both the
+log-odds and odds-ratio scale in `alternative_tests`, and McFadden's pseudo R
+squared as the effect size. Multicollinearity and influential observations
+(Cook's distance) are checked as assumptions.
 
 ## Outliers
 

@@ -116,6 +116,32 @@ For the non-parametric branch of `test_groups()`, the reported effect is:
 where \(H\) is the Kruskal-Wallis statistic, \(k\) is the number of groups, and
 \(n\) is the number of complete observations.
 
+## Regression effect sizes
+
+### R squared and adjusted R squared
+
+For `test_linear_regression()`:
+
+\[
+R^2 = 1 - \frac{SS_{res}}{SS_{total}}, \qquad
+R^2_{adj} = 1 - (1-R^2)\frac{n-1}{n-p-1}
+\]
+
+where \(p\) is the number of predictors and \(n\) is the number of complete
+observations. Both are reported, with `R squared` first (used as the primary
+effect size) and `Adjusted R squared` second.
+
+### McFadden's pseudo R squared
+
+For `test_logistic_regression()`:
+
+\[
+R^2_{McFadden} = 1 - \frac{\log L_{model}}{\log L_{null}}
+\]
+
+where \(L_{model}\) is the fitted model's likelihood and \(L_{null}\) is the
+likelihood of the intercept-only model.
+
 ## Categorical and rank-based effect sizes
 
 ### Cramer's V
@@ -197,7 +223,11 @@ Magnitude labels are descriptive thresholds used consistently by the package:
 
 - Cohen's \(d\): negligible if \(|d| < 0.2\), small if \(|d| < 0.5\),
   moderate if \(|d| < 0.8\), otherwise large.
-- Eta squared and epsilon squared: negligible if the estimate is \(< 0.01\),
-  small if \(< 0.06\), moderate if \(< 0.14\), otherwise large.
+- Eta squared, epsilon squared, R squared, adjusted R squared, and
+  McFadden's pseudo R squared: negligible if the estimate is \(< 0.01\),
+  small if \(< 0.06\), moderate if \(< 0.14\), otherwise large. (McFadden's
+  pseudo R squared is not on the same scale as ordinary least squares
+  \(R^2\); values above roughly 0.2-0.4 are already considered a good fit in
+  practice, so treat the "large" label loosely for this estimate.)
 - Cramer's V, rank-biserial absolute value, and Kendall's W: negligible if
   \(< 0.1\), small if \(< 0.3\), moderate if \(< 0.5\), otherwise large.
