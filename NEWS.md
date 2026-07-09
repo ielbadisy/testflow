@@ -24,6 +24,11 @@
   longer carries a `formula`/`reference` field.
 - Added a "Sample size planning" vignette walking through the supported
   endpoints, designs, and objectives with worked examples.
+- Added a "Sample size: complete API reference and formulas" vignette
+  covering every `design`/`objective`/`method` combination across
+  `sample_size_continuous()`, `sample_size_binary()`,
+  `sample_size_survival()`, and `sample_size_ordinal()`, each paired with
+  its formula and a runnable example.
 
 ## Outlier workflow
 
