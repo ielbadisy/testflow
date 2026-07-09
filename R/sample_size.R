@@ -1,8 +1,7 @@
 #' Sample size planning for common trial designs
 #'
 #' @description
-#' `sample_size()` dispatches to endpoint-specific planning helpers. The
-#' implementation covers the formulas selected in the Julious reference for
+#' `sample_size()` dispatches to endpoint-specific planning helpers for
 #' continuous, binary, survival, and ordinal planning problems.
 #'
 #' @param endpoint Endpoint family: `continuous`, `binary`, `survival`, or
@@ -12,6 +11,8 @@
 #'   `equivalence`, or `precision` depending on endpoint.
 #' @param ... Endpoint-specific arguments passed to the selected helper.
 #' @return A `sample_size` object.
+#' @references
+#' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
 #' @export
 sample_size <- function(endpoint = c("continuous", "binary", "survival", "ordinal"), design = c("parallel", "paired", "repeated"), objective = c("superiority", "noninferiority", "equivalence"), ...) {
   endpoint <- match.arg(endpoint)
@@ -44,6 +45,26 @@ sample_size <- function(endpoint = c("continuous", "binary", "survival", "ordina
 #' @param correlation Within-subject correlation for repeated measures when
 #'   `design = "repeated"` and `n_time > 2`.
 #' @return A `sample_size` object.
+#' @details
+#' With \eqn{r} the allocation ratio \eqn{n_B / n_A}, \eqn{z_{1-\beta}} and
+#' \eqn{z_{1-\alpha/2}} (or \eqn{z_{1-\alpha}} for one-sided designs) standard
+#' normal quantiles:
+#'
+#' Parallel superiority (equal allocation):
+#' \deqn{n_{per\ group} = \frac{2\sigma^2(z_{1-\beta}+z_{1-\alpha/2})^2}{\Delta^2}}
+#'
+#' Parallel non-inferiority, with \eqn{d_{NI} = \Delta + \delta}:
+#' \deqn{n_{per\ group} = \frac{2\sigma^2(z_{1-\beta}+z_{1-\alpha})^2}{d_{NI}^2}}
+#'
+#' Parallel equivalence, with \eqn{d_{EQ} = \delta - |\Delta|}:
+#' \deqn{n_{per\ group} \approx \frac{2\sigma^2(z_{1-\beta}+z_{1-\alpha})^2}{d_{EQ}^2}}
+#'
+#' Paired designs use the same forms with the standard deviation of the
+#' paired differences (`sd_diff`) in place of \eqn{\sigma}. Repeated designs
+#' (`n_time > 2`) plan on an effective standard deviation derived from a
+#' compound-symmetry working correlation.
+#' @references
+#' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
 #' @export
 sample_size_continuous <- function(
   design = c("parallel", "paired", "repeated"),
@@ -114,8 +135,6 @@ sample_size_continuous <- function(
           paste0("Effective SD = ", format_sample_value(scale_sd), "."),
           if (repeated_design) paste0("Within-subject correlation = ", format_sample_value(correlation), ".") else NULL
         ),
-        formula = "n = ((z_{1-alpha/2} + z_{1-beta})^2 * sd_diff^2) / delta^2",
-        reference = SAMPLE_SIZE_REFERENCE,
         report = paste0(
           if (repeated_design) "Repeated-measures continuous superiority sample size was calculated with delta = " else "Paired continuous superiority sample size was calculated with delta = ",
           format_sample_value(delta), ", sd_diff = ", format_sample_value(scale_sd),
@@ -127,9 +146,9 @@ sample_size_continuous <- function(
           n_target = n_adj,
           power_target = power,
           n_grid = sample_size_curve_grid(n_adj),
-          power_grid = sample_size_curve_power_continuous_superiority(sample_size_curve_grid(n_adj), delta, scale_sd, alpha = alpha),
+          power_grid = sample_size_curve_power_continuous_paired_superiority(sample_size_curve_grid(n_adj), delta, scale_sd, alpha = alpha),
           unit_label = "sample size",
-          power_label = "test power = 1 - \u03b2"
+          power_label = "test power = 1 - beta"
         )
       ))
     }
@@ -161,8 +180,6 @@ sample_size_continuous <- function(
           if (repeated_design) paste0("Within-subject correlation = ", format_sample_value(correlation), ".") else NULL,
           paste0("Distance to the non-inferiority boundary = ", format_sample_value(d_ni), ".")
         ),
-        formula = "n = ((z_{1-alpha} + z_{1-beta})^2 * sd_diff^2) / (expected_difference + margin)^2",
-        reference = SAMPLE_SIZE_REFERENCE,
         report = paste0(
           if (repeated_design) "Repeated-measures continuous non-inferiority sample size was calculated with expected_difference = " else "Paired continuous non-inferiority sample size was calculated with expected_difference = ",
           format_sample_value(expected_difference), ", margin = ", format_sample_value(delta),
@@ -181,10 +198,8 @@ sample_size_continuous <- function(
       if (isTRUE(all.equal(expected_difference, 0))) {
         z_power_eq <- stats::qnorm(1 - (1 - power) / 2)
         n_raw <- 2 * scale_sd^2 * (z_power_eq + z_alpha_one)^2 / delta^2
-        formula_text <- "n = 2 * (z_{1-beta/2} + z_{1-alpha})^2 * sd_diff^2 / margin^2"
       } else {
         n_raw <- ((z_power + z_alpha_one)^2 * scale_sd^2) / d_eq^2
-        formula_text <- "n = ((z_{1-beta} + z_{1-alpha})^2 * sd_diff^2) / (margin - abs(expected_difference))^2"
       }
       n_main <- sample_size_round(n_raw)
       n_adj <- sample_size_apply_dropout(n_main, dropout)
@@ -206,8 +221,6 @@ sample_size_continuous <- function(
           if (repeated_design) paste0("Within-subject correlation = ", format_sample_value(correlation), ".") else NULL,
           paste0("Distance to the nearest equivalence boundary = ", format_sample_value(d_eq), ".")
         ),
-        formula = formula_text,
-        reference = SAMPLE_SIZE_REFERENCE,
         report = paste0(
           if (repeated_design) "Repeated-measures continuous equivalence sample size was calculated with expected_difference = " else "Paired continuous equivalence sample size was calculated with expected_difference = ",
           format_sample_value(expected_difference), ", margin = ", format_sample_value(delta),
@@ -242,8 +255,6 @@ sample_size_continuous <- function(
         "Two independent groups are assumed.",
         paste0("Allocation ratio B/A = ", format_sample_value(allocation), ".")
       ),
-      formula = "n_A = ((r + 1) * sd^2 * (z_{1-beta} + z_{1-alpha/2})^2) / (r * delta^2)",
-      reference = SAMPLE_SIZE_REFERENCE,
       report = paste0(
         "Parallel continuous superiority sample size was calculated with delta = ",
         format_sample_value(delta), ", sd = ", format_sample_value(sd), ", allocation ratio = ",
@@ -278,8 +289,6 @@ sample_size_continuous <- function(
         "Two independent groups are assumed.",
         paste0("Distance to the non-inferiority boundary = ", format_sample_value(d_ni), ".")
       ),
-      formula = "n_A = ((r + 1) * sd^2 * (z_{1-beta} + z_{1-alpha})^2) / (r * (expected_difference + margin)^2)",
-      reference = SAMPLE_SIZE_REFERENCE,
       report = paste0(
         "Parallel continuous non-inferiority sample size was calculated with expected_difference = ",
         format_sample_value(expected_difference), ", margin = ", format_sample_value(delta),
@@ -299,10 +308,8 @@ sample_size_continuous <- function(
     if (isTRUE(all.equal(expected_difference, 0))) {
       z_power_eq <- stats::qnorm(1 - (1 - power) / 2)
       n_a_raw <- ((allocation + 1) * sd^2 * (z_power_eq + z_alpha_one)^2) / (allocation * delta^2)
-      formula_text <- "n_A = ((r + 1) * sd^2 * (z_{1-beta/2} + z_{1-alpha})^2) / (r * margin^2)"
     } else {
       n_a_raw <- ((allocation + 1) * sd^2 * (z_power + z_alpha_one)^2) / (allocation * d_eq^2)
-      formula_text <- "n_A = ((r + 1) * sd^2 * (z_{1-beta} + z_{1-alpha})^2) / (r * (margin - abs(expected_difference))^2)"
     }
     n_b_raw <- allocation * n_a_raw
     n_a <- sample_size_round(n_a_raw)
@@ -321,8 +328,6 @@ sample_size_continuous <- function(
         "Two independent groups are assumed.",
         paste0("Distance to the nearest equivalence boundary = ", format_sample_value(d_eq), ".")
       ),
-      formula = formula_text,
-      reference = SAMPLE_SIZE_REFERENCE,
       report = paste0(
         "Parallel continuous equivalence sample size was calculated with expected_difference = ",
         format_sample_value(expected_difference), ", margin = ", format_sample_value(delta),
@@ -343,6 +348,9 @@ sample_size_continuous <- function(
 #' @param p1 Probability in arm A or first paired state.
 #' @param p2 Probability in arm B or second paired state.
 #' @param margin Non-inferiority or equivalence margin on the risk-difference scale.
+#' @param method Variance estimator for parallel superiority planning:
+#'   `pooled` uses the null (pooled-proportion) variance and `anticipated`
+#'   uses the alternative-hypothesis variance. Ignored for other objectives.
 #' @param discordant_or Discordant odds ratio for paired binary superiority.
 #' @param discordance_rate Proportion of discordant pairs.
 #' @param p10 Probability of A-only response for paired binary designs.
@@ -353,6 +361,30 @@ sample_size_continuous <- function(
 #' @param dropout Expected dropout proportion.
 #' @param n_time Number of repeated measures.
 #' @return A `sample_size` object.
+#' @details
+#' With \eqn{\bar p = (p_A + r p_B)/(1+r)} the pooled planning proportion and
+#' \eqn{r} the allocation ratio:
+#'
+#' Parallel superiority, pooled variance:
+#' \deqn{n_A = \frac{\left[z_{1-\alpha/2}\sqrt{(1+1/r)\bar p(1-\bar p)}+z_{1-\beta}\sqrt{p_A(1-p_A)+p_B(1-p_B)/r}\right]^2}{(p_A-p_B)^2}}
+#'
+#' Parallel superiority, anticipated-response variance:
+#' \deqn{n_A \approx \frac{(z_{1-\alpha/2}+z_{1-\beta})^2\left[p_A(1-p_A)+p_B(1-p_B)/r\right]}{(p_A-p_B)^2}}
+#'
+#' Non-inferiority, with \eqn{d_{NI} = (p_A-p_B)+\delta}:
+#' \deqn{n_A \approx \frac{(z_{1-\alpha}+z_{1-\beta})^2\left[p_A(1-p_A)+p_B(1-p_B)/r\right]}{d_{NI}^2}}
+#'
+#' Equivalence, with \eqn{d_{EQ} = \delta - |p_A-p_B|}:
+#' \deqn{n_A \approx \frac{(z_{1-\alpha}+z_{1-\beta})^2\left[p_A(1-p_A)+p_B(1-p_B)/r\right]}{d_{EQ}^2}}
+#'
+#' Equivalence special case \eqn{p_A = p_B = p}:
+#' \deqn{n_A = \frac{(r+1)(z_{1-\beta/2}+z_{1-\alpha})^2p(1-p)}{r\delta^2}}
+#'
+#' Paired (discordant-pairs) superiority, with discordant odds ratio
+#' \eqn{OR_D = p_{10}/p_{01}} and discordance rate \eqn{\lambda_D = p_{10}+p_{01}}:
+#' \deqn{n_{total} = \left\lceil\frac{(z_{1-\alpha/2}+z_{1-\beta})^2(OR_D+1)^2}{(OR_D-1)^2\lambda_D}\right\rceil}
+#' @references
+#' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
 #' @export
 sample_size_binary <- function(
   design = c("parallel", "paired", "repeated"),
@@ -360,6 +392,7 @@ sample_size_binary <- function(
   p1,
   p2,
   margin = NULL,
+  method = c("pooled", "anticipated"),
   discordant_or = NULL,
   discordance_rate = NULL,
   p10 = NULL,
@@ -372,6 +405,7 @@ sample_size_binary <- function(
 ) {
   design <- match.arg(design)
   objective <- match.arg(objective)
+  method <- match.arg(method)
   sample_size_validate_probability(alpha, "alpha")
   sample_size_validate_probability(power, "power")
   sample_size_validate_dropout(dropout)
@@ -416,8 +450,6 @@ sample_size_binary <- function(
         paste0("Discordant odds ratio = ", format_sample_value(discordant_or), "."),
         paste0("Discordance rate = ", format_sample_value(discordance_rate), ".")
       ),
-      formula = "n_total = ((z_{1-alpha/2} + z_{1-beta})^2 * (OR_D + 1)^2) / ((OR_D - 1)^2 * discordance_rate)",
-      reference = SAMPLE_SIZE_REFERENCE,
       report = paste0(
         "Paired binary superiority sample size was calculated with discordant_or = ",
         format_sample_value(discordant_or), ", discordance_rate = ", format_sample_value(discordance_rate),
@@ -439,7 +471,7 @@ sample_size_binary <- function(
     alt_var <- p1 * (1 - p1) + p2 * (1 - p2) / allocation
     n_pooled <- ((z_alpha_two * sqrt((1 + 1 / allocation) * pooled_p * (1 - pooled_p)) + z_power * sqrt(alt_var))^2) / delta^2
     n_alt <- ((z_alpha_two + z_power)^2 * alt_var) / delta^2
-    n_a_raw <- if (is.null(margin)) n_pooled else n_alt
+    n_a_raw <- if (method == "pooled") n_pooled else n_alt
     n_b_raw <- allocation * n_a_raw
     n_a <- sample_size_round(n_a_raw)
     n_b <- sample_size_round(n_b_raw)
@@ -449,7 +481,7 @@ sample_size_binary <- function(
       endpoint = "binary",
       design = "parallel",
       objective = objective,
-      method = if (is.null(margin)) "parallel pooled normal approximation" else "parallel anticipated-response normal approximation",
+      method = if (method == "pooled") "parallel pooled normal approximation" else "parallel anticipated-response normal approximation",
       n = n_a_raw,
       n_adjusted = c(A = n_a_adj, B = n_b_adj),
       n_per_group = c(A = n_a_adj, B = n_b_adj),
@@ -457,12 +489,6 @@ sample_size_binary <- function(
         "Two independent groups are assumed.",
         paste0("Risk difference = ", format_sample_value(delta), ".")
       ),
-      formula = if (is.null(margin)) {
-        "n_A = [z_{1-alpha/2} * sqrt((1 + 1/r) * pbar * (1 - pbar)) + z_{1-beta} * sqrt(p1(1-p1) + p2(1-p2)/r)]^2 / (p1 - p2)^2"
-      } else {
-        "n_A = (z_{1-alpha/2} + z_{1-beta})^2 * [p1(1-p1) + p2(1-p2)/r] / (p1 - p2)^2"
-      },
-      reference = SAMPLE_SIZE_REFERENCE,
       report = paste0(
         "Parallel binary superiority sample size was calculated with p1 = ", format_sample_value(p1),
         ", p2 = ", format_sample_value(p2), ", allocation ratio = ", format_sample_value(allocation),
@@ -496,8 +522,6 @@ sample_size_binary <- function(
         "Two independent groups are assumed.",
         paste0("Distance to the non-inferiority boundary = ", format_sample_value(d_ni), ".")
       ),
-      formula = "n_A = (z_{1-alpha} + z_{1-beta})^2 * [p1(1-p1) + p2(1-p2)/r] / (p1 - p2 + margin)^2",
-      reference = SAMPLE_SIZE_REFERENCE,
       report = paste0(
         "Parallel binary non-inferiority sample size was calculated with p1 = ", format_sample_value(p1),
         ", p2 = ", format_sample_value(p2), ", margin = ", format_sample_value(margin),
@@ -515,11 +539,9 @@ sample_size_binary <- function(
     }
     if (isTRUE(all.equal(delta, 0))) {
       z_power_eq <- stats::qnorm(1 - (1 - power) / 2)
-      n_a_raw <- ((z_power_eq + z_alpha_one)^2 * p1 * (1 - p1)) / (margin^2) * 2
-      formula_text <- "n_per_group = 2 * (z_{1-beta/2} + z_{1-alpha})^2 * p(1-p) / margin^2"
+      n_a_raw <- ((allocation + 1) * (z_power_eq + z_alpha_one)^2 * p1 * (1 - p1)) / (allocation * margin^2)
     } else {
       n_a_raw <- ((z_power + z_alpha_one)^2 * (p1 * (1 - p1) + p2 * (1 - p2) / allocation)) / d_eq^2
-      formula_text <- "n_A = (z_{1-alpha} + z_{1-beta})^2 * [p1(1-p1) + p2(1-p2)/r] / (margin - abs(p1 - p2))^2"
     }
     n_b_raw <- allocation * n_a_raw
     n_a <- sample_size_round(n_a_raw)
@@ -538,8 +560,6 @@ sample_size_binary <- function(
         "Two independent groups are assumed.",
         paste0("Distance to the nearest equivalence boundary = ", format_sample_value(d_eq), ".")
       ),
-      formula = formula_text,
-      reference = SAMPLE_SIZE_REFERENCE,
       report = paste0(
         "Parallel binary equivalence sample size was calculated with p1 = ", format_sample_value(p1),
         ", p2 = ", format_sample_value(p2), ", margin = ", format_sample_value(margin),
@@ -568,6 +588,30 @@ sample_size_binary <- function(
 #' @param dropout Expected dropout proportion.
 #' @param method `exponential` or `ph_only`.
 #' @return A `sample_size` object.
+#' @details
+#' With \eqn{z_{1-\beta}} and \eqn{z_{1-\alpha/2}} (or \eqn{z_{1-\alpha}} for
+#' one-sided designs) standard normal quantiles and \eqn{HR} the planned
+#' hazard ratio:
+#'
+#' Superiority, exponential survival:
+#' \deqn{D_{total} = \frac{4(z_{1-\alpha/2}+z_{1-\beta})^2}{[\log(HR)]^2}}
+#'
+#' Superiority, proportional-hazards-only approximation:
+#' \deqn{D_{total} = \frac{2(HR+1)^2(z_{1-\alpha/2}+z_{1-\beta})^2}{(HR-1)^2}}
+#'
+#' Non-inferiority, with \eqn{d_{NI} = \log(HR_M) - \log(HR)}:
+#' \deqn{D_{total} \approx \frac{4(z_{1-\alpha}+z_{1-\beta})^2}{d_{NI}^2}}
+#'
+#' Equivalence, with log-hazard-ratio bounds \eqn{\theta_L, \theta_U} and
+#' \eqn{d_{EQ} = \min(\theta-\theta_L,\ \theta_U-\theta)}:
+#' \deqn{D_{total} \approx \frac{4(z_{1-\alpha}+z_{1-\beta})^2}{d_{EQ}^2}}
+#'
+#' Required total events \eqn{D_{total}} are converted to a total sample size
+#' using the planned survival probabilities \eqn{S_A(t), S_B(t)} under equal
+#' allocation:
+#' \deqn{N_{total} = \frac{2D_{total}}{(1-S_A(t))+(1-S_B(t))}}
+#' @references
+#' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
 #' @export
 sample_size_survival <- function(
   design = c("parallel"),
@@ -629,12 +673,6 @@ sample_size_survival <- function(
         "Two independent groups are assumed.",
         "Event probabilities are derived from the planned survival probabilities."
       ),
-      formula = if (method == "exponential") {
-        "D_total = 4 * (z_{1-alpha/2} + z_{1-beta})^2 / log(hr)^2"
-      } else {
-        "D_total = 2 * ((hr + 1)^2 * (z_{1-alpha/2} + z_{1-beta})^2) / (hr - 1)^2"
-      },
-      reference = SAMPLE_SIZE_REFERENCE,
       report = paste0(
         "Survival superiority sample size was calculated with hr = ", format_sample_value(hr),
         "; required total events = ", format_sample_count(sample_size_round(total_events)),
@@ -667,8 +705,6 @@ sample_size_survival <- function(
         "Two independent groups are assumed.",
         paste0("Distance to the non-inferiority boundary = ", format_sample_value(d_ni), ".")
       ),
-      formula = "D_total = 4 * (z_{1-alpha} + z_{1-beta})^2 / (log(margin_hr) - log(hr))^2",
-      reference = SAMPLE_SIZE_REFERENCE,
       report = paste0(
         "Survival non-inferiority sample size was calculated with hr = ", format_sample_value(hr),
         ", margin_hr = ", format_sample_value(margin_hr), "; required total events = ",
@@ -707,8 +743,6 @@ sample_size_survival <- function(
         "Two independent groups are assumed.",
         paste0("Distance to the nearest equivalence boundary = ", format_sample_value(d_eq), ".")
       ),
-      formula = "D_total = 4 * (z_{1-alpha} + z_{1-beta})^2 / d_EQ^2",
-      reference = SAMPLE_SIZE_REFERENCE,
       report = paste0(
         "Survival equivalence sample size was calculated with hr = ", format_sample_value(hr),
         "; required total events = ", format_sample_count(sample_size_round(total_events)),
@@ -731,6 +765,13 @@ sample_size_survival <- function(
 #' @param power Target power.
 #' @param dropout Expected dropout proportion.
 #' @return A `sample_size` object.
+#' @details
+#' Noether's method for two independent ordinal (or continuous,
+#' Mann-Whitney/Wilcoxon-type) groups, with
+#' \eqn{P = P(A>B) + \tfrac12 P(A=B)} and equal allocation:
+#' \deqn{n_{per\ group} = \frac{(z_{1-\alpha/2}+z_{1-\beta})^2}{6(P-0.5)^2}}
+#' @references
+#' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
 #' @export
 sample_size_ordinal <- function(
   design = c("parallel"),
@@ -770,8 +811,6 @@ sample_size_ordinal <- function(
     n_per_group = c(A = n_adj, B = n_adj),
     n_total = 2 * n_adj,
     assumptions = sample_size_assumptions("Two independent ordinal groups are assumed."),
-    formula = "n_per_group = (z_{1-alpha/2} + z_{1-beta})^2 / [6 * (P - 0.5)^2]",
-    reference = SAMPLE_SIZE_REFERENCE,
     report = paste0(
       "Ordinal superiority sample size was calculated with p_superiority = ",
       format_sample_value(p_superiority), "; required per-group size = ", format_sample_count(n_adj),
@@ -821,23 +860,22 @@ plot.sample_size <- function(x, type = c("both", "curve", "summary"), ...) {
   }
 
   if (type != "summary" && !is.null(x$curve_data) && is.data.frame(x$curve_data) && nrow(x$curve_data)) {
-    label_df <- tibble::tibble(
-      x = x$curve_data$target_n[1],
-      y = max(x$curve_data$power, na.rm = TRUE) * 0.18,
-      label = paste0("optimal sample size\nn = ", format_sample_count(x$curve_data$target_n[1]))
-    )
+    label_target_n <- x$curve_data$target_n[1]
+    label_y <- max(x$curve_data$power, na.rm = TRUE) * 0.18
+    label_text <- paste0("optimal sample size\nn = ", format_sample_count(label_target_n))
+    label_df <- tibble::tibble(x = label_target_n, y = label_y, label = label_text)
     curve_plot <- ggplot2::ggplot(x$curve_data, ggplot2::aes(x = .data$n, y = .data$power)) +
       ggplot2::geom_line(color = "#4C78A8", linewidth = 1.0) +
       ggplot2::geom_point(color = "#1f1f1f", size = 1.9) +
       ggplot2::geom_vline(xintercept = x$curve_data$target_n[1], linetype = "dotted", color = "#5B5BD6", linewidth = 0.9) +
-      ggplot2::geom_label(data = label_df, ggplot2::aes(x = .data$x, y = .data$y, label = .data$label), inherit.aes = FALSE, hjust = 0, vjust = 0, label.size = 0, fill = "white", alpha = 0.85, color = "#5B5BD6") +
+      ggplot2::geom_label(data = label_df, ggplot2::aes(x = .data$x, y = .data$y, label = .data$label), inherit.aes = FALSE, hjust = 0, vjust = 0, linewidth = 0, fill = "white", alpha = 0.85, color = "#5B5BD6") +
       ggplot2::geom_hline(yintercept = x$curve_data$power_target[1], linetype = "dashed", color = "#F58518", linewidth = 0.7) +
       ggplot2::scale_y_continuous(labels = function(x) paste0(formatC(100 * x, format = "f", digits = 0), "%"), limits = c(0, 1.05)) +
       ggplot2::labs(
         title = paste0("Sample size planning: ", x$endpoint, " / ", x$design),
         subtitle = paste0(x$objective, " using ", x$method, " | ", x$curve_data$power_label[1]),
         x = x$curve_data$n_label[1],
-        y = "test power = 1 - \u03b2"
+        y = "test power = 1 - beta"
       ) +
       ggplot2::theme_minimal() +
       ggplot2::theme(panel.grid.minor = ggplot2::element_blank())
@@ -912,8 +950,6 @@ summary.sample_size <- function(object, ...) {
     n_total = object$n_total,
     required_events = object$required_events,
     assumptions = object$assumptions,
-    formula = object$formula,
-    reference = object$reference,
     report = report(object)
   )
   class(out) <- "summary.sample_size"
@@ -964,8 +1000,6 @@ as_tibble.sample_size <- function(x, ...) {
     n_per_group = format_sample_size_value(x$n_per_group),
     n_total = format_sample_size_value(x$n_total),
     required_events = format_sample_size_value(x$required_events),
-    formula = x$formula,
-    reference = x$reference,
     report = x$report
   )
 }
@@ -980,9 +1014,7 @@ report.sample_size <- function(x, ...) {
   x$report
 }
 
-SAMPLE_SIZE_REFERENCE <- "Julious SA. Sample Sizes for Clinical Trials. Chapman & Hall/CRC; 2010."
-
-sample_size_result <- function(endpoint, design, objective, method, n, n_adjusted, n_per_group = NULL, n_total = NULL, required_events = NULL, assumptions = NULL, formula, reference, report, plot_data = NULL, curve_data = NULL) {
+sample_size_result <- function(endpoint, design, objective, method, n, n_adjusted, n_per_group = NULL, n_total = NULL, required_events = NULL, assumptions = NULL, report, plot_data = NULL, curve_data = NULL) {
   x <- list(
     endpoint = endpoint,
     design = design,
@@ -994,8 +1026,6 @@ sample_size_result <- function(endpoint, design, objective, method, n, n_adjuste
     n_total = n_total,
     required_events = required_events,
     assumptions = assumptions,
-    formula = formula,
-    reference = reference,
     report = report,
     plot_data = plot_data,
     curve_data = curve_data
@@ -1038,6 +1068,13 @@ sample_size_curve_power_continuous_superiority <- function(n, delta, sd, allocat
   sample_size_validate_positive(allocation, "allocation")
   z_alpha <- stats::qnorm(1 - alpha / 2)
   stats::pnorm(sqrt(n * allocation / (allocation + 1)) * delta / sd - z_alpha)
+}
+
+sample_size_curve_power_continuous_paired_superiority <- function(n, delta, sd, alpha = 0.05) {
+  sample_size_validate_positive(delta, "delta")
+  sample_size_validate_positive(sd, "sd")
+  z_alpha <- stats::qnorm(1 - alpha / 2)
+  stats::pnorm(sqrt(n) * delta / sd - z_alpha)
 }
 
 sample_size_repeated_effective_sd <- function(sd, n_time, correlation) {
@@ -1098,7 +1135,7 @@ sample_size_events_to_n <- function(events_total, survival_a = NULL, survival_b 
   sample_size_validate_probability(survival_b, "survival_b", allow_zero = TRUE)
   q_a <- 1 - survival_a
   q_b <- 1 - survival_b
-  events_total / (q_a + q_b)
+  2 * events_total / (q_a + q_b)
 }
 
 format_sample_count <- function(x) {
