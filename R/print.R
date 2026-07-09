@@ -15,11 +15,11 @@
 #' printing a formatted workflow summary to the console.
 #' @export
 print.testflow <- function(x, ...) {
+  meta <- workflow_meta(x)
   tf_with_cli_colors({
-    tf_title("Statistical test workflow")
-    tf_field("Outcome", x$outcome)
-    tf_field("Group", x$group)
-    tf_field("Design", x$design)
+    tf_title(meta$title)
+    tf_field(meta$outcome_label, x$outcome)
+    tf_field(meta$group_label, x$group)
     tf_blank()
 
     if (!is.null(x$assumptions)) {
@@ -144,12 +144,12 @@ summary.testflow <- function(object, ...) {
 
 #' @export
 print.summary.testflow <- function(x, ...) {
+  meta <- workflow_meta(x)
   tf_with_cli_colors({
-    tf_title("testflow summary")
+    tf_title(paste0(meta$title, " (summary)"))
     print_summary_field("Workflow", x$workflow)
-    print_summary_field("Design", x$design)
-    print_summary_field("Outcome", x$outcome)
-    print_summary_field("Group", x$group)
+    print_summary_field(meta$outcome_label, x$outcome)
+    print_summary_field(meta$group_label, x$group)
     print_summary_field("Recommended test", x$recommended$test %||% x$recommended)
 
     h0 <- x$primary_test$null_hypothesis %||% NA_character_
