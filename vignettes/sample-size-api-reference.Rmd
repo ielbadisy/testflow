@@ -34,8 +34,8 @@ Notation used throughout, matching the function documentation:
 
 Superiority tests use two-sided \(\alpha\); non-inferiority and equivalence
 use one-sided \(\alpha\) (pass `alpha = 0.025` for a one-sided-0.025 design,
-or keep `alpha = 0.05` for a one-sided-0.05 design — `testflow` does not
-rescale `alpha` for you).
+or keep `alpha = 0.05` for a one-sided-0.05 design). `testflow` does not
+rescale `alpha` for you.
 
 ## `sample_size_continuous()`
 
@@ -468,7 +468,7 @@ only populated for `sample_size_continuous(design = "paired"/"repeated",
 objective = "superiority")`; other endpoint/design/objective combinations
 return a `NULL` curve and fall back to the summary bar chart.
 
-None of these objects carry a `formula` or `reference` field — the formula
+None of these objects carry a `formula` or `reference` field. The formula
 for each specific call is documented on its function's help page
 (`?sample_size_continuous`, `?sample_size_binary`, `?sample_size_survival`,
 `?sample_size_ordinal`) and reproduced above.

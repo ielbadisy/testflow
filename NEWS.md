@@ -1,5 +1,61 @@
 # testflow 0.8.2
 
+## Statistical test correctness
+
+An exhaustive correctness review of every `test_*()` workflow (run against
+base-R references and the package's own documented formulas) found and
+fixed the following:
+
+- Fixed `test_two_groups()` reporting Cohen's d (and rank-biserial
+  correlation) with the opposite sign from the primary t-test/Wilcoxon test
+  it's attached to, whenever group labels weren't already alphabetically
+  ordered in the source data. The shared `assert_two_groups()` helper now
+  derives group order from `levels(as.factor(...))`, matching what
+  `t.test`/`wilcox.test`'s formula interface uses internally, instead of
+  first-appearance order in the raw data.
+- Fixed `test_repeated()` computing the wrong F-statistic, error degrees of
+  freedom, and p-value for the parametric (repeated-measures ANOVA) branch:
+  the subject `id` column was never coerced to a factor before
+  `aov(y ~ time + Error(id/time))`, so `Error()` built a spurious extra
+  stratum instead of the correct `id:time` error term. This affected the
+  **default path** (auto-generated subject ids are always integer), and the
+  test suite's own reference computation reproduced the same bug rather than
+  catching it.
+- Fixed `test_categorical()` recommending Fisher's exact test while
+  simultaneously showing an "Expected cell counts: acceptable" assumption
+  panel for the same table, because the recommendation used an
+  any-cell-below-threshold rule while the displayed panel used a different
+  (Cochran 80%-of-cells) rule. Both now use the same `fisher_threshold`
+  rule, so the panel explains the recommendation actually made.
+- Fixed `test_correlation_matrix()` silently doing listwise deletion across
+  *all* selected variables before computing pairwise correlations, which
+  made `use = "pairwise.complete.obs"` a no-op, discarded usable rows, and
+  contradicted its own "Pairwise complete observations are used" assumption
+  message. Each pairwise correlation and test now uses its own
+  pairwise-complete rows.
+- Wired up `test_factorial()`'s `type` parameter, which defaulted to `2` but
+  was documented as "a placeholder for future car integration" and always
+  computed Type I (sequential) sums of squares regardless of its value. For
+  unbalanced factorial designs, Type I vs. Type II vs. Type III sums of
+  squares can give substantially different p-values; `type = 2`/`3` now
+  dispatch to `car::Anova()` (Type III with the required sum-to-zero
+  contrasts), and the reported eta squared is computed from the same sums of
+  squares as the reported test rather than always from Type I.
+- Fixed `test_multinomial()`'s pairwise post-hoc binomial tests not applying
+  a multiple-comparison correction, unlike every other post-hoc helper in
+  the package (BH by default). `p.adj`/`p.adjust.method` columns are now
+  included.
+- Relabeled `posthoc_groups()`'s Welch/Kruskal-Wallis follow-up tests, which
+  were called "Games-Howell-style" and "Dunn-style" but are plain
+  BH-adjusted pairwise Welch t-tests and pairwise Wilcoxon rank-sum tests
+  respectively, not the named procedures (which use a studentized-range or
+  pooled-rank-variance correction). Labels now describe what's actually run.
+- Fixed `test_one_sample()` and `test_correlation()` labeling unchecked
+  assumptions (Wilcoxon symmetry, Pearson linearity) as `"acceptable"` with
+  no diagnostic actually performed. Both now use the honest `"warning"`/
+  `"not checked"` status already used for the identical situation elsewhere
+  in the package (e.g. `test_paired()`'s symmetry check).
+
 ## Sample size planning
 
 - Fixed `sample_size_survival()` understating total sample size by a factor
