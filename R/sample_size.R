@@ -587,6 +587,12 @@ sample_size_binary <- function(
 #' @param allocation Allocation ratio `n_B / n_A`.
 #' @param dropout Expected dropout proportion.
 #' @param method `exponential` or `ph_only`.
+#' @param accrual_duration Uniform accrual (enrollment) duration. When
+#'   supplied together with `follow_up`, event probabilities account for
+#'   staggered enrollment instead of assuming every subject is followed for
+#'   the full study duration. Requires `survival_a`/`survival_b`.
+#' @param follow_up Additional follow-up duration after accrual ends. The
+#'   total study duration is `accrual_duration + follow_up`.
 #' @return A `sample_size` object.
 #' @details
 #' With \eqn{z_{1-\beta}} and \eqn{z_{1-\alpha/2}} (or \eqn{z_{1-\alpha}} for
@@ -610,6 +616,15 @@ sample_size_binary <- function(
 #' using the planned survival probabilities \eqn{S_A(t), S_B(t)} under equal
 #' allocation:
 #' \deqn{N_{total} = \frac{2D_{total}}{(1-S_A(t))+(1-S_B(t))}}
+#'
+#' When `accrual_duration` (\eqn{R}) and `follow_up` are supplied, subjects
+#' are assumed to enroll uniformly over \eqn{[0, R]} and survival is assumed
+#' exponential with hazard implied by \eqn{S_A(t)}/\eqn{S_B(t)} at the total
+#' study duration \eqn{T = R + \text{follow\_up}}. The event probability for
+#' each arm becomes the accrual-averaged
+#' \deqn{\bar q_g = 1 - \frac{e^{-\lambda_g(T-R)} - e^{-\lambda_g T}}{\lambda_g R}}
+#' in place of the flat \eqn{1-S_g(t)} above; this reduces to \eqn{1-S_g(T)}
+#' as \eqn{R \to 0} (instantaneous accrual).
 #' @references
 #' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
 #' @export
@@ -626,7 +641,9 @@ sample_size_survival <- function(
   power = 0.90,
   allocation = 1,
   dropout = 0,
-  method = c("exponential", "ph_only")
+  method = c("exponential", "ph_only"),
+  accrual_duration = NULL,
+  follow_up = NULL
 ) {
   design <- match.arg(design)
   objective <- match.arg(objective)
@@ -646,6 +663,11 @@ sample_size_survival <- function(
   z_power <- stats::qnorm(power)
   z_alpha_two <- stats::qnorm(1 - alpha / 2)
   z_alpha_one <- stats::qnorm(1 - alpha)
+  accrual_note <- if (!is.null(accrual_duration) && !is.null(follow_up)) {
+    paste0("Uniform accrual over ", format_sample_value(accrual_duration), " time units, plus ", format_sample_value(follow_up), " additional follow-up, is assumed.")
+  } else {
+    NULL
+  }
 
   if (objective == "superiority") {
     if (isTRUE(all.equal(log(hr), 0))) {
@@ -657,7 +679,7 @@ sample_size_survival <- function(
       events_per_arm <- ((hr + 1)^2 * (z_alpha_two + z_power)^2) / (2 * (hr - 1)^2)
     }
     total_events <- 2 * events_per_arm
-    n_total_raw <- sample_size_events_to_n(total_events, survival_a, survival_b)
+    n_total_raw <- sample_size_events_to_n(total_events, survival_a, survival_b, accrual_duration, follow_up)
     n_total <- sample_size_round(n_total_raw)
     n_adj <- sample_size_apply_dropout(n_total, dropout)
     return(sample_size_result(
@@ -671,7 +693,8 @@ sample_size_survival <- function(
       required_events = sample_size_round(total_events),
       assumptions = sample_size_assumptions(
         "Two independent groups are assumed.",
-        "Event probabilities are derived from the planned survival probabilities."
+        "Event probabilities are derived from the planned survival probabilities.",
+        accrual_note
       ),
       report = paste0(
         "Survival superiority sample size was calculated with hr = ", format_sample_value(hr),
@@ -689,7 +712,7 @@ sample_size_survival <- function(
       stop("The non-inferiority distance must be positive: log(margin_hr) - log(hr) > 0.", call. = FALSE)
     }
     total_events <- 4 * (z_alpha_one + z_power)^2 / (d_ni^2)
-    n_total_raw <- sample_size_events_to_n(total_events, survival_a, survival_b)
+    n_total_raw <- sample_size_events_to_n(total_events, survival_a, survival_b, accrual_duration, follow_up)
     n_total <- sample_size_round(n_total_raw)
     n_adj <- sample_size_apply_dropout(n_total, dropout)
     return(sample_size_result(
@@ -703,7 +726,8 @@ sample_size_survival <- function(
       required_events = sample_size_round(total_events),
       assumptions = sample_size_assumptions(
         "Two independent groups are assumed.",
-        paste0("Distance to the non-inferiority boundary = ", format_sample_value(d_ni), ".")
+        paste0("Distance to the non-inferiority boundary = ", format_sample_value(d_ni), "."),
+        accrual_note
       ),
       report = paste0(
         "Survival non-inferiority sample size was calculated with hr = ", format_sample_value(hr),
@@ -727,7 +751,7 @@ sample_size_survival <- function(
       stop("The equivalence distance must be positive: the planned hazard ratio must lie inside the bounds.", call. = FALSE)
     }
     total_events <- 4 * (z_alpha_one + z_power)^2 / (d_eq^2)
-    n_total_raw <- sample_size_events_to_n(total_events, survival_a, survival_b)
+    n_total_raw <- sample_size_events_to_n(total_events, survival_a, survival_b, accrual_duration, follow_up)
     n_total <- sample_size_round(n_total_raw)
     n_adj <- sample_size_apply_dropout(n_total, dropout)
     return(sample_size_result(
@@ -741,7 +765,8 @@ sample_size_survival <- function(
       required_events = sample_size_round(total_events),
       assumptions = sample_size_assumptions(
         "Two independent groups are assumed.",
-        paste0("Distance to the nearest equivalence boundary = ", format_sample_value(d_eq), ".")
+        paste0("Distance to the nearest equivalence boundary = ", format_sample_value(d_eq), "."),
+        accrual_note
       ),
       report = paste0(
         "Survival equivalence sample size was calculated with hr = ", format_sample_value(hr),
@@ -755,12 +780,188 @@ sample_size_survival <- function(
   stop("Unsupported objective for survival sample size.", call. = FALSE)
 }
 
+#' Sample size for average bioequivalence
+#'
+#' @param design `crossover` (two-period two-treatment) or `parallel`.
+#' @param gmr Anticipated geometric mean ratio (test/reference).
+#' @param cv_within Within-subject coefficient of variation on the raw
+#'   (untransformed) scale. Required for `design = "crossover"`.
+#' @param cv_between Between-subject coefficient of variation on the raw
+#'   scale. Required for `design = "parallel"`.
+#' @param lower Lower bioequivalence bound (ratio scale), usually `0.80`.
+#' @param upper Upper bioequivalence bound (ratio scale), usually `1.25`.
+#' @param alpha Type I error rate (one-sided; bioequivalence uses two
+#'   one-sided tests, each at `alpha`).
+#' @param power Target power.
+#' @param allocation Allocation ratio `n_B / n_A`. Only used for
+#'   `design = "parallel"`.
+#' @param dropout Expected dropout proportion.
+#' @param method `iterative_tost` (search for the smallest n achieving the
+#'   target two-one-sided-test power exactly; the preferred method) or
+#'   `normal_approx` (closed-form approximation).
+#' @return A `sample_size` object.
+#' @details
+#' On the log scale, with \eqn{\theta_0=\log(GMR)}, \eqn{\theta_L=\log(L)},
+#' \eqn{\theta_U=\log(U)}, and \eqn{d_{BE}=\min(\theta_0-\theta_L,\
+#' \theta_U-\theta_0)} (must be positive: the anticipated GMR must lie
+#' strictly inside the bioequivalence bounds):
+#'
+#' `method = "iterative_tost"` searches for the smallest \eqn{n} such that
+#' the exact two-one-sided-test power is at least the target:
+#' \deqn{Power(n) = \Phi\left(\frac{\theta_U-\theta_0}{SE(n)}-z_{1-\alpha}\right)
+#' + \Phi\left(\frac{\theta_0-\theta_L}{SE(n)}-z_{1-\alpha}\right) - 1}
+#' with \eqn{SE(n) = \sqrt{2\sigma_w^2/n}} for a crossover design (total
+#' \eqn{n}) or \eqn{SE(n_A) = \sigma_b\sqrt{(r+1)/(rn_A)}} for a parallel
+#' design (per-arm \eqn{n_A}, \eqn{n_B=rn_A}). Coefficients of variation are
+#' converted to log-scale standard deviations via
+#' \eqn{\sigma = \sqrt{\log(1+CV^2)}}.
+#'
+#' `method = "normal_approx"` uses the closed-form approximation
+#' \deqn{n_{total} \approx \frac{2\sigma_w^2(z_{1-\beta}+z_{1-\alpha})^2}{d_{BE}^2}}
+#' (crossover) or, per arm,
+#' \deqn{n_A \approx \frac{(r+1)\sigma_b^2(z_{1-\beta}+z_{1-\alpha})^2}{rd_{BE}^2}}
+#' (parallel), switching to \eqn{z_{1-\beta/2}} in place of \eqn{z_{1-\beta}}
+#' when \eqn{GMR=1} exactly, matching the analogous special case in
+#' [sample_size_continuous()]. `iterative_tost` is preferred because this
+#' approximation can meaningfully differ from the exact TOST power away
+#' from \eqn{GMR=1}.
+#' @references
+#' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
+#'
+#' Phillips KF. Power of the two one-sided tests procedure in
+#' bioequivalence. *Journal of Pharmacokinetics and Biopharmaceutics*.
+#' 1990;18(2):137-144.
+#' @export
+sample_size_bioequivalence <- function(
+  design = c("crossover", "parallel"),
+  gmr = 1,
+  cv_within = NULL,
+  cv_between = NULL,
+  lower = 0.80,
+  upper = 1.25,
+  alpha = 0.05,
+  power = 0.90,
+  allocation = 1,
+  dropout = 0,
+  method = c("iterative_tost", "normal_approx")
+) {
+  design <- match.arg(design)
+  method <- match.arg(method)
+  sample_size_validate_positive(gmr, "gmr")
+  sample_size_validate_positive(lower, "lower")
+  sample_size_validate_positive(upper, "upper")
+  if (upper <= lower) {
+    stop("`upper` must exceed `lower`.", call. = FALSE)
+  }
+  sample_size_validate_probability(alpha, "alpha")
+  sample_size_validate_probability(power, "power")
+  sample_size_validate_dropout(dropout)
+  sample_size_validate_positive(allocation, "allocation")
+
+  theta0 <- log(gmr)
+  theta_l <- log(lower)
+  theta_u <- log(upper)
+  d_be <- min(theta0 - theta_l, theta_u - theta0)
+  if (d_be <= 0) {
+    stop("The anticipated GMR must lie strictly inside (lower, upper).", call. = FALSE)
+  }
+  z_alpha_one <- stats::qnorm(1 - alpha)
+  z_power <- stats::qnorm(power)
+  z_power_eq <- stats::qnorm(1 - (1 - power) / 2)
+  at_center <- isTRUE(all.equal(theta0, 0))
+
+  if (identical(design, "crossover")) {
+    sample_size_validate_positive(cv_within, "cv_within")
+    sigma <- sqrt(log(1 + cv_within^2))
+    se_fn <- function(n) sqrt(2 * sigma^2 / n)
+  } else {
+    sample_size_validate_positive(cv_between, "cv_between")
+    sigma <- sqrt(log(1 + cv_between^2))
+    se_fn <- function(n) sigma * sqrt((allocation + 1) / (allocation * n))
+  }
+
+  tost_power <- function(n) {
+    se <- se_fn(n)
+    stats::pnorm((theta_u - theta0) / se - z_alpha_one) + stats::pnorm((theta0 - theta_l) / se - z_alpha_one) - 1
+  }
+
+  if (identical(method, "iterative_tost")) {
+    n_raw <- stats::uniroot(function(n) tost_power(n) - power, c(4, 1e6), extendInt = "upX")$root
+  } else if (identical(design, "crossover")) {
+    n_raw <- if (at_center) {
+      2 * sigma^2 * (z_power_eq + z_alpha_one)^2 / d_be^2
+    } else {
+      2 * sigma^2 * (z_power + z_alpha_one)^2 / d_be^2
+    }
+  } else {
+    n_raw <- if (at_center) {
+      (allocation + 1) * sigma^2 * (z_power_eq + z_alpha_one)^2 / (allocation * d_be^2)
+    } else {
+      (allocation + 1) * sigma^2 * (z_power + z_alpha_one)^2 / (allocation * d_be^2)
+    }
+  }
+
+  method_label <- paste0(design, " bioequivalence (", method, ")")
+  cv_note <- if (identical(design, "crossover")) {
+    paste0("Within-subject CV = ", format_sample_value(cv_within), ".")
+  } else {
+    paste0("Between-subject CV = ", format_sample_value(cv_between), ".")
+  }
+
+  if (identical(design, "crossover")) {
+    n_main <- sample_size_round(n_raw)
+    n_adj <- sample_size_apply_dropout(n_main, dropout)
+    sample_size_result(
+      endpoint = "bioequivalence", design = design, objective = "equivalence", method = method_label,
+      n = n_raw, n_adjusted = n_adj, n_total = n_adj,
+      assumptions = sample_size_assumptions(
+        "A two-period two-treatment crossover with log-normal within-subject variation is assumed.",
+        cv_note,
+        paste0("Distance to the nearest bioequivalence boundary (log scale) = ", format_sample_value(d_be), ".")
+      ),
+      report = paste0(
+        "Crossover bioequivalence sample size was calculated with gmr = ", format_sample_value(gmr),
+        ", bounds = [", format_sample_value(lower), ", ", format_sample_value(upper), "]; required total n = ",
+        format_sample_count(n_adj), "."
+      ),
+      plot_data = sample_size_plot_frame("Required total n", n_raw, n_adj)
+    )
+  } else {
+    n_b_raw <- allocation * n_raw
+    n_a_adj <- sample_size_apply_dropout(sample_size_round(n_raw), dropout)
+    n_b_adj <- sample_size_apply_dropout(sample_size_round(n_b_raw), dropout)
+    sample_size_result(
+      endpoint = "bioequivalence", design = design, objective = "equivalence", method = method_label,
+      n = n_raw, n_adjusted = c(A = n_a_adj, B = n_b_adj), n_per_group = c(A = n_a_adj, B = n_b_adj),
+      assumptions = sample_size_assumptions(
+        "Two independent groups with log-normal between-subject variation are assumed.",
+        cv_note,
+        paste0("Distance to the nearest bioequivalence boundary (log scale) = ", format_sample_value(d_be), ".")
+      ),
+      report = paste0(
+        "Parallel bioequivalence sample size was calculated with gmr = ", format_sample_value(gmr),
+        ", bounds = [", format_sample_value(lower), ", ", format_sample_value(upper), "]; required per-group sizes = A ",
+        format_sample_count(n_a_adj), ", B ", format_sample_count(n_b_adj), "."
+      ),
+      plot_data = sample_size_plot_frame(c("A", "B"), c(n_raw, n_b_raw), c(n_a_adj, n_b_adj))
+    )
+  }
+}
+
 #' Sample size for ordinal endpoints
 #'
 #' @param design `parallel` only.
 #' @param objective `superiority` only.
+#' @param method `noether` (Mann-Whitney/Wilcoxon-type superiority
+#'   probability) or `whitehead` (proportional-odds model).
 #' @param p_superiority Probability that a randomly selected subject in group A
-#'   exceeds a subject in group B, with ties contributing half.
+#'   exceeds a subject in group B, with ties contributing half. Required for
+#'   `method = "noether"`.
+#' @param probs Anticipated average category probabilities under the
+#'   proportional-odds model, summing to 1. Required for
+#'   `method = "whitehead"`.
+#' @param odds_ratio Planned proportional odds ratio. Required for
+#'   `method = "whitehead"`.
 #' @param alpha Type I error rate.
 #' @param power Target power.
 #' @param dropout Expected dropout proportion.
@@ -770,19 +971,37 @@ sample_size_survival <- function(
 #' Mann-Whitney/Wilcoxon-type) groups, with
 #' \eqn{P = P(A>B) + \tfrac12 P(A=B)} and equal allocation:
 #' \deqn{n_{per\ group} = \frac{(z_{1-\alpha/2}+z_{1-\beta})^2}{6(P-0.5)^2}}
+#'
+#' Whitehead's proportional-odds method, with \eqn{K} ordinal categories,
+#' anticipated average category probabilities \eqn{\pi_1,\ldots,\pi_K}, and
+#' planned proportional odds ratio \eqn{\theta=\log(OR_{PO})}:
+#' \deqn{n_{per\ group} \approx \frac{6(z_{1-\alpha/2}+z_{1-\beta})^2}
+#' {\left(1-\sum_{j=1}^{K}\pi_j^3\right)\theta^2}}
+#' This reduces to the binary log-odds planning form when \eqn{K=2}. Unlike
+#' Noether's method, this formula is sensitive to the category-probability
+#' distribution and the direction of the odds ratio; validate against a
+#' worked example specific to your design before relying on it for a
+#' registered protocol.
 #' @references
 #' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
+#'
+#' Whitehead J. Sample size calculations for ordered categorical data.
+#' *Statistics in Medicine*. 1993;12(24):2257-2271.
 #' @export
 sample_size_ordinal <- function(
   design = c("parallel"),
   objective = c("superiority"),
-  p_superiority,
+  method = c("noether", "whitehead"),
+  p_superiority = NULL,
+  probs = NULL,
+  odds_ratio = NULL,
   alpha = 0.05,
   power = 0.90,
   dropout = 0
 ) {
   design <- match.arg(design)
   objective <- match.arg(objective)
+  method <- match.arg(method)
   if (!identical(design, "parallel")) {
     stop("Only parallel ordinal sample size is implemented.", call. = FALSE)
   }
@@ -792,28 +1011,68 @@ sample_size_ordinal <- function(
   sample_size_validate_probability(alpha, "alpha")
   sample_size_validate_probability(power, "power")
   sample_size_validate_dropout(dropout)
-  sample_size_validate_probability(p_superiority, "p_superiority")
-  if (p_superiority <= 0.5) {
-    stop("p_superiority must exceed 0.5 for superiority planning.", call. = FALSE)
-  }
   z_power <- stats::qnorm(power)
   z_alpha_two <- stats::qnorm(1 - alpha / 2)
-  n_per_group_raw <- (z_alpha_two + z_power)^2 / (6 * (p_superiority - 0.5)^2)
+
+  if (identical(method, "noether")) {
+    sample_size_validate_probability(p_superiority, "p_superiority")
+    if (p_superiority <= 0.5) {
+      stop("p_superiority must exceed 0.5 for superiority planning.", call. = FALSE)
+    }
+    n_per_group_raw <- (z_alpha_two + z_power)^2 / (6 * (p_superiority - 0.5)^2)
+    n_per_group <- sample_size_round(n_per_group_raw)
+    n_adj <- sample_size_apply_dropout(n_per_group, dropout)
+    return(sample_size_result(
+      endpoint = "ordinal",
+      design = "parallel",
+      objective = objective,
+      method = "Noether superiority approximation",
+      n = n_per_group_raw,
+      n_adjusted = c(A = n_adj, B = n_adj),
+      n_per_group = c(A = n_adj, B = n_adj),
+      n_total = 2 * n_adj,
+      assumptions = sample_size_assumptions("Two independent ordinal groups are assumed."),
+      report = paste0(
+        "Ordinal superiority sample size was calculated with p_superiority = ",
+        format_sample_value(p_superiority), "; required per-group size = ", format_sample_count(n_adj),
+        ", total sample size = ", format_sample_count(2 * n_adj), "."
+      ),
+      plot_data = sample_size_plot_frame(c("A", "B"), c(n_per_group_raw, n_per_group_raw), c(n_adj, n_adj))
+    ))
+  }
+
+  if (is.null(probs) || is.null(odds_ratio)) {
+    stop("`probs` and `odds_ratio` are required for `method = \"whitehead\"`.", call. = FALSE)
+  }
+  if (length(probs) < 2 || any(probs <= 0) || any(probs >= 1) || !isTRUE(all.equal(sum(probs), 1))) {
+    stop("`probs` must be at least two values in (0, 1) that sum to 1.", call. = FALSE)
+  }
+  sample_size_validate_positive(odds_ratio, "odds_ratio")
+  if (isTRUE(all.equal(odds_ratio, 1))) {
+    stop("The proportional odds ratio must differ from 1.", call. = FALSE)
+  }
+  theta <- log(odds_ratio)
+  design_term <- 1 - sum(probs^3)
+  n_per_group_raw <- 6 * (z_alpha_two + z_power)^2 / (design_term * theta^2)
   n_per_group <- sample_size_round(n_per_group_raw)
   n_adj <- sample_size_apply_dropout(n_per_group, dropout)
   sample_size_result(
     endpoint = "ordinal",
     design = "parallel",
     objective = objective,
-    method = "Noether superiority approximation",
+    method = "Whitehead proportional-odds approximation",
     n = n_per_group_raw,
     n_adjusted = c(A = n_adj, B = n_adj),
     n_per_group = c(A = n_adj, B = n_adj),
     n_total = 2 * n_adj,
-    assumptions = sample_size_assumptions("Two independent ordinal groups are assumed."),
+    assumptions = sample_size_assumptions(
+      "Two independent ordinal groups under a proportional-odds model are assumed.",
+      paste0("Planned proportional odds ratio = ", format_sample_value(odds_ratio), "."),
+      "This approximation is sensitive to the category-probability distribution; validate against a design-specific worked example before relying on it for a registered protocol."
+    ),
     report = paste0(
-      "Ordinal superiority sample size was calculated with p_superiority = ",
-      format_sample_value(p_superiority), "; required per-group size = ", format_sample_count(n_adj),
+      "Ordinal proportional-odds sample size was calculated with odds_ratio = ",
+      format_sample_value(odds_ratio), "; required per-group size = ", format_sample_count(n_adj),
       ", total sample size = ", format_sample_count(2 * n_adj), "."
     ),
     plot_data = sample_size_plot_frame(c("A", "B"), c(n_per_group_raw, n_per_group_raw), c(n_adj, n_adj))
@@ -829,6 +1088,183 @@ sample_size_ordinal <- function(
 sample_size_adjust_dropout <- function(n, dropout = 0) {
   sample_size_validate_dropout(dropout)
   sample_size_round(n / (1 - dropout))
+}
+
+#' Adjust an individually randomized sample size for cluster randomization
+#'
+#' @param n_ind Individually randomized sample size (e.g. from
+#'   [sample_size_continuous()] or [sample_size_binary()]).
+#' @param m Average cluster size.
+#' @param rho Intracluster correlation.
+#' @param cv_m Coefficient of variation of cluster sizes, for unequal
+#'   cluster sizes. `NULL` (the default) assumes equal cluster sizes.
+#' @return The cluster-adjusted sample size.
+#' @details
+#' Equal cluster size:
+#' \deqn{DE = 1 + (m-1)\rho, \qquad n_{clustered} = \lceil n_{ind} \cdot DE \rceil}
+#'
+#' Unequal cluster size (approximate), with coefficient of variation
+#' \eqn{CV_m}:
+#' \deqn{DE \approx 1 + \left((1+CV_m^2)m - 1\right)\rho}
+#' @references
+#' Donner A, Klar N. *Design and Analysis of Cluster Randomization Trials in
+#' Health Research*. Arnold; 2000.
+#' @export
+sample_size_cluster_adjust <- function(n_ind, m, rho, cv_m = NULL) {
+  sample_size_validate_positive(n_ind, "n_ind")
+  sample_size_validate_positive(m, "m")
+  sample_size_validate_probability(rho, "rho", allow_zero = TRUE)
+  design_effect <- if (is.null(cv_m)) {
+    1 + (m - 1) * rho
+  } else {
+    sample_size_validate_positive(cv_m, "cv_m")
+    1 + ((1 + cv_m^2) * m - 1) * rho
+  }
+  sample_size_round(n_ind * design_effect)
+}
+
+#' Sample size for confidence-interval precision
+#'
+#' @param endpoint Endpoint family: `continuous` or `binary`.
+#' @param design `one_sample`, `two_sample`, or (binary only) `odds_ratio`.
+#' @param width Desired confidence-interval half-width, on the scale of the
+#'   estimate (or of the log odds ratio for `design = "odds_ratio"`).
+#' @param sd Standard deviation (continuous endpoint).
+#' @param p Anticipated proportion (binary, `one_sample`).
+#' @param p1 Anticipated proportion in arm A (binary, `two_sample` or
+#'   `odds_ratio`).
+#' @param p2 Anticipated proportion in arm B (binary, `two_sample` or
+#'   `odds_ratio`).
+#' @param alpha Type I error rate (two-sided CI coverage is `1 - alpha`).
+#' @param allocation Allocation ratio `n_B / n_A`. Only used for
+#'   `endpoint = "continuous"`, `design = "two_sample"` and
+#'   `design = "odds_ratio"`; the binary `two_sample` formula is
+#'   equal-allocation only.
+#' @param dropout Expected dropout proportion.
+#' @param conservative For `endpoint = "binary"`, `design = "one_sample"`
+#'   only: use the worst-case `p = 0.5` instead of the anticipated `p`.
+#' @return A `sample_size` object.
+#' @details
+#' Unlike the other `sample_size_*()` functions, precision-based planning is
+#' driven by a target confidence-interval half-width \eqn{w} rather than
+#' power against an effect size.
+#'
+#' Continuous, one sample:
+#' \deqn{n = \left(\frac{z_{1-\alpha/2}\sigma}{w}\right)^2}
+#'
+#' Continuous, two independent means:
+#' \deqn{n_A = \frac{(r+1)\sigma^2z_{1-\alpha/2}^2}{rw^2}}
+#'
+#' Binary, one proportion:
+#' \deqn{n = \frac{z_{1-\alpha/2}^2p(1-p)}{w^2}}
+#' (or \eqn{n = z_{1-\alpha/2}^2/(4w^2)} for the conservative \eqn{p=0.5} case)
+#'
+#' Binary, two independent proportions (equal allocation):
+#' \deqn{n_{per\ group} = \frac{z_{1-\alpha/2}^2\left[p_A(1-p_A)+p_B(1-p_B)\right]}{w^2}}
+#'
+#' Binary, log-odds-ratio half-width:
+#' \deqn{n_A = \frac{z_{1-\alpha/2}^2}{w^2}
+#' \left[\frac1{p_A}+\frac1{1-p_A}+\frac1{rp_B}+\frac1{r(1-p_B)}\right]}
+#' @references
+#' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
+#' @export
+sample_size_precision <- function(
+  endpoint = c("continuous", "binary"),
+  design = c("one_sample", "two_sample", "odds_ratio"),
+  width,
+  sd = NULL,
+  p = NULL,
+  p1 = NULL,
+  p2 = NULL,
+  alpha = 0.05,
+  allocation = 1,
+  dropout = 0,
+  conservative = FALSE
+) {
+  endpoint <- match.arg(endpoint)
+  design <- match.arg(design)
+  sample_size_validate_probability(alpha, "alpha")
+  sample_size_validate_dropout(dropout)
+  sample_size_validate_positive(allocation, "allocation")
+  sample_size_validate_positive(width, "width")
+  if (identical(endpoint, "continuous") && identical(design, "odds_ratio")) {
+    stop("`design = \"odds_ratio\"` is only available for `endpoint = \"binary\"`.", call. = FALSE)
+  }
+  z_alpha <- stats::qnorm(1 - alpha / 2)
+
+  if (identical(endpoint, "continuous")) {
+    sample_size_validate_positive(sd, "sd")
+    if (identical(design, "one_sample")) {
+      n_raw <- (z_alpha * sd / width)^2
+      n_adj <- sample_size_apply_dropout(sample_size_round(n_raw), dropout)
+      return(sample_size_result(
+        endpoint = endpoint, design = design, objective = "precision",
+        method = "one-sample CI half-width",
+        n = n_raw, n_adjusted = n_adj, n_total = n_adj,
+        assumptions = sample_size_assumptions(paste0("Target CI half-width = ", format_sample_value(width), ".")),
+        report = paste0("One-sample precision sample size was calculated with sd = ", format_sample_value(sd), ", width = ", format_sample_value(width), "; required n = ", format_sample_count(n_adj), "."),
+        plot_data = sample_size_plot_frame("Required n", n_raw, n_adj)
+      ))
+    }
+    n_a_raw <- ((allocation + 1) * sd^2 * z_alpha^2) / (allocation * width^2)
+    n_b_raw <- allocation * n_a_raw
+    n_a_adj <- sample_size_apply_dropout(sample_size_round(n_a_raw), dropout)
+    n_b_adj <- sample_size_apply_dropout(sample_size_round(n_b_raw), dropout)
+    return(sample_size_result(
+      endpoint = endpoint, design = design, objective = "precision",
+      method = "two-sample CI half-width",
+      n = n_a_raw, n_adjusted = c(A = n_a_adj, B = n_b_adj), n_per_group = c(A = n_a_adj, B = n_b_adj),
+      assumptions = sample_size_assumptions(paste0("Target CI half-width for the mean difference = ", format_sample_value(width), ".")),
+      report = paste0("Two-sample precision sample size was calculated with sd = ", format_sample_value(sd), ", width = ", format_sample_value(width), "; required per-group sizes = A ", format_sample_count(n_a_adj), ", B ", format_sample_count(n_b_adj), "."),
+      plot_data = sample_size_plot_frame(c("A", "B"), c(n_a_raw, n_b_raw), c(n_a_adj, n_b_adj))
+    ))
+  }
+
+  if (identical(design, "one_sample")) {
+    if (conservative) {
+      n_raw <- z_alpha^2 / (4 * width^2)
+    } else {
+      sample_size_validate_probability(p, "p")
+      n_raw <- z_alpha^2 * p * (1 - p) / width^2
+    }
+    n_adj <- sample_size_apply_dropout(sample_size_round(n_raw), dropout)
+    return(sample_size_result(
+      endpoint = endpoint, design = design, objective = "precision",
+      method = if (conservative) "one-proportion CI half-width (conservative p = 0.5)" else "one-proportion CI half-width",
+      n = n_raw, n_adjusted = n_adj, n_total = n_adj,
+      assumptions = sample_size_assumptions(paste0("Target CI half-width = ", format_sample_value(width), ".")),
+      report = paste0("One-proportion precision sample size was calculated with width = ", format_sample_value(width), "; required n = ", format_sample_count(n_adj), "."),
+      plot_data = sample_size_plot_frame("Required n", n_raw, n_adj)
+    ))
+  }
+
+  sample_size_validate_probability(p1, "p1")
+  sample_size_validate_probability(p2, "p2")
+  if (identical(design, "two_sample")) {
+    n_raw <- z_alpha^2 * (p1 * (1 - p1) + p2 * (1 - p2)) / width^2
+    n_adj <- sample_size_apply_dropout(sample_size_round(n_raw), dropout)
+    return(sample_size_result(
+      endpoint = endpoint, design = design, objective = "precision",
+      method = "two-proportion CI half-width (equal allocation)",
+      n = n_raw, n_adjusted = c(A = n_adj, B = n_adj), n_per_group = c(A = n_adj, B = n_adj), n_total = 2 * n_adj,
+      assumptions = sample_size_assumptions(paste0("Target CI half-width for the risk difference = ", format_sample_value(width), "."), "Equal allocation is assumed; this formula does not generalize to unequal allocation."),
+      report = paste0("Two-proportion precision sample size was calculated with p1 = ", format_sample_value(p1), ", p2 = ", format_sample_value(p2), ", width = ", format_sample_value(width), "; required per-group size = ", format_sample_count(n_adj), "."),
+      plot_data = sample_size_plot_frame(c("A", "B"), c(n_raw, n_raw), c(n_adj, n_adj))
+    ))
+  }
+
+  n_a_raw <- (z_alpha^2 / width^2) * (1 / p1 + 1 / (1 - p1) + 1 / (allocation * p2) + 1 / (allocation * (1 - p2)))
+  n_b_raw <- allocation * n_a_raw
+  n_a_adj <- sample_size_apply_dropout(sample_size_round(n_a_raw), dropout)
+  n_b_adj <- sample_size_apply_dropout(sample_size_round(n_b_raw), dropout)
+  sample_size_result(
+    endpoint = endpoint, design = design, objective = "precision",
+    method = "log-odds-ratio CI half-width",
+    n = n_a_raw, n_adjusted = c(A = n_a_adj, B = n_b_adj), n_per_group = c(A = n_a_adj, B = n_b_adj),
+    assumptions = sample_size_assumptions(paste0("Target CI half-width on the log-odds-ratio scale = ", format_sample_value(width), ".")),
+    report = paste0("Log-odds-ratio precision sample size was calculated with p1 = ", format_sample_value(p1), ", p2 = ", format_sample_value(p2), ", width = ", format_sample_value(width), "; required per-group sizes = A ", format_sample_count(n_a_adj), ", B ", format_sample_count(n_b_adj), "."),
+    plot_data = sample_size_plot_frame(c("A", "B"), c(n_a_raw, n_b_raw), c(n_a_adj, n_b_adj))
+  )
 }
 
 #' Plot a sample size object
@@ -1127,15 +1563,37 @@ sample_size_apply_dropout <- function(n, dropout) {
   sample_size_round(n / (1 - dropout))
 }
 
-sample_size_events_to_n <- function(events_total, survival_a = NULL, survival_b = NULL) {
+sample_size_events_to_n <- function(events_total, survival_a = NULL, survival_b = NULL, accrual_duration = NULL, follow_up = NULL) {
   if (is.null(survival_a) || is.null(survival_b)) {
     return(events_total)
   }
   sample_size_validate_probability(survival_a, "survival_a", allow_zero = TRUE)
   sample_size_validate_probability(survival_b, "survival_b", allow_zero = TRUE)
-  q_a <- 1 - survival_a
-  q_b <- 1 - survival_b
+  if (!is.null(accrual_duration) || !is.null(follow_up)) {
+    if (is.null(accrual_duration) || is.null(follow_up)) {
+      stop("Provide both `accrual_duration` and `follow_up` for accrual-adjusted event probabilities.", call. = FALSE)
+    }
+    sample_size_validate_positive(accrual_duration, "accrual_duration")
+    sample_size_validate_positive(follow_up, "follow_up")
+    total_duration <- accrual_duration + follow_up
+    q_a <- sample_size_uniform_accrual_event_prob(survival_a, accrual_duration, total_duration)
+    q_b <- sample_size_uniform_accrual_event_prob(survival_b, accrual_duration, total_duration)
+  } else {
+    q_a <- 1 - survival_a
+    q_b <- 1 - survival_b
+  }
   2 * events_total / (q_a + q_b)
+}
+
+# Uniform-accrual event probability (spec Sec. 24.2): survival is assumed
+# exponential with hazard implied by the planned survival probability at the
+# total study duration (accrual + follow-up), and enrollment is uniform over
+# the accrual window. Reduces to `1 - survival` as accrual_duration -> 0
+# (instantaneous accrual), matching the non-accrual conversion above.
+sample_size_uniform_accrual_event_prob <- function(survival, accrual_duration, total_duration) {
+  if (survival <= 0) return(1)
+  lambda <- -log(survival) / total_duration
+  1 - (exp(-lambda * (total_duration - accrual_duration)) - exp(-lambda * total_duration)) / (lambda * accrual_duration)
 }
 
 format_sample_count <- function(x) {
