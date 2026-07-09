@@ -1,5 +1,54 @@
 # testflow 0.8.2
 
+## Display ergonomics: per-term results tables in console output
+
+Second of two planned display-ergonomics changes (the first added
+workflow-specific print titles and field labels). Regression coefficients,
+Cox hazard ratios, the diagnostic-accuracy table, the ROC/Youden threshold,
+the ICC(1)/(2)/(3) comparison table, correlation-method/pairwise-correlation
+tables, factorial ANOVA tables, and every tidy post-hoc result (repeated
+measures, repeated categorical, multinomial, paired categorical) were
+computed but never shown in `print()`/`summary()` console output - only
+reachable via `x$alternative_tests`/`x$posthoc`. They now print directly.
+
+- `R/workflow-display.R`'s registry gained a `table`/`table_label` field
+  per applicable workflow, resolved by `workflow_meta()` into a small
+  data frame when the referenced field is already tidy (a `data.frame`/
+  `tibble`) or a base `table`/`matrix` (auto-converted, with generic
+  `Var1`/`Var2`/`Freq` column names relabeled using the same outcome/group
+  labels already resolved for that workflow, rather than left meaningless).
+- New `tf_table()` helper in `R/print.R` prints these tables, applying the
+  same `format_stat()`/`format_p()` conventions already used elsewhere
+  (p-value columns get "<0.001" instead of a misleading truncated "0.00";
+  integer count columns are formatted without decimal places).
+- `groups`/`repeated`'s omnibus-ANOVA post-hoc (`posthoc_groups()`,
+  `R/posthoc.R`) wraps a raw `TukeyHSD`/`pairwise.htest` object rather than
+  a tidy data frame; it's silently skipped rather than crashing or dumping
+  a raw object, matching prior behavior. (`repeated`'s own separate
+  paired-comparison post-hoc, from `paired_posthoc_numeric()`, *is* already
+  tidy and renders normally - only `groups`' omnibus-ANOVA path is
+  affected.) Formatting an arbitrary htest/TukeyHSD object nicely is a
+  larger follow-up, not attempted here.
+- Fixed a bug caught while verifying wide tables (e.g. the ICC comparison
+  table, which combines a long text column with several numeric ones):
+  base `data.frame` printing wraps onto a second, visually misaligned block
+  of rows once the default 80-character console width is exceeded.
+  `tf_table()` now temporarily widens `options(width = ...)` for the
+  duration of the print call rather than truncating labels or letting rows
+  wrap. The first version of this width calculation didn't account for `NA`
+  values (which produce an `NA` width via plain `max()`/`sum()`, in turn
+  making `options(width = NA)` error) - caught by the existing assumption-
+  structure test suite hitting a real `car::Anova()` aliased-coefficients
+  edge case with an all-`NA` ANOVA row, not by a synthetic test written
+  after the fact.
+
+Testing: devtools::test() 409/409 passing, including new assertions
+pinning table rendering for six representative workflows (regression, Cox,
+diagnostic, ICC's no-wrap behavior, agreement's relabeled columns, and the
+groups-skips/repeated-renders post-hoc distinction). devtools::check(): 0
+errors, 0 warnings, 1 environment-only NOTE, including vignette rebuild
+(console-output examples updated automatically).
+
 ## Display ergonomics: workflow-specific print titles and field labels
 
 - `print.testflow()` and `print.summary.testflow()` now show a title
