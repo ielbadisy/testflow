@@ -210,7 +210,7 @@ Supported planning settings:
 | Continuous | parallel, paired, repeated(2+ time points) | superiority, non-inferiority, equivalence | normal-approximation formulas for mean difference and repeated-measures approximations |
 | Binary | parallel, paired, repeated(2 time points) | superiority, non-inferiority, equivalence | risk-difference planning and discordant-pair planning |
 | Survival | parallel | superiority, non-inferiority, equivalence | event-based proportional hazards planning, optional uniform-accrual adjustment |
-| Ordinal | parallel | superiority | Noether approximation, or Whitehead proportional-odds |
+| Ordinal | parallel | superiority | Noether approximation |
 | Bioequivalence | crossover, parallel | equivalence (TOST) | iterative TOST or normal approximation, log scale |
 | Precision | one-sample, two-sample, log-OR | CI half-width (no power/objective) | continuous and binary CI-width formulas |
 

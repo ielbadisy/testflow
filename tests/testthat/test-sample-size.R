@@ -164,21 +164,14 @@ test_that("sample_size_precision matches each spec formula exactly", {
   expect_error(sample_size_precision(endpoint = "continuous", design = "odds_ratio", width = 1, sd = 1), "binary")
 })
 
-test_that("sample_size_ordinal's Whitehead method matches the spec formula and stays backward compatible", {
+test_that("sample_size_ordinal's Noether method matches the spec formula", {
   za <- qnorm(0.975); zb <- qnorm(0.90)
 
   x_noether <- sample_size_ordinal(p_superiority = 0.6)
   expect_equal(x_noether$n, (za + zb)^2 / (6 * 0.1^2))
+  expect_true(grepl("Noether", x_noether$method, fixed = TRUE))
 
-  probs <- c(0.3, 0.3, 0.4)
-  x_wh <- sample_size_ordinal(method = "whitehead", probs = probs, odds_ratio = 2)
-  theta <- log(2)
-  expect_equal(x_wh$n, 6 * (za + zb)^2 / ((1 - sum(probs^3)) * theta^2))
-  expect_true(grepl("Whitehead", x_wh$method, fixed = TRUE))
-
-  expect_error(sample_size_ordinal(method = "whitehead", odds_ratio = 2), "probs")
-  expect_error(sample_size_ordinal(method = "whitehead", probs = c(0.5, 0.4), odds_ratio = 2), "sum to 1")
-  expect_error(sample_size_ordinal(method = "whitehead", probs = probs, odds_ratio = 1), "differ from 1")
+  expect_error(sample_size_ordinal(p_superiority = 0.4), "exceed 0.5")
 })
 
 test_that("sample_size_survival's uniform accrual matches the closed-form formula and reduces to the flat conversion as accrual -> 0", {

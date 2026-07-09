@@ -952,16 +952,8 @@ sample_size_bioequivalence <- function(
 #'
 #' @param design `parallel` only.
 #' @param objective `superiority` only.
-#' @param method `noether` (Mann-Whitney/Wilcoxon-type superiority
-#'   probability) or `whitehead` (proportional-odds model).
 #' @param p_superiority Probability that a randomly selected subject in group A
-#'   exceeds a subject in group B, with ties contributing half. Required for
-#'   `method = "noether"`.
-#' @param probs Anticipated average category probabilities under the
-#'   proportional-odds model, summing to 1. Required for
-#'   `method = "whitehead"`.
-#' @param odds_ratio Planned proportional odds ratio. Required for
-#'   `method = "whitehead"`.
+#'   exceeds a subject in group B, with ties contributing half.
 #' @param alpha Type I error rate.
 #' @param power Target power.
 #' @param dropout Expected dropout proportion.
@@ -971,37 +963,19 @@ sample_size_bioequivalence <- function(
 #' Mann-Whitney/Wilcoxon-type) groups, with
 #' \eqn{P = P(A>B) + \tfrac12 P(A=B)} and equal allocation:
 #' \deqn{n_{per\ group} = \frac{(z_{1-\alpha/2}+z_{1-\beta})^2}{6(P-0.5)^2}}
-#'
-#' Whitehead's proportional-odds method, with \eqn{K} ordinal categories,
-#' anticipated average category probabilities \eqn{\pi_1,\ldots,\pi_K}, and
-#' planned proportional odds ratio \eqn{\theta=\log(OR_{PO})}:
-#' \deqn{n_{per\ group} \approx \frac{6(z_{1-\alpha/2}+z_{1-\beta})^2}
-#' {\left(1-\sum_{j=1}^{K}\pi_j^3\right)\theta^2}}
-#' This reduces to the binary log-odds planning form when \eqn{K=2}. Unlike
-#' Noether's method, this formula is sensitive to the category-probability
-#' distribution and the direction of the odds ratio; validate against a
-#' worked example specific to your design before relying on it for a
-#' registered protocol.
 #' @references
 #' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
-#'
-#' Whitehead J. Sample size calculations for ordered categorical data.
-#' *Statistics in Medicine*. 1993;12(24):2257-2271.
 #' @export
 sample_size_ordinal <- function(
   design = c("parallel"),
   objective = c("superiority"),
-  method = c("noether", "whitehead"),
   p_superiority = NULL,
-  probs = NULL,
-  odds_ratio = NULL,
   alpha = 0.05,
   power = 0.90,
   dropout = 0
 ) {
   design <- match.arg(design)
   objective <- match.arg(objective)
-  method <- match.arg(method)
   if (!identical(design, "parallel")) {
     stop("Only parallel ordinal sample size is implemented.", call. = FALSE)
   }
@@ -1014,65 +988,26 @@ sample_size_ordinal <- function(
   z_power <- stats::qnorm(power)
   z_alpha_two <- stats::qnorm(1 - alpha / 2)
 
-  if (identical(method, "noether")) {
-    sample_size_validate_probability(p_superiority, "p_superiority")
-    if (p_superiority <= 0.5) {
-      stop("p_superiority must exceed 0.5 for superiority planning.", call. = FALSE)
-    }
-    n_per_group_raw <- (z_alpha_two + z_power)^2 / (6 * (p_superiority - 0.5)^2)
-    n_per_group <- sample_size_round(n_per_group_raw)
-    n_adj <- sample_size_apply_dropout(n_per_group, dropout)
-    return(sample_size_result(
-      endpoint = "ordinal",
-      design = "parallel",
-      objective = objective,
-      method = "Noether superiority approximation",
-      n = n_per_group_raw,
-      n_adjusted = c(A = n_adj, B = n_adj),
-      n_per_group = c(A = n_adj, B = n_adj),
-      n_total = 2 * n_adj,
-      assumptions = sample_size_assumptions("Two independent ordinal groups are assumed."),
-      report = paste0(
-        "Ordinal superiority sample size was calculated with p_superiority = ",
-        format_sample_value(p_superiority), "; required per-group size = ", format_sample_count(n_adj),
-        ", total sample size = ", format_sample_count(2 * n_adj), "."
-      ),
-      plot_data = sample_size_plot_frame(c("A", "B"), c(n_per_group_raw, n_per_group_raw), c(n_adj, n_adj))
-    ))
+  sample_size_validate_probability(p_superiority, "p_superiority")
+  if (p_superiority <= 0.5) {
+    stop("p_superiority must exceed 0.5 for superiority planning.", call. = FALSE)
   }
-
-  if (is.null(probs) || is.null(odds_ratio)) {
-    stop("`probs` and `odds_ratio` are required for `method = \"whitehead\"`.", call. = FALSE)
-  }
-  if (length(probs) < 2 || any(probs <= 0) || any(probs >= 1) || !isTRUE(all.equal(sum(probs), 1))) {
-    stop("`probs` must be at least two values in (0, 1) that sum to 1.", call. = FALSE)
-  }
-  sample_size_validate_positive(odds_ratio, "odds_ratio")
-  if (isTRUE(all.equal(odds_ratio, 1))) {
-    stop("The proportional odds ratio must differ from 1.", call. = FALSE)
-  }
-  theta <- log(odds_ratio)
-  design_term <- 1 - sum(probs^3)
-  n_per_group_raw <- 6 * (z_alpha_two + z_power)^2 / (design_term * theta^2)
+  n_per_group_raw <- (z_alpha_two + z_power)^2 / (6 * (p_superiority - 0.5)^2)
   n_per_group <- sample_size_round(n_per_group_raw)
   n_adj <- sample_size_apply_dropout(n_per_group, dropout)
   sample_size_result(
     endpoint = "ordinal",
     design = "parallel",
     objective = objective,
-    method = "Whitehead proportional-odds approximation",
+    method = "Noether superiority approximation",
     n = n_per_group_raw,
     n_adjusted = c(A = n_adj, B = n_adj),
     n_per_group = c(A = n_adj, B = n_adj),
     n_total = 2 * n_adj,
-    assumptions = sample_size_assumptions(
-      "Two independent ordinal groups under a proportional-odds model are assumed.",
-      paste0("Planned proportional odds ratio = ", format_sample_value(odds_ratio), "."),
-      "This approximation is sensitive to the category-probability distribution; validate against a design-specific worked example before relying on it for a registered protocol."
-    ),
+    assumptions = sample_size_assumptions("Two independent ordinal groups are assumed."),
     report = paste0(
-      "Ordinal proportional-odds sample size was calculated with odds_ratio = ",
-      format_sample_value(odds_ratio), "; required per-group size = ", format_sample_count(n_adj),
+      "Ordinal superiority sample size was calculated with p_superiority = ",
+      format_sample_value(p_superiority), "; required per-group size = ", format_sample_count(n_adj),
       ", total sample size = ", format_sample_count(2 * n_adj), "."
     ),
     plot_data = sample_size_plot_frame(c("A", "B"), c(n_per_group_raw, n_per_group_raw), c(n_adj, n_adj))
