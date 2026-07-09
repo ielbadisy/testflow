@@ -20,3 +20,11 @@ test_that("test_multinomial converts table counts to numeric internally", {
   expect_s3_class(z, "testflow_multinomial")
   expect_equal(z$posthoc$expected, rep(2, 3))
 })
+
+test_that("test_multinomial adjusts pairwise post-hoc p-values, matching the rest of the package's BH convention", {
+  dat <- tibble::tibble(x = sample(c("a", "b", "c", "d"), 200, replace = TRUE, prob = c(0.55, 0.2, 0.15, 0.1)))
+  z <- suppressWarnings(test_multinomial(dat, x))
+  expect_true(all(c("p.adj", "p.adjust.method") %in% names(z$posthoc)))
+  expect_equal(z$posthoc$p.adjust.method, rep("BH", nrow(z$posthoc)))
+  expect_equal(z$posthoc$p.adj, stats::p.adjust(z$posthoc$p, method = "BH"))
+})

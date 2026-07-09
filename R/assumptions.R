@@ -75,17 +75,23 @@ check_outliers <- function(x) {
 }
 
 #' Check expected counts
+#'
+#' Uses the same "any expected cell below `threshold`" rule as the
+#' chi-square/Fisher recommendation in `test_categorical()` (see
+#' `fisher_threshold`), so this panel explains the recommendation actually
+#' made rather than applying a different (Cochran 80%-of-cells) convention
+#' that could disagree with it.
 #' @noRd
 check_expected_counts <- function(tab, threshold = 5) {
   chi <- suppressWarnings(stats::chisq.test(tab, correct = FALSE))
   expected <- as.vector(chi$expected)
-  ok <- sum(expected >= threshold) / length(expected) >= 0.8 && all(expected >= 1)
+  ok <- all(expected >= threshold)
   assumption_check(
     "Expected cell counts",
     ifelse(ok, "acceptable", "not acceptable"),
-    ifelse(ok, "Chi-square approximation is reasonable.", "Some expected counts are too small for the chi-square approximation."),
+    ifelse(ok, "Chi-square approximation is reasonable.", "Some expected counts are below the threshold; Fisher's exact test is used instead."),
     method = "Pearson chi-square approximation",
-    details = paste0("Min expected = ", format(min(expected), digits = 3))
+    details = paste0("Min expected = ", format(min(expected), digits = 3), "; threshold = ", format(threshold, digits = 3))
   )
 }
 

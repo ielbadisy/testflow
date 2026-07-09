@@ -61,6 +61,10 @@ test_repeated_long <- function(data, outcome, within, id, between = NULL, alpha 
 repeated_core <- function(data, outcome_nm, within_nm, id_nm, outcome_label = NULL, display_by_within = FALSE, alpha = 0.05, plot = TRUE, na.rm = TRUE, call = NULL) {
   if (is.null(outcome_label)) outcome_label <- outcome_nm
   df <- drop_missing(data, c(outcome_nm, within_nm, id_nm), na.rm = na.rm)
+  # aov()'s Error(id/within) requires id to be a factor to build the correct
+  # id:within error stratum; a numeric/integer id (e.g. the auto-generated
+  # subject index) silently produces the wrong stratum and wrong error df.
+  df[[id_nm]] <- as.factor(df[[id_nm]])
   normality <- check_normality(df, outcome_nm, within_nm, alpha)
   if (isTRUE(display_by_within)) {
     normality$name <- sub(paste0("^Normality: ", outcome_nm, " \\((.*)\\)$"), "Normality: \\1", normality$name)

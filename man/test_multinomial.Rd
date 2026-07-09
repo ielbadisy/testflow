@@ -30,7 +30,7 @@ test_multinomial(
 A \code{testflow} object with class \code{testflow_multinomial}. The object is
 a list containing the cleaned data, categorical descriptives, assumption
 checks, recommended goodness-of-fit test, primary chi-square result with null
-hypothesis, pairwise binomial checks, effect-size summary, optional
+hypothesis, BH-adjusted pairwise binomial checks, effect-size summary, optional
 \code{ggplot}, original call, and report text.
 }
 \description{
