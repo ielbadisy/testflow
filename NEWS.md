@@ -1,5 +1,27 @@
 # testflow 0.8.2
 
+## New workflows: regression
+
+- Added `test_linear_regression()`: multiple linear regression via
+  `stats::lm()`, with residual normality (Shapiro-Wilk), homoscedasticity
+  (Breusch-Pagan), and multicollinearity (variance inflation factor)
+  assumption checks, the overall model F-test as the primary result, the
+  per-term coefficient table, and R squared / adjusted R squared as the
+  effect size.
+- Added `test_logistic_regression()`: logistic regression via
+  `stats::glm(family = binomial)`, with multicollinearity and influential-
+  observation (Cook's distance) assumption checks, the likelihood-ratio test
+  against the intercept-only model as the primary result, coefficients on
+  both the log-odds and odds-ratio scale, and McFadden's pseudo R squared as
+  the effect size.
+- Both are documented in `vignettes/statistical-test-workflows.Rmd` and
+  `vignettes/effect-size-formulas.Rmd`, and every reported statistic is
+  pinned in tests against `summary(lm())`/`summary(glm())` computed
+  independently.
+- This is Phase 1 of a broader expansion (survival analysis, diagnostic and
+  agreement statistics, and additional sample-size functions are planned
+  next).
+
 ## Statistical test correctness
 
 An exhaustive correctness review of every `test_*()` workflow (run against
