@@ -1,5 +1,33 @@
 # testflow 0.8.2
 
+## Display ergonomics: workflow-specific print titles and field labels
+
+- `print.testflow()` and `print.summary.testflow()` now show a title
+  specific to the workflow that actually ran (e.g. "Linear Regression",
+  "Cox Proportional Hazards Regression", "Intraclass Correlation") instead
+  of the same generic "Statistical test workflow" for every single
+  `test_*()` result. The now-redundant separate `Design:` field (which
+  always duplicated the same information less legibly) is dropped.
+- The `Outcome:`/`Group:` console field labels are now workflow-appropriate
+  where `Group:` previously held something other than a comparison group:
+  "Predictors" for `test_linear_regression()`/`test_logistic_regression()`/
+  `test_cox()`, "Reference" for `test_diagnostic()`, "Rater 1"/"Rater 2" for
+  `test_agreement()`, "Time" in place of "Outcome" for the two survival
+  workflows, and so on.
+- New internal `R/workflow-display.R` centralizes this per-workflow display
+  metadata in one registry keyed by `x$workflow`, rather than threading new
+  parameters through every `new_testflow()` call site across `R/test_*.R`
+  (none of those files changed). `sample_size`-class objects are
+  unaffected: their generic "Sample size planning" title already fits every
+  call, since they share one purpose unlike the widely varying `test_*()`
+  workflows.
+- This is the first of two planned display-ergonomics changes; a follow-up
+  will surface per-term/per-metric result tables (regression coefficients,
+  Cox hazard ratios, the diagnostic-accuracy table, the ROC/Youden
+  threshold, the ICC comparison table, and post-hoc results) directly in
+  console output, which are currently computed but only reachable via
+  `x$alternative_tests`/`x$posthoc`.
+
 ## New sample-size functions
 
 - Added `sample_size_bioequivalence()`: two one-sided test (TOST)
