@@ -35,11 +35,7 @@ test_correlation <- function(formula, data, y = NULL, method = c("auto", "pearso
   chosen <- if (method == "auto") {
     if (all(normality$status == "acceptable") && !any(outlier_flags$is_outlier, na.rm = TRUE)) "pearson" else "spearman"
   } else method
-  linearity <- assumption_check(
-    "Linearity",
-    "not checked",
-    ifelse(chosen == "pearson", "A roughly linear relation is assumed, not tested, for Pearson correlation; inspect a scatterplot to confirm.", "Linearity is not checked for rank-based correlations; monotonicity is the key check.")
-  )
+  linearity <- check_linearity(df[[x_nm]], df[[y_nm]], alpha)
   monotonicity <- check_monotonicity(df[[x_nm]], df[[y_nm]], alpha = alpha)
   pearson <- stats::cor.test(df[[x_nm]], df[[y_nm]], method = "pearson")
   spearman <- suppressWarnings(stats::cor.test(df[[x_nm]], df[[y_nm]], method = "spearman", exact = FALSE))
@@ -117,10 +113,16 @@ test_correlation_matrix <- function(data, vars, method = c("spearman", "pearson"
     test <- suppressWarnings(stats::cor.test(full_vars[[z[1]]], full_vars[[z[2]]], method = method, exact = FALSE))
     tibble::tibble(var1 = z[1], var2 = z[2], estimate = unname(test$estimate), p = test$p.value)
   })
+  long$p.adj <- stats::p.adjust(long$p, method = "BH")
+  n_sig_adj <- sum(long$p.adj < alpha, na.rm = TRUE)
   assumptions <- assumption_checks(
     assumption_check("Variable types", "acceptable", "All selected variables should be numeric or ordinal."),
     assumption_check("Pairwise missing data", "acceptable", "Pairwise complete observations are used for each correlation."),
-    assumption_check("Multiple testing correction", "not checked", "P-values are reported pairwise; correction is not applied in this workflow.")
+    assumption_check(
+      "Multiple testing correction", "acceptable",
+      paste0(n_sig_adj, " of ", nrow(long), " pairwise correlation(s) remain significant after Benjamini-Hochberg adjustment (see the `p.adj` column)."),
+      method = "Benjamini-Hochberg (BH)"
+    )
   )
   plt <- if (plot) {
     hm <- as.data.frame(as.table(mat))

@@ -1,5 +1,37 @@
 # testflow (development version)
 
+## Assumption checking
+
+Closed remaining gaps where an assumption was labeled `"not checked"`
+because no diagnostic had been implemented (as opposed to being genuinely
+uncheckable, e.g. too few observations, which is unchanged). Every
+assumption status now reflects either a real check or an honest "not
+applicable"/"not enough data" label - never an unimplemented one.
+
+- `car` is now a hard dependency (`Imports`, not `Suggests`): regression
+  homoscedasticity (Breusch-Pagan), multicollinearity (VIF), and
+  ANOVA/factorial variance homogeneity (Levene's test) no longer fall back
+  to `"not checked"` when `car` isn't installed, and `test_factorial(type
+  = 2/3)` no longer errors for the same reason.
+- Added a real sphericity check for `test_repeated()`/`test_repeated_long()`
+  with 3+ conditions, via Mauchly's test (`stats::mauchly.test()` on the
+  wide-format multivariate model, `X = ~1`) - verified to match
+  `mauchly.test()` and `rstatix::anova_test()` exactly. Reports "not
+  applicable" for exactly two conditions, where sphericity isn't defined.
+- Added a real symmetry-of-deviations check for `test_one_sample()` and
+  `test_paired()` (used to justify the Wilcoxon signed-rank test), via the
+  closed-form Cabilio & Masaro (1996) test - verified to match
+  `lawstat::symmetry.test(option = "CM", boot = FALSE)` exactly.
+- Added a real linearity check for `test_correlation(method = "pearson")`,
+  via a quadratic-term F-test (`anova()` comparing `y ~ x` to `y ~ x +
+  I(x^2)`) - equivalent to Ramsey's RESET test with a single quadratic
+  regressor term, verified to match `lmtest::resettest(power = 2, type =
+  "regressor")` exactly.
+- `test_correlation_matrix()` now applies a Benjamini-Hochberg correction
+  to its pairwise p-values by default (`p.adj` column in the correlation
+  table), instead of reporting pairwise p-values with no correction
+  applied.
+
 ## Sample size planning
 
 - Removed `sample_size_ordinal(method = "whitehead")`. Unlike every other
