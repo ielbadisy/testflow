@@ -40,12 +40,12 @@ Imports:
     purrr,
     broom,
     ggplot2,
-    survival
+    survival,
+    car
 Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
-    car,
     effectsize,
     patchwork
 Config/testthat/edition: 3

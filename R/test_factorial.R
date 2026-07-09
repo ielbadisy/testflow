@@ -48,9 +48,6 @@ test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2
   ss_tab <- if (identical(type, 1)) {
     stats::anova(fit)
   } else {
-    if (!requireNamespace("car", quietly = TRUE)) {
-      stop("`type = 2` and `type = 3` sums of squares require the 'car' package. Install it, or use `type = 1`.", call. = FALSE)
-    }
     if (identical(type, 3)) {
       # Type III SS are only interpretable with sum-to-zero contrasts;
       # under the default treatment contrasts they test a different (usually

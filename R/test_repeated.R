@@ -70,10 +70,10 @@ repeated_core <- function(data, outcome_nm, within_nm, id_nm, outcome_label = NU
     normality$name <- sub(paste0("^Normality: ", outcome_nm, " \\((.*)\\)$"), "Normality: \\1", normality$name)
     normality$variable <- normality$group
   }
-  sphericity <- check_sphericity_or_note()
   wide <- tidyr::pivot_wider(df, names_from = dplyr::all_of(within_nm), values_from = dplyr::all_of(outcome_nm), id_cols = dplyr::all_of(id_nm))
   measure_nms <- setdiff(names(wide), id_nm)
   complete <- stats::na.omit(wide[, measure_nms, drop = FALSE])
+  sphericity <- check_sphericity(as.matrix(complete), alpha)
   friedman <- stats::friedman.test(as.matrix(complete))
   anova <- repeated_anova_test(df, outcome_nm, within_nm, id_nm)
   recommendation <- if (all(normality$status == "acceptable")) "Repeated-measures ANOVA" else "Friedman test"

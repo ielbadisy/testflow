@@ -44,23 +44,19 @@ test_linear_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.
     p_value = resid_normality_test$p.value
   )
 
-  homoscedasticity <- if (requireNamespace("car", quietly = TRUE)) {
-    nv <- car::ncvTest(fit)
-    assumption_check(
-      "Homoscedasticity",
-      ifelse(nv$p >= alpha, "acceptable", "not acceptable"),
-      ifelse(nv$p >= alpha, "Residual variance looks constant across fitted values.", "Residual variance may depend on the fitted values (heteroscedasticity)."),
-      method = "Breusch-Pagan (score test)",
-      statistic = unname(nv$ChiSquare),
-      p_value = nv$p
-    )
-  } else {
-    assumption_check("Homoscedasticity", "not checked", "Install the 'car' package to run the Breusch-Pagan test.")
-  }
+  nv <- car::ncvTest(fit)
+  homoscedasticity <- assumption_check(
+    "Homoscedasticity",
+    ifelse(nv$p >= alpha, "acceptable", "not acceptable"),
+    ifelse(nv$p >= alpha, "Residual variance looks constant across fitted values.", "Residual variance may depend on the fitted values (heteroscedasticity)."),
+    method = "Breusch-Pagan (score test)",
+    statistic = unname(nv$ChiSquare),
+    p_value = nv$p
+  )
 
   multicollinearity <- if (length(predictor_nms) < 2) {
     assumption_check("Multicollinearity", "not applicable", "Only one predictor; multicollinearity does not apply.")
-  } else if (requireNamespace("car", quietly = TRUE)) {
+  } else {
     vifs <- car::vif(fit)
     max_vif <- max(vifs)
     assumption_check(
@@ -71,8 +67,6 @@ test_linear_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.
       statistic = max_vif,
       details = paste0("Max VIF (", names(vifs)[which.max(vifs)], ") = ", format_stat(max_vif))
     )
-  } else {
-    assumption_check("Multicollinearity", "not checked", "Install the 'car' package to compute variance inflation factors.")
   }
 
   effect <- dplyr::bind_rows(r_squared_lm(fit), adjusted_r_squared_lm(fit))
@@ -173,7 +167,7 @@ test_logistic_regression <- function(formula, data, alpha = 0.05, plot = TRUE, n
 
   multicollinearity <- if (length(predictor_nms) < 2) {
     assumption_check("Multicollinearity", "not applicable", "Only one predictor; multicollinearity does not apply.")
-  } else if (requireNamespace("car", quietly = TRUE)) {
+  } else {
     vifs <- car::vif(fit)
     max_vif <- max(vifs)
     assumption_check(
@@ -184,8 +178,6 @@ test_logistic_regression <- function(formula, data, alpha = 0.05, plot = TRUE, n
       statistic = max_vif,
       details = paste0("Max VIF (", names(vifs)[which.max(vifs)], ") = ", format_stat(max_vif))
     )
-  } else {
-    assumption_check("Multicollinearity", "not checked", "Install the 'car' package to compute variance inflation factors.")
   }
 
   cooks_d <- stats::cooks.distance(fit)

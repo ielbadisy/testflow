@@ -25,7 +25,7 @@ test_one_sample <- function(data, outcome, mu = 0, alternative = c("two.sided", 
   normality <- check_normality(df, outcome_nm, alpha = alpha)
   recommendation <- recommend_one_sample(normality)
   xval <- df[[outcome_nm]]
-  symmetry <- assumption_check("Symmetry of deviations", ifelse(recommendation == "One-sample t-test", "not checked", "warning"), ifelse(recommendation == "One-sample t-test", "Normality made the symmetry check unnecessary.", "Wilcoxon signed-rank assumes approximate symmetry of the deviations from the reference value; this is assumed, not tested, here."), method = "Signed-rank teaching note")
+  symmetry <- check_symmetry(xval - mu, alpha)
   independence <- check_independence_note()
   ttest <- stats::t.test(xval, mu = mu, alternative = alternative)
   wilcox <- stats::wilcox.test(xval, mu = mu, alternative = alternative, exact = FALSE)

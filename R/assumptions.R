@@ -41,6 +41,28 @@ check_normality <- function(data, vars, group = NULL, alpha = 0.05) {
   }
 }
 
+#' Check symmetry about the median (Cabilio-Masaro test)
+#' @param x Numeric vector of deviations from the reference value.
+#' @param alpha Significance level.
+#' @noRd
+check_symmetry <- function(x, alpha = 0.05) {
+  x <- x[!is.na(x)]
+  n <- length(x)
+  if (n < 3 || stats::sd(x) == 0) {
+    return(assumption_check("Symmetry of deviations", "not enough data", "Too few observations, or no variation, for a useful symmetry check.", method = "Cabilio-Masaro test"))
+  }
+  stat <- sqrt(n) * (mean(x) - stats::median(x)) / (stats::sd(x) * sqrt(pi / 2 - 1))
+  p_value <- 2 * (1 - stats::pnorm(abs(stat)))
+  assumption_check(
+    "Symmetry of deviations",
+    ifelse(p_value >= alpha, "acceptable", "not acceptable"),
+    ifelse(p_value >= alpha, "The deviations from the reference value look approximately symmetric.", "The deviations from the reference value show significant asymmetry."),
+    method = "Cabilio-Masaro test",
+    statistic = stat,
+    p_value = p_value
+  )
+}
+
 #' Check monotonicity
 #' @noRd
 check_monotonicity <- function(x, y, alpha = 0.05) {
@@ -57,6 +79,32 @@ check_monotonicity <- function(x, y, alpha = 0.05) {
     method = "Spearman correlation",
     statistic = unname(sp$statistic),
     p_value = sp$p.value
+  )
+}
+
+#' Check linearity via a RESET-style quadratic-term F-test
+#' @param x,y Numeric vectors.
+#' @param alpha Significance level.
+#' @noRd
+check_linearity <- function(x, y, alpha = 0.05) {
+  keep <- stats::complete.cases(x, y)
+  x <- x[keep]
+  y <- y[keep]
+  if (length(x) < 4) {
+    return(assumption_check("Linearity", "not checked", "Not enough complete observations to assess linearity.", method = "Quadratic-term F-test"))
+  }
+  fit_linear <- stats::lm(y ~ x)
+  fit_quad <- stats::lm(y ~ x + I(x^2))
+  cmp <- stats::anova(fit_linear, fit_quad)
+  stat <- cmp$F[2]
+  p_value <- cmp[["Pr(>F)"]][2]
+  assumption_check(
+    "Linearity",
+    ifelse(p_value >= alpha, "acceptable", "warning"),
+    ifelse(p_value >= alpha, "Adding a quadratic term does not significantly improve fit; a linear relation looks reasonable.", "Adding a quadratic term significantly improves fit, suggesting curvature; inspect a scatterplot."),
+    method = "Quadratic-term F-test (Ramsey RESET, power = 2)",
+    statistic = stat,
+    p_value = p_value
   )
 }
 
@@ -95,44 +143,46 @@ check_expected_counts <- function(tab, threshold = 5) {
   )
 }
 
-#' Check sphericity or note
+#' Check sphericity via Mauchly's test
+#' @param wide_matrix A numeric matrix, one row per subject, one column per
+#'   repeated-measures condition (no missing values).
+#' @param alpha Significance level.
 #' @noRd
-check_sphericity_or_note <- function(...) {
-  assumption_check("Sphericity", "not checked", "Sphericity is not checked here; use this as a teaching note unless a formal test is added.")
+check_sphericity <- function(wide_matrix, alpha = 0.05) {
+  k <- ncol(wide_matrix)
+  if (k < 3) {
+    return(assumption_check(
+      "Sphericity", "not applicable",
+      "Sphericity is not defined with only two repeated-measures conditions; a single within-subject contrast has no covariance structure to test.",
+      method = "Mauchly's test"
+    ))
+  }
+  mlm_fit <- stats::lm(wide_matrix ~ 1)
+  mt <- stats::mauchly.test(mlm_fit, X = ~1)
+  assumption_check(
+    "Sphericity",
+    ifelse(mt$p.value >= alpha, "acceptable", "warning"),
+    ifelse(mt$p.value >= alpha, "Sphericity looks reasonable.", "Sphericity may be violated; interpret the repeated-measures ANOVA with caution, or prefer the Friedman test."),
+    method = "Mauchly's test",
+    statistic = unname(mt$statistic),
+    p_value = unname(mt$p.value)
+  )
 }
 
 #' Check homogeneity of variance
 #' @noRd
 check_variance_homogeneity <- function(data, outcome, group, alpha = 0.05) {
   formula <- stats::as.formula(paste(outcome, "~", group))
-  if (requireNamespace("car", quietly = TRUE)) {
-    lt <- car::leveneTest(formula, data = data)
-    p <- lt[["Pr(>F)"]][1]
-    stat <- lt[["F value"]][1]
-    return(tibble::tibble(
-      name = "Variance homogeneity",
-      method = "Levene test",
-      message = ifelse(p >= alpha, "Variance homogeneity looks reasonable.", "Variance homogeneity may be violated."),
-      statistic = stat,
-      df1 = lt[["Df"]][1],
-      df2 = lt[["Df"]][2],
-      p = p,
-      status = ifelse(p >= alpha, "acceptable", "not acceptable")
-    ))
-  }
-
-  med <- stats::ave(data[[outcome]], data[[group]], FUN = stats::median, na.rm = TRUE)
-  z <- abs(data[[outcome]] - med)
-  fit <- stats::lm(z ~ data[[group]])
-  aov_tab <- stats::anova(fit)
-  p <- aov_tab[["Pr(>F)"]][1]
+  lt <- car::leveneTest(formula, data = data)
+  p <- lt[["Pr(>F)"]][1]
+  stat <- lt[["F value"]][1]
   tibble::tibble(
     name = "Variance homogeneity",
-    method = "Median-centered Levene approximation",
+    method = "Levene test",
     message = ifelse(p >= alpha, "Variance homogeneity looks reasonable.", "Variance homogeneity may be violated."),
-    statistic = aov_tab[["F value"]][1],
-    df1 = aov_tab[["Df"]][1],
-    df2 = aov_tab[["Df"]][2],
+    statistic = stat,
+    df1 = lt[["Df"]][1],
+    df2 = lt[["Df"]][2],
     p = p,
     status = ifelse(p >= alpha, "acceptable", "not acceptable")
   )
