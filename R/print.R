@@ -52,6 +52,12 @@ print.testflow <- function(x, ...) {
       tf_blank()
     }
 
+    if (!is.null(meta$table_data) && nrow(meta$table_data) > 0) {
+      tf_section(meta$table_label)
+      tf_table(meta$table_data)
+      tf_blank()
+    }
+
     tf_section("Report")
     tf_line(report(x))
     invisible(x)
@@ -176,6 +182,12 @@ print.summary.testflow <- function(x, ...) {
 
     print_summary_field("Decision", x$decision)
 
+    if (!is.null(meta$table_data) && nrow(meta$table_data) > 0) {
+      tf_blank()
+      tf_section(meta$table_label)
+      tf_table(meta$table_data)
+    }
+
     if (!is.null(x$report) && !is.na(x$report)) {
       tf_blank()
       tf_section("Report")
@@ -239,6 +251,36 @@ tf_blank <- function() {
 
 tf_bullet <- function(text) {
   tf_line("* ", text)
+}
+
+# Prints a small per-term/per-metric results table (regression
+# coefficients, hazard ratios, the diagnostic/ROC/ICC/agreement tables,
+# post-hoc comparisons, ...) to the console. Numeric columns are rounded
+# with the same format_stat() 2-decimal convention used everywhere else in
+# printed output; row names are dropped since none of these tables use them
+# meaningfully. Uses base print.data.frame() rather than a new formatting
+# dependency.
+tf_table <- function(df) {
+  df <- as.data.frame(df)
+  p_cols <- grepl("^p(\\.value|\\.adj|value)?$", names(df))
+  for (i in seq_along(df)) {
+    if (is.integer(df[[i]])) {
+      df[[i]] <- format(df[[i]], big.mark = ",", scientific = FALSE)
+    } else if (is.numeric(df[[i]])) {
+      df[[i]] <- if (p_cols[i]) format_p(df[[i]]) else format_stat(df[[i]])
+    }
+  }
+  # Base data.frame printing wraps onto a second block of rows once the
+  # formatted width exceeds getOption("width") (80 by default), which is
+  # easy to trigger with a text column (e.g. long method/term labels)
+  # alongside several numeric columns - and once it wraps, which
+  # statistic/p-value belongs to which row is no longer visually obvious.
+  # Widen the print width for just this call rather than truncating labels.
+  col_widths <- mapply(function(col, nm) max(nchar(as.character(col)), nchar(nm), na.rm = TRUE), df, names(df))
+  needed_width <- sum(col_widths) + 2 * ncol(df)
+  old_width <- options(width = min(10000, max(getOption("width"), needed_width)))
+  on.exit(options(old_width), add = TRUE)
+  print(df, row.names = FALSE)
 }
 
 tf_field <- function(label, value) {
