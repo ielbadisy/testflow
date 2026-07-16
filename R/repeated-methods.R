@@ -1,7 +1,10 @@
 repeated_anova_test <- function(long, outcome, within, id) {
   formula <- stats::as.formula(paste(outcome, "~", within, "+ Error(", id, "/", within, ")"))
   fit <- stats::aov(formula, data = long)
-  tab <- summary(fit)
+  tab <- purrr::map(fit, function(stratum) {
+    tryCatch(summary(stratum), error = function(e) NULL)
+  })
+  tab <- purrr::compact(tab)
   candidates <- purrr::map(tab, 1)
   has_test <- purrr::map_lgl(candidates, function(x) {
     "Pr(>F)" %in% names(x) && any(!is.na(x[["Pr(>F)"]]))

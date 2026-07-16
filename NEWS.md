@@ -1,5 +1,15 @@
 # testflow (development version)
 
+## Bug fixes
+
+- `test_repeated()`/`test_repeated_long()` no longer error with "missing
+  value where TRUE/FALSE needed" on R-devel. `summary()` on an `aovlist`
+  fit walks every `Error()` stratum, including the degenerate
+  intercept-only stratum (a single fitted value), and a recent change to
+  `stats:::summary.aov()`'s perfect-fit check can produce `NA` there. We
+  now summarize each stratum independently and skip any that fail,
+  since the intercept-only stratum was never used for the reported test.
+
 ## Assumption checking
 
 Closed remaining gaps where an assumption was labeled `"not checked"`
