@@ -23,6 +23,8 @@ Description: Provides a unified workflow for choosing, running, interpreting,
   (2013, ISBN:9781118553299), Agresti (2013, ISBN:9780470463635), Cohen
   (1988, ISBN:9780805802832), Hosmer, Lemeshow and Sturdivant (2013,
   ISBN:9780470582473), and Julious (2010, ISBN:9781584887393).
+URL: https://CRAN.R-project.org/package=testflow
+BugReports: https://github.com/ielbadisy/testflow/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends:
