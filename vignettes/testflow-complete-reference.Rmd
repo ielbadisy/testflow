@@ -1,0 +1,1069 @@
+---
+title: "testflow: complete pedagogical reference"
+output: rmarkdown::pdf_document
+vignette: >
+  %\VignetteIndexEntry{testflow: complete pedagogical reference}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = TRUE, fig.width = 6, fig.height = 4)
+```
+
+```{r setup}
+library(testflow)
+cardio <- make_cardio_data()
+```
+
+# Introduction
+
+This vignette is the complete pedagogical reference for `testflow`: every
+exported workflow function, organized by study design, alongside the exact
+mathematical formula each one evaluates. It supersedes and consolidates the
+previous `effect-size-formulas` and `statistical-test-workflows` vignettes,
+and folds in the sample-size planning module so that every formula in the
+package - hypothesis testing, effect sizes, and sample-size planning - lives
+in one place.
+
+Every `test_*()` function returns a `testflow` object: a list containing the
+cleaned data, descriptive statistics, assumption checks, the recommended
+test with its rationale, the primary test result (with its null hypothesis),
+alternative test results for comparison, an effect size, an optional
+`ggplot`, the original call, and a plain-language interpretation. Four
+methods work on every object:
+
+```{r}
+x <- test_two_groups(sbp_3m ~ sex, data = cardio)
+x                # print.testflow(): formatted console report
+report(x)        # report.testflow(): report-ready sentence
+as_tibble(x)      # as_tibble.testflow(): one-row tidy summary
+# plot(x)         # plot.testflow(): the workflow's ggplot
+```
+
+Notation used throughout: \(n\) is a sample size, \(\bar x\) and \(s_x\) are
+a sample mean and standard deviation, \(z_p\) and \(t_{df,p}\) are the
+\(p\)-th quantiles of the standard normal and \(t\) distributions, and
+\(\chi^2_{df}\), \(F_{df_1,df_2}\) name a chi-square and \(F\) distribution
+with the given degrees of freedom.
+
+## How test selection works
+
+Most `test_*()` functions run assumption checks first and use them to pick
+among two or three candidate tests (the *recommended* test), while still
+computing and reporting every candidate under `alternative_tests` so you can
+compare. The decision rules (`R/recommend.R`) are simple and deliberately
+transparent:
+
+| Workflow | Normal? & equal variance? | Normal only | Neither |
+|---|---|---|---|
+| One sample | One-sample t-test | - | Wilcoxon signed-rank |
+| Two groups | Student t-test | Welch t-test | Wilcoxon rank-sum |
+| Paired | Paired t-test | - | Wilcoxon signed-rank |
+| 3+ groups | One-way ANOVA | Welch ANOVA | Kruskal-Wallis |
+
+Normality is checked with Shapiro-Wilk (per group, where applicable);
+variance homogeneity with Levene's test. `test_categorical()` instead
+compares chi-square vs. Fisher's exact test based on expected cell counts
+(`fisher_threshold`, default 5); `test_correlation(method = "auto")`
+compares Pearson vs. Spearman based on normality and outlier screens; the
+numeric repeated-measures workflow compares repeated-measures ANOVA vs.
+Friedman based on within-time normality.
+
+# Descriptive statistics
+
+`sumtab()` and the internal `descriptives_numeric()`/`descriptives_categorical()`
+helpers (populating every `testflow` object's `$descriptives` field) report,
+for numeric variables:
+
+\[
+n,\quad \bar x = \frac{1}{n}\sum_i x_i,\quad
+s_x = \sqrt{\frac{1}{n-1}\sum_i (x_i-\bar x)^2},\quad
+\text{median},\quad IQR = Q_3-Q_1,\quad \min,\ \max
+\]
+
+and, for categorical variables, the count and percentage of each level:
+
+```{r}
+sumtab(~ age + sbp_3m + ldl | treatment, data = cardio)
+```
+
+# Assumption checks
+
+`testflow` runs a small set of standardized assumption checks and reports
+them in every object's `$assumptions` field, each with a `status`
+(`acceptable`/`not acceptable`/`warning`/`not applicable`/`assumed`/`not
+checked`) driving the recommended-test logic above.
+
+| Check | Method | Statistic |
+|---|---|---|
+| Normality | Shapiro-Wilk (`n <= 5000`) | \(W\) |
+| Symmetry (one-sample/paired) | Cabilio-Masaro | \(z=\sqrt n(\bar x-\text{median})/(s_x\sqrt{\pi/2-1})\) |
+| Variance homogeneity (2 groups) | `var.test()` (F-test) | \(F=s_1^2/s_2^2\) |
+| Variance homogeneity (3+ groups) | Levene's test | \(F\) on absolute deviations from group medians |
+| Variance homogeneity (3+ groups) | Bartlett's test | \(\chi^2\) on group variances |
+| Sphericity (3+ repeated measures) | Mauchly's test | \(W\) |
+| Linearity (correlation) | Quadratic-term F-test (RESET, power 2) | \(F\) comparing `y ~ x` to `y ~ x + I(x^2)` |
+| Monotonicity (correlation) | Spearman correlation of \(x,y\) | \(\rho\) |
+| Expected cell counts (categorical) | Pearson chi-square expected counts | \(\min(E_{ij}) \geq\) threshold (default 5) |
+| Multicollinearity (regression) | Variance inflation factor | \(VIF_j = 1/(1-R_j^2)\), flagged at \(\geq 5\) |
+| Influential points (logistic regression) | Cook's distance | flagged at \(> 4/n\) |
+| Proportional hazards (Cox) | Schoenfeld residual test (Grambsch-Therneau) | \(\chi^2\) |
+| Outliers (screen) | IQR rule | \(x < Q_1-1.5\,IQR\) or \(x > Q_3+1.5\,IQR\) |
+
+Independence of observations is *assumed* from the study design in every
+workflow (`testflow` has no way to test it from the data alone) and is
+always listed explicitly rather than silently taken for granted.
+
+# One numerical variable
+
+`test_one_sample()` compares a numeric sample against a fixed reference
+value \(\mu_0\). The recommended test follows normality of the sample:
+
+\[
+t = \frac{\bar x - \mu_0}{s_x/\sqrt n} \sim t_{n-1}
+\qquad\text{(One-sample t-test, Gosset 1908)}
+\]
+
+with the Wilcoxon signed-rank test as the non-parametric alternative, and a
+sign test always reported alongside for reference. The reported effect size
+is Cohen's \(d\):
+
+\[
+d = \frac{\bar x - \mu_0}{s_x}
+\]
+
+```{r}
+test_one_sample(cardio, sbp_3m, mu = 140)
+```
+
+# Two independent groups
+
+`test_two_groups()` compares a numeric outcome between two independent
+groups, selecting among the Student t-test, Welch t-test, and Wilcoxon
+rank-sum test per the table above:
+
+\[
+t = \frac{\bar x_1-\bar x_2}{s_p\sqrt{1/n_1+1/n_2}} \sim t_{n_1+n_2-2},
+\qquad
+s_p = \sqrt{\frac{(n_1-1)s_1^2+(n_2-1)s_2^2}{n_1+n_2-2}}
+\qquad\text{(Student/Gosset 1908)}
+\]
+
+Welch's t-test (1947) instead uses \(s_1^2/n_1+s_2^2/n_2\) as the variance
+estimate with a Satterthwaite-approximated denominator degrees of freedom -
+appropriate when variances are unequal. The Wilcoxon rank-sum (Mann-Whitney)
+test compares rank sums rather than means. Effect size is Cohen's \(d\)
+(t-test branches) or the rank-biserial correlation \(r_{rb}=1-2W/(n_1n_2)\)
+(Wilcoxon branch), both with the sign following "first group minus second
+group."
+
+```{r}
+test_two_groups(sbp_3m ~ sex, data = cardio)
+```
+
+# Paired measurements
+
+`test_paired()` compares two measurements on the same subjects via their
+paired differences \(d_i = \text{after}_i - \text{before}_i\):
+
+\[
+t = \frac{\bar d}{s_d/\sqrt n} \sim t_{n-1}
+\qquad\text{(Paired t-test)}
+\]
+
+with the Wilcoxon signed-rank test on the differences as the non-parametric
+alternative (selected when the differences fail the normality check), and a
+sign test reported for reference. Effect size is Cohen's \(d_z=\bar d/s_d\).
+
+```{r}
+test_paired(sbp_3m ~ sbp_baseline, data = cardio)
+```
+
+# More than two groups
+
+`test_groups()` extends the two-group comparison to \(k\geq 3\) groups:
+
+\[
+F = \frac{SS_{between}/(k-1)}{SS_{within}/(n-k)} \sim F_{k-1,\,n-k}
+\qquad\text{(One-way ANOVA, Fisher 1925)}
+\]
+
+Welch's ANOVA relaxes the equal-variance assumption (analogous to Welch's
+t-test); the Kruskal-Wallis test is the rank-based, distribution-free
+alternative:
+
+\[
+H = \frac{12}{n(n+1)}\sum_{j=1}^k \frac{R_j^2}{n_j} - 3(n+1) \sim \chi^2_{k-1}
+\qquad\text{(Kruskal-Wallis, 1952)}
+\]
+
+Effect size is eta squared \(\eta^2 = SS_{between}/SS_{total}\) for the
+ANOVA branches, or Kruskal's epsilon squared
+\(\epsilon^2 = (H-k+1)/(n-k)\) for the Kruskal-Wallis branch.
+
+```{r}
+test_groups(sbp_3m ~ treatment, data = cardio)
+```
+
+## Post-hoc comparisons
+
+When `posthoc = TRUE` (the default), pairwise comparisons follow the
+selected omnibus test: Tukey's HSD (1949) after one-way ANOVA, BH-adjusted
+pairwise Welch t-tests after Welch ANOVA, and BH-adjusted pairwise Wilcoxon
+tests (Dunn-style multiple comparisons, 1964) after Kruskal-Wallis.
+
+# Factorial designs
+
+`test_factorial()` fits a two- (or more-) way ANOVA with `outcome ~ f1 * f2`
+and reports sums of squares of the chosen `type`:
+
+- **Type I** (`stats::anova()`): sequential SS, order-dependent for
+  unbalanced designs.
+- **Type II**/**Type III** (`car::Anova()`): each term's SS adjusted for
+  every other term (Type II) or additionally for the intercept under
+  sum-to-zero contrasts (Type III, `testflow` sets `contr.sum` automatically
+  since Type III under the default treatment contrasts tests a different,
+  usually meaningless, hypothesis).
+
+Effect size is eta squared per term, computed from whichever SS table
+(Type I/II/III) was actually used for the reported test - not always
+recomputed as Type I - so the effect size matches the p-value. Residual
+normality (Shapiro-Wilk) and variance homogeneity (Levene, on the first
+factor) are checked as assumptions.
+
+```{r}
+test_factorial(sbp_3m ~ sex * treatment, data = cardio)
+```
+
+# Repeated measurements (numeric)
+
+`test_repeated()` (wide data) and `test_repeated_long()` (long data) compare
+3 or more repeated numeric measurements on the same subjects, choosing
+between repeated-measures ANOVA and the Friedman test based on within-time
+normality:
+
+\[
+F = \frac{MS_{time}}{MS_{time \times subject}} \sim F_{k-1,\,(k-1)(n-1)}
+\qquad\text{(Repeated-measures ANOVA, via `Error(id/time)`)}
+\]
+
+\[
+\chi_F^2 = \frac{12}{nk(k+1)}\sum_{j=1}^k R_j^2 - 3n(k+1) \sim \chi^2_{k-1}
+\qquad\text{(Friedman, 1937)}
+\]
+
+Sphericity (Mauchly's test) is checked for the ANOVA branch. Effect size is
+\(\eta^2_{time}=SS_{time}/SS_{total}\) (ANOVA branch) or Kendall's
+\(W=\chi_F^2/(n(k-1))\) (Friedman branch). Post-hoc comparisons are
+BH-adjusted pairwise paired t-tests (ANOVA branch) or pairwise paired
+Wilcoxon tests (Friedman branch).
+
+```{r}
+test_repeated(cardio, c(sbp_baseline, sbp_3m, sbp_6m), id = id)
+```
+
+# Categorical outcomes
+
+## Association between two categorical variables
+
+`test_categorical()` tests independence in a contingency table, selecting
+chi-square or Fisher's exact test based on expected cell counts:
+
+\[
+\chi^2 = \sum_{i,j}\frac{(O_{ij}-E_{ij})^2}{E_{ij}} \sim \chi^2_{(r-1)(c-1)}
+\qquad\text{(Pearson 1900)}
+\]
+
+Fisher's exact test (1922) is used instead whenever any expected count
+falls below `fisher_threshold` (default 5). Effect size is Cramer's V:
+
+\[
+V = \sqrt{\frac{\chi^2}{n(\min(r,c)-1)}}
+\]
+
+```{r}
+test_categorical(treatment ~ controlled_3m, data = cardio)
+```
+
+## One-sample proportion
+
+`test_proportion()` tests a single proportion against a reference value
+\(p_0\), using the exact binomial test (Clopper-Pearson-based) when expected
+successes or failures fall below 5, or the standard proportion test
+otherwise:
+
+\[
+z = \frac{\hat p - p_0}{\sqrt{p_0(1-p_0)/n}}
+\qquad\text{(one-sample proportion test, normal approximation)}
+\]
+
+```{r}
+test_proportion(cardio, controlled_3m, success = "yes", p = 0.5)
+```
+
+## Multinomial goodness of fit
+
+`test_multinomial()` compares observed category counts to expected
+probabilities \(p_1,\ldots,p_k\) (equal by default):
+
+\[
+\chi^2 = \sum_{i=1}^k \frac{(O_i-E_i)^2}{E_i} \sim \chi^2_{k-1}
+\]
+
+BH-adjusted per-category binomial tests are reported alongside as post-hoc
+comparisons.
+
+```{r}
+test_multinomial(cardio, treatment)
+```
+
+## Paired categorical measurements
+
+`test_paired_categorical()` compares a binary categorical outcome measured
+twice on the same subjects via McNemar's test on the discordant cells
+\(b\) (before-only) and \(c\) (after-only) of the 2x2 table:
+
+\[
+\chi^2 = \frac{(b-c)^2}{b+c} \sim \chi^2_1
+\qquad\text{(McNemar, 1947)}
+\]
+
+Effect size is the number of discordant pairs \(b+c\).
+
+```{r}
+test_paired_categorical(cardio, controlled_baseline, controlled_3m)
+```
+
+## Repeated categorical measurements (3+ time points)
+
+`test_repeated_categorical()` extends McNemar's test to \(k\geq 3\) repeated
+binary measurements via Cochran's Q test:
+
+\[
+Q = \frac{(k-1)\left[k\sum_j C_j^2 - \left(\sum_j C_j\right)^2\right]}
+{k\sum_i R_i - \sum_i R_i^2} \sim \chi^2_{k-1}
+\qquad\text{(Cochran, 1950)}
+\]
+
+where \(C_j\) is the column (time) total and \(R_i\) the row (subject)
+total. Effect size is the Cochran-Q analogue of Kendall's \(W\),
+\(W=Q/(n(k-1))\); pairwise McNemar tests (BH-adjusted) are the post-hoc
+comparisons.
+
+```{r}
+test_repeated_categorical(cardio, c(controlled_baseline, controlled_3m, controlled_6m))
+```
+
+# Correlation
+
+`test_correlation()` tests association between two numeric variables, with
+`method = "auto"` choosing Pearson when both variables pass the normality
+and outlier screens, and Spearman otherwise:
+
+\[
+r = \frac{\sum_i(x_i-\bar x)(y_i-\bar y)}{\sqrt{\sum_i(x_i-\bar x)^2}\sqrt{\sum_i(y_i-\bar y)^2}}
+\qquad\text{(Pearson, 1895)}
+\]
+
+\[
+\rho = 1-\frac{6\sum_i d_i^2}{n(n^2-1)}, \quad d_i = \text{rank}(x_i)-\text{rank}(y_i)
+\qquad\text{(Spearman, 1904)}
+\]
+
+Kendall's \(\tau\) (1938), based on the number of concordant vs. discordant
+pairs, is always computed and reported in `alternative_tests`. Each of the
+three is a candidate effect size, reported as the estimate of the selected
+method. Linearity (for Pearson) and monotonicity (for Spearman/Kendall) are
+checked as assumptions.
+
+```{r}
+test_correlation(sbp_3m ~ age, data = cardio)
+```
+
+`test_correlation_matrix()` extends this to all pairwise correlations among
+3+ numeric variables, using pairwise-complete observations per pair and
+Benjamini-Hochberg-adjusted p-values across all pairs.
+
+```{r}
+test_correlation_matrix(cardio, c(age, sbp_baseline, ldl, crp), method = "spearman")
+```
+
+# Regression
+
+## Linear regression
+
+`test_linear_regression()` fits ordinary least squares:
+
+\[
+y_i = \beta_0+\beta_1x_{1i}+\cdots+\beta_px_{pi}+\varepsilon_i
+\]
+
+and reports the overall model F-test as the primary result:
+
+\[
+F=\frac{(SS_{total}-SS_{res})/p}{SS_{res}/(n-p-1)} \sim F_{p,\,n-p-1}
+\]
+
+\[
+R^2=1-\frac{SS_{res}}{SS_{total}}, \qquad
+R^2_{adj}=1-(1-R^2)\frac{n-1}{n-p-1}
+\]
+
+Per-term coefficients with confidence intervals are in
+`alternative_tests$coefficients`. Residual normality (Shapiro-Wilk),
+homoscedasticity (Breusch-Pagan score test), and multicollinearity (VIF,
+when \(p>1\)) are checked as assumptions.
+
+```{r}
+test_linear_regression(sbp_3m ~ age + ldl, data = cardio)
+```
+
+## Logistic regression
+
+`test_logistic_regression()` fits:
+
+\[
+\log\frac{P(y_i=1)}{1-P(y_i=1)}=\beta_0+\beta_1x_{1i}+\cdots+\beta_px_{pi}
+\]
+
+with the overall likelihood-ratio test against the intercept-only model as
+the primary result:
+
+\[
+LR = D_{null}-D_{model} \sim \chi^2_p, \qquad D=-2\log L
+\]
+
+\[
+R^2_{McFadden}=1-\frac{\log L_{model}}{\log L_{null}}
+\]
+
+Coefficients are reported on both the log-odds and odds-ratio
+(\(OR_j=e^{\beta_j}\)) scales. Multicollinearity (VIF) and influential
+observations (Cook's distance, flagged at \(>4/n\)) are checked as
+assumptions.
+
+```{r}
+test_logistic_regression(controlled_3m ~ age + ldl, data = cardio)
+```
+
+# Survival analysis
+
+`make_cardio_data()` has no time-to-event columns, so this section uses a
+small synthetic example. `Surv()` is re-exported from the `survival`
+package.
+
+```{r}
+set.seed(1)
+n <- 100
+survival_dat <- tibble::tibble(
+  time = rexp(n, 0.1),
+  status = rbinom(n, 1, 0.7),
+  arm = rep(c("control", "treatment"), each = n / 2),
+  age = rnorm(n, 60, 10)
+)
+```
+
+## Log-rank test
+
+`test_survival()` compares two Kaplan-Meier survival curves via the
+log-rank test:
+
+\[
+\chi^2 = \sum_{g\in\{A,B\}}\frac{(O_g-E_g)^2}{V_g} \sim \chi^2_1
+\qquad\text{(Mantel, 1966)}
+\]
+
+with a companion univariate Cox hazard ratio \(HR=e^{\hat\beta}\) reported
+as the effect size; the hazard ratio is not itself part of the log-rank
+test and can disagree with it under strongly non-proportional hazards.
+
+```{r}
+test_survival(Surv(time, status) ~ arm, data = survival_dat)
+```
+
+## Cox proportional hazards regression
+
+`test_cox()` leaves the baseline hazard \(h_0(t)\) unspecified:
+
+\[
+h(t\mid x) = h_0(t)\exp(\beta_1x_1+\cdots+\beta_px_p)
+\]
+
+Coefficients are reported as hazard ratios \(HR_j=e^{\beta_j}\); the primary
+result is the overall likelihood-ratio test on \(p\) degrees of freedom.
+Effect size is Harrell's concordance index. The proportional-hazards
+assumption is checked via the correlation between scaled Schoenfeld
+residuals and time (Grambsch & Therneau, 1994).
+
+```{r}
+test_cox(Surv(time, status) ~ age + arm, data = survival_dat)
+```
+
+# Diagnostic test accuracy and agreement
+
+`make_cardio_data()` has no diagnostic-test or multi-rater columns, so this
+section uses small synthetic examples.
+
+## Diagnostic accuracy
+
+With true/false positives/negatives \(TP,FP,FN,TN\) from a 2x2 test-vs.
+-reference table:
+
+\[
+Sensitivity=\frac{TP}{TP+FN}, \quad Specificity=\frac{TN}{TN+FP}, \quad
+PPV=\frac{TP}{TP+FP}, \quad NPV=\frac{TN}{TN+FN}
+\]
+
+\[
+LR^+=\frac{Sensitivity}{1-Specificity}, \qquad LR^-=\frac{1-Sensitivity}{Specificity}
+\]
+
+Sensitivity, specificity, PPV, NPV, and accuracy each get an exact
+(Clopper-Pearson) confidence interval; likelihood ratios use the closed-form
+log-scale interval of Simel, Samsa & Matchar (1991),
+\(SE[\log LR^+]=\sqrt{1/TP-1/(TP+FN)+1/FP-1/(FP+TN)}\). `test_diagnostic()`
+tests overall accuracy against the no-information rate (the larger
+reference-class proportion) as the primary result, matching
+`caret::confusionMatrix()`'s convention.
+
+```{r}
+set.seed(1)
+diag_dat <- tibble::tibble(
+  test = c(rep("positive", 55), rep("negative", 98)),
+  reference = c(rep("positive", 45), rep("negative", 10), rep("positive", 8), rep("negative", 90))
+)
+test_diagnostic(diag_dat, test, reference)
+```
+
+## ROC / AUC
+
+`test_roc()` computes the AUC from the Mann-Whitney U relationship (the
+probability a random positive-class observation outranks a random
+negative-class one):
+
+\[
+AUC = \frac{U}{n_1n_0}
+\]
+
+with the closed-form Hanley & McNeil (1982) standard error:
+
+\[
+SE(AUC)=\sqrt{\frac{AUC(1-AUC)+(n_1-1)(Q_1-AUC^2)+(n_0-1)(Q_2-AUC^2)}{n_1n_0}},
+\quad Q_1=\frac{AUC}{2-AUC}, \ Q_2=\frac{2AUC^2}{1+AUC}
+\]
+
+The optimal threshold maximizes Youden's J (1950),
+\(J=Sensitivity+Specificity-1\).
+
+```{r}
+roc_dat <- tibble::tibble(
+  marker = c(rnorm(60, 2, 1), rnorm(50, 0, 1)),
+  disease = c(rep("yes", 60), rep("no", 50))
+)
+test_roc(roc_dat, marker, disease)
+```
+
+## Inter-rater agreement (Cohen's kappa)
+
+`test_agreement()` reports Cohen's kappa from observed agreement \(p_o\)
+and chance-expected agreement \(p_e\):
+
+\[
+\kappa = \frac{p_o-p_e}{1-p_e}
+\]
+
+Two *different* standard errors are used for two different purposes: the
+confidence interval uses the large-sample SE of Fleiss, Cohen & Everitt
+(1969), evaluated at \(\hat\kappa\); the z-test of \(H_0:\kappa=0\) uses the
+smaller-magnitude null-hypothesis SE of Fleiss (1981), evaluated at
+\(\kappa=0\). Reusing the CI SE for the null test (an error `testflow`
+previously made and has since fixed) understates the null SE whenever
+agreement is materially above chance, inflating the z-statistic and
+anti-conservatively shrinking the p-value.
+
+```{r}
+agree_dat <- tibble::tibble(
+  rater1 = sample(c("mild", "moderate", "severe"), 100, replace = TRUE),
+  rater2 = sample(c("mild", "moderate", "severe"), 100, replace = TRUE)
+)
+test_agreement(agree_dat, rater1, rater2)
+```
+
+## Intraclass correlation coefficient
+
+`test_icc()` reports three ICC forms from one-way and two-way ANOVA
+variance decompositions (Shrout & Fleiss, 1979) of \(n\) subjects by \(k\)
+raters:
+
+\[
+ICC(1,1)=\frac{BMS-WMS}{BMS+(k-1)WMS}
+\]
+
+\[
+ICC(2,1)=\frac{BMS-EMS}{BMS+(k-1)EMS+\frac{k}{n}(JMS-EMS)}
+\qquad\text{(two-way random, absolute agreement)}
+\]
+
+\[
+ICC(3,1)=\frac{BMS-EMS}{BMS+(k-1)EMS}
+\qquad\text{(two-way fixed, consistency)}
+\]
+
+ICC(2,1) is reported as the primary/effect-size estimate, following Koo &
+Li's (2016) recommendation for typical reliability studies. Confidence
+intervals use the F-distribution formulas of McGraw & Wong (1996), with a
+Satterthwaite-approximated denominator degrees of freedom for ICC(2,1).
+
+```{r}
+icc_dat <- tibble::tibble(
+  rater1 = rnorm(30, 50, 10),
+  rater2 = rnorm(30, 50, 10),
+  rater3 = rnorm(30, 50, 10)
+)
+test_icc(icc_dat, c(rater1, rater2, rater3))
+```
+
+# Outlier screening
+
+`test_outliers()` is a screening workflow, not a hypothesis test: it flags
+rows via the IQR rule (univariate, per variable),
+
+\[
+x < Q_1-1.5\,IQR \quad\text{or}\quad x > Q_3+1.5\,IQR
+\]
+
+and/or Mahalanobis distance (multivariate, `method = "mahalanobis"`),
+flagged against a \(\chi^2\) cutoff at the 97.5th percentile with degrees of
+freedom equal to the number of variables:
+
+\[
+D_i^2 = (x_i-\bar x)^\top S^{-1}(x_i-\bar x), \qquad
+\text{flag if } D_i^2 > \chi^2_{0.975,\,p}
+\]
+
+```{r}
+test_outliers(c(sbp_3m, ldl, crp), data = cardio)
+```
+
+# Effect-size reference
+
+The table below consolidates every effect-size formula reported across the
+workflows above, since some functions (Kendall's W, discordant pairs,
+observed proportion) are only summarized inline elsewhere.
+
+| Workflow | Effect size | Formula |
+|---|---|---|
+| One sample | Cohen's d | \(d=(\bar x-\mu_0)/s_x\) |
+| Two groups (t-test) | Cohen's d | \(d=(\bar x_1-\bar x_2)/s_p\) |
+| Two groups (Wilcoxon) | Rank-biserial r | \(r_{rb}=1-2W/(n_1n_2)\) |
+| Paired | Cohen's dz | \(d_z=\bar d/s_d\) |
+| ANOVA (one-way, factorial) | Eta squared | \(\eta_j^2=SS_j/\sum SS\) |
+| Kruskal-Wallis | Epsilon squared | \(\epsilon^2=(H-k+1)/(n-k)\) |
+| Repeated ANOVA | Eta squared (time) | \(\eta^2_{time}=SS_{time}/SS_{total}\) |
+| Friedman | Kendall's W | \(W=\chi_F^2/(n(k-1))\) |
+| Cochran Q | Kendall's-W analogue | \(W=Q/(n(k-1))\) |
+| Categorical association | Cramer's V | \(V=\sqrt{\chi^2/(n(\min(r,c)-1))}\) |
+| One-sample proportion | Observed proportion | \(\hat p=x/n\) |
+| Multinomial | Chi-square GOF statistic | \(\chi^2=\sum_i(O_i-E_i)^2/E_i\) |
+| Paired categorical | Discordant pairs | \(b+c\) |
+| Correlation | r / rho / tau | see "Correlation" above |
+| Linear regression | R squared, adjusted R squared | \(R^2=1-SS_{res}/SS_{total}\) |
+| Logistic regression | McFadden's pseudo R squared | \(1-\log L_{model}/\log L_{null}\) |
+| Survival (log-rank) | Hazard ratio | \(HR=e^{\hat\beta}\) (no magnitude label) |
+| Cox regression | Concordance index | Harrell's C (no magnitude label) |
+| Diagnostic accuracy | Accuracy | \((TP+TN)/n\) (no magnitude label) |
+| ROC | AUC | \(U/(n_1n_0)\) |
+| Agreement | Cohen's kappa | \((p_o-p_e)/(1-p_e)\) |
+| ICC | ICC(2,1) | see "Intraclass correlation" above |
+
+## Magnitude labels
+
+- Cohen's \(d\): negligible \(<0.2\), small \(<0.5\), moderate \(<0.8\),
+  otherwise large.
+- Eta/epsilon/R-squared family: negligible \(<0.01\), small \(<0.06\),
+  moderate \(<0.14\), otherwise large. (McFadden's pseudo \(R^2\) is not on
+  the OLS \(R^2\) scale; values above ~0.2-0.4 are already a good fit in
+  practice.)
+- Cramer's V, rank-biserial \(|r|\), Kendall's W: negligible \(<0.1\), small
+  \(<0.3\), moderate \(<0.5\), otherwise large.
+- AUC: poor if \(\max(AUC,1-AUC)<0.7\), acceptable \(<0.8\), excellent
+  \(<0.9\), otherwise outstanding (Hosmer, Lemeshow & Sturdivant 2013, p.
+  177).
+- Cohen's kappa: poor \(<0\), slight \(<0.21\), fair \(<0.41\), moderate
+  \(<0.61\), substantial \(<0.81\), otherwise almost perfect (Landis & Koch,
+  1977).
+- ICC: poor \(<0.5\), moderate \(<0.75\), good \(<0.9\), otherwise excellent
+  (Koo & Li, 2016).
+- Hazard ratio, concordance index, accuracy: no magnitude label - there is
+  no widely agreed small/moderate/large convention, and inventing one would
+  overstate how standardized that judgment is. The estimate itself is
+  always reported.
+
+# Sample-size planning
+
+`sample_size()` and the endpoint-specific `sample_size_*()` functions plan
+continuous, binary, survival, ordinal, bioequivalence, and precision-based
+designs, each under superiority, non-inferiority, or equivalence objectives
+where applicable. Every result is a `sample_size` object with a raw and
+dropout-adjusted \(n\), the assumptions used, a report-ready sentence, and
+(for some designs) a power curve.
+
+Notation: \(\alpha\) is the type I error rate, \(1-\beta\) is power,
+\(z_{1-\alpha}\)/\(z_{1-\alpha/2}\)/\(z_{1-\beta}\) are standard normal
+quantiles, \(r=n_B/n_A\) is the allocation ratio. Superiority uses two-sided
+\(\alpha\); non-inferiority/equivalence use one-sided \(\alpha\) (pass
+`alpha = 0.025` explicitly - `testflow` does not rescale it). Dropout
+adjustment is always:
+
+\[
+n_{recruit} = \left\lceil \frac{n_{eval}}{1-d} \right\rceil
+\]
+
+```{r, eval = FALSE}
+sample_size(
+  endpoint = c("continuous", "binary", "survival", "ordinal"),
+  design = c("parallel", "paired", "repeated"),
+  objective = c("superiority", "noninferiority", "equivalence"),
+  ...
+)
+```
+
+## Continuous endpoints
+
+`sample_size_continuous()` covers parallel, paired, and repeated designs.
+For a parallel-group superiority comparison with common variance
+\(\sigma^2\) and target difference \(\Delta\):
+
+\[
+n_A = \frac{(r+1)\sigma^2(z_{1-\beta}+z_{1-\alpha/2})^2}{r\Delta^2},
+\qquad n_B = rn_A
+\]
+
+```{r}
+sample_size_continuous(design = "parallel", objective = "superiority", delta = 5, sd = 10, alpha = 0.05, power = 0.90)
+```
+
+Paired designs replace \(\sigma\) with the paired-difference SD and drop the
+allocation ratio:
+
+\[
+n_{pairs} = \frac{(z_{1-\alpha/2}+z_{1-\beta})^2\sigma_{diff}^2}{\Delta^2}
+\]
+
+For `design = "repeated"` with 3+ time points, \(\sigma_{diff}\) is rescaled
+under a compound-symmetry working correlation before the paired formula is
+applied (`testflow` design-effect extension, not a standalone textbook
+formula):
+
+\[
+\sigma_{eff} = \sigma_{diff}\sqrt{\frac{1+(m-1)\rho}{m}}
+\]
+
+Non-inferiority uses \(d_{NI}=\Delta+\delta\); equivalence uses
+\(d_{EQ}=\delta-|\Delta|\) (or, when \(\Delta=0\) exactly,
+\(z_{1-\beta/2}\) in place of \(z_{1-\beta}\)), both plugged into the same
+form as superiority with a one-sided \(\alpha\).
+
+## Binary endpoints
+
+`sample_size_binary()` covers parallel risk-difference and paired
+(discordant-pairs) designs. Parallel superiority (`method = "pooled"`, with
+\(\bar p=(p_A+rp_B)/(1+r)\)):
+
+\[
+n_A = \frac{\left[z_{1-\alpha/2}\sqrt{(1+1/r)\bar p(1-\bar p)}
++z_{1-\beta}\sqrt{p_A(1-p_A)+p_B(1-p_B)/r}\right]^2}{(p_A-p_B)^2}
+\]
+
+```{r}
+sample_size_binary(design = "parallel", objective = "superiority", p1 = 0.4, p2 = 0.25, method = "pooled", alpha = 0.05, power = 0.90)
+```
+
+Paired binary designs plan on the discordant cells directly, with
+discordant odds ratio \(OR_D=p_{10}/p_{01}\) and discordance rate
+\(\lambda_D=p_{10}+p_{01}\):
+
+\[
+n_{total} = \left\lceil\frac{(z_{1-\alpha/2}+z_{1-\beta})^2(OR_D+1)^2}{(OR_D-1)^2\lambda_D}\right\rceil
+\]
+
+Non-inferiority/equivalence use the same asymmetric variance form at the
+non-inferiority/equivalence distance instead of \(p_A-p_B\).
+
+## Survival endpoints
+
+`sample_size_survival()` plans required events, then converts to total N.
+Under an assumed exponential hazard:
+
+\[
+D_{total} = \frac{4(z_{1-\alpha/2}+z_{1-\beta})^2}{[\log(HR)]^2}
+\]
+
+or, proportional-hazards-only (`method = "ph_only"`):
+
+\[
+D_{total} = \frac{2(HR+1)^2(z_{1-\alpha/2}+z_{1-\beta})^2}{(HR-1)^2}
+\]
+
+Given planned survival probabilities \(S_A(t)\), \(S_B(t)\), equal
+allocation:
+
+\[
+N_{total} = \frac{2D_{total}}{(1-S_A(t))+(1-S_B(t))}
+\]
+
+```{r}
+sample_size_survival(hr = 0.7, survival_a = 0.8, survival_b = 0.7, alpha = 0.05, power = 0.90)
+```
+
+With staggered uniform accrual (`accrual_duration`, `follow_up`), the flat
+\(1-S_g(t)\) is replaced by the accrual-averaged event probability:
+
+\[
+\bar q_g = 1-\frac{e^{-\lambda_g(T-R)}-e^{-\lambda_gT}}{\lambda_gR}, \qquad T=R+\text{follow\_up}
+\]
+
+which always requires more subjects than instantaneous accrual for the same
+event target, and reduces to the flat conversion as \(R\to0\).
+Non-inferiority/equivalence work on the log-hazard-ratio scale with
+\(d_{NI}=\log(HR_M)-\log(HR)\) or \(d_{EQ}=\min(\theta-\theta_L,\theta_U-\theta)\).
+
+## Ordinal endpoints
+
+`sample_size_ordinal()` implements Noether's method for a two-group
+Mann-Whitney/Wilcoxon comparison, with \(P=P(A>B)+\tfrac12P(A=B)\):
+
+\[
+n_{per\ group} = \frac{(z_{1-\alpha/2}+z_{1-\beta})^2}{6(P-0.5)^2}
+\]
+
+```{r}
+sample_size_ordinal(p_superiority = 0.65, alpha = 0.05, power = 0.90)
+```
+
+## Bioequivalence
+
+`sample_size_bioequivalence()` plans a two one-sided test (TOST) study on
+the log scale, with \(\theta_0=\log(GMR)\), bounds
+\(\theta_L=\log(L)\)/\(\theta_U=\log(U)\) (usually 0.80/1.25), and
+\(d_{BE}=\min(\theta_0-\theta_L,\theta_U-\theta_0)\). The default
+`method = "iterative_tost"` searches for the smallest \(n\) achieving the
+*exact* TOST power via the noncentral t distribution (Phillips 1990):
+
+\[
+Power(n) = T_{df,\delta_U}(-t_{1-\alpha,df}) - T_{df,\delta_L}(t_{1-\alpha,df})
+\]
+
+where \(T_{df,\delta}\) is the noncentral t CDF,
+\(\delta_U=(\theta_0-\theta_U)/SE\), \(\delta_L=(\theta_0-\theta_L)/SE\),
+\(\sigma=\sqrt{\log(1+CV^2)}\). Verified in package tests to match
+`PowerTOST::power.TOST()` (the regulatory-standard, Owen's-Q-based
+calculation) for balanced designs; `method = "normal_approx"` gives the
+closed-form approximation \(n_{total}\approx2\sigma_w^2(z_{1-\beta}+z_{1-\alpha})^2/d_{BE}^2\),
+which agrees closely near \(GMR=1\) but can diverge further away from it (an
+earlier version of `testflow` used only the normal approximation here,
+under-sizing studies by up to ~20% at small \(n\)).
+
+```{r}
+sample_size_bioequivalence(design = "crossover", gmr = 0.95, cv_within = 0.30, alpha = 0.05, power = 0.90)
+```
+
+## Precision-based sample size
+
+`sample_size_precision()` sizes a study to a target confidence-interval
+half-width \(w\) rather than power against an effect - there is no `power`
+argument.
+
+```{r}
+sample_size_precision(endpoint = "continuous", design = "one_sample", width = 2, sd = 10, alpha = 0.05)
+sample_size_precision(endpoint = "binary", design = "two_sample", width = 0.08, p1 = 0.4, p2 = 0.3, allocation = 2)
+```
+
+For `endpoint = "binary"`, `design = "one_sample"`, `method` chooses the
+interval used for planning: `"wald"` (default, closed-form normal
+approximation) or `"wilson"`/`"exact"` (Clopper-Pearson), which run a
+deterministic search for the minimum integer \(n\) whose interval has
+maximum one-sided half-width \(\leq w\) - important for rare-prevalence
+studies (newborn screening, rare adverse events) where the Wald
+approximation is unreliable:
+
+```{r}
+sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.02, p = 0.01, method = "wilson")
+```
+
+`criterion = "expected"` (default) checks precision at the anticipated
+event count `round(n*p)`; `criterion = "worst_case"` additionally requires
+the target to hold across nearby plausible event counts. `x$diagnostics`
+reports rare-event planning quantities a CI-width target alone does not
+guarantee (`expected_events`, `probability_zero_events`, `complete_case_n`
+vs. `adjusted_n`), with an `approximation_warning` when the Wald
+approximation is used or expected counts are small.
+
+For binary `design = "two_sample"`, with \(r=n_B/n_A\):
+
+\[
+n_A = \frac{z_{1-\alpha/2}^2}{w^2}\left[p_1(1-p_1)+\frac{p_2(1-p_2)}{r}\right],
+\qquad n_B = rn_A
+\]
+
+## Cluster-randomized adjustment and dropout
+
+`sample_size_cluster_adjust()` inflates an individually randomized \(n\) by
+the design effect \(DE=1+(m-1)\rho\) (equal cluster size \(m\), intracluster
+correlation \(\rho\)), or \(DE\approx1+((1+CV_m^2)m-1)\rho\) for unevenly
+sized clusters. `sample_size_adjust_dropout()` exposes the dropout formula
+above directly. Both return a plain integer, not a `sample_size` object -
+they are post-processing adjustments, not full planning calculations.
+
+```{r}
+sample_size_cluster_adjust(100, m = 20, rho = 0.02)
+sample_size_adjust_dropout(100, dropout = 0.15)
+```
+
+## Summary of supported settings
+
+| Endpoint | Design(s) | Objective(s) | Formula family |
+|---|---|---|---|
+| Continuous | parallel, paired, repeated (2+ time points) | superiority, non-inferiority, equivalence | normal-approximation mean-difference formulas, compound-symmetry repeated extension |
+| Binary | parallel, paired, repeated (2 time points) | superiority, non-inferiority, equivalence | risk-difference and discordant-pair planning |
+| Survival | parallel | superiority, non-inferiority, equivalence | event-based proportional-hazards planning, optional uniform-accrual adjustment |
+| Ordinal | parallel | superiority | Noether approximation |
+| Bioequivalence | crossover, parallel | equivalence (TOST) | iterative TOST or normal approximation, log scale |
+| Precision | one-sample, two-sample, log-OR | CI half-width (no power/objective) | continuous and binary CI-width formulas |
+
+Every `sample_size` object also has `print()`, `summary()`, `report()`,
+`as_tibble()`, and `plot(type = "summary"/"curve"/"both")` methods. See
+`?sample_size_continuous`, `?sample_size_binary`, `?sample_size_survival`,
+`?sample_size_ordinal`, `?sample_size_bioequivalence`,
+`?sample_size_precision`, and `?sample_size_cluster_adjust` for the complete
+argument reference and every `design`/`objective`/`method` combination.
+
+# References
+
+Gosset WS (Student). The probable error of a mean. *Biometrika*.
+1908;6(1):1-25.
+
+Welch BL. The generalization of "Student's" problem when several different
+population variances are involved. *Biometrika*. 1947;34(1-2):28-35.
+
+Wilcoxon F. Individual comparisons by ranking methods. *Biometrics
+Bulletin*. 1945;1(6):80-83.
+
+Mann HB, Whitney DR. On a test of whether one of two random variables is
+stochastically larger than the other. *Annals of Mathematical Statistics*.
+1947;18(1):50-60.
+
+Fisher RA. *Statistical Methods for Research Workers*. Oliver and Boyd;
+1925.
+
+Levene H. Robust tests for equality of variances. In: *Contributions to
+Probability and Statistics*. Stanford University Press; 1960.
+
+Kruskal WH, Wallis WA. Use of ranks in one-criterion variance analysis.
+*Journal of the American Statistical Association*. 1952;47(260):583-621.
+
+Tukey JW. Comparing individual means in the analysis of variance.
+*Biometrics*. 1949;5(2):99-114.
+
+Dunn OJ. Multiple comparisons using rank sums. *Technometrics*.
+1964;6(3):241-252.
+
+Friedman M. The use of ranks to avoid the assumption of normality implicit
+in the analysis of variance. *Journal of the American Statistical
+Association*. 1937;32(200):675-701.
+
+Girden ER. *ANOVA: Repeated Measures*. Sage; 1992.
+
+Cochran WG. The comparison of percentages in matched samples. *Biometrika*.
+1950;37(3/4):256-266.
+
+McNemar Q. Note on the sampling error of the difference between correlated
+proportions or percentages. *Psychometrika*. 1947;12(2):153-157.
+
+Pearson K. Notes on regression and inheritance in the case of two parents.
+*Proceedings of the Royal Society of London*. 1895;58:240-242.
+
+Pearson K. On the criterion that a given system of deviations from the
+probable in the case of a correlated system of variables is such that it
+can be reasonably supposed to have arisen from random sampling.
+*Philosophical Magazine*. 1900;50(302):157-175.
+
+Fisher RA. On the interpretation of chi-square from contingency tables, and
+the calculation of P. *Journal of the Royal Statistical Society*.
+1922;85(1):87-94.
+
+Spearman C. The proof and measurement of association between two things.
+*The American Journal of Psychology*. 1904;15(1):72-101.
+
+Kendall MG. A new measure of rank correlation. *Biometrika*.
+1938;30(1/2):81-93.
+
+Cramer H. *Mathematical Methods of Statistics*. Princeton University Press;
+1946.
+
+Clopper CJ, Pearson ES. The use of confidence or fiducial limits illustrated
+in the case of the binomial. *Biometrika*. 1934;26(4):404-413.
+
+Cohen J. *Statistical Power Analysis for the Behavioral Sciences* (2nd ed.).
+Lawrence Erlbaum; 1988.
+
+Draper NR, Smith H. *Applied Regression Analysis* (3rd ed.). Wiley; 1998.
+
+Hosmer DW, Lemeshow S, Sturdivant RX. *Applied Logistic Regression* (3rd
+ed.). Wiley; 2013.
+
+Kaplan EL, Meier P. Nonparametric estimation from incomplete observations.
+*Journal of the American Statistical Association*. 1958;53(282):457-481.
+
+Mantel N. Evaluation of survival data and two new rank order statistics
+arising in its consideration. *Cancer Chemotherapy Reports*.
+1966;50(3):163-170.
+
+Cox DR. Regression models and life-tables. *Journal of the Royal
+Statistical Society: Series B*. 1972;34(2):187-202.
+
+Grambsch PM, Therneau TM. Proportional hazards tests and diagnostics based
+on weighted residuals. *Biometrika*. 1994;81(3):515-526.
+
+Simel DL, Samsa GP, Matchar DB. Likelihood ratios with confidence: sample
+size estimation for diagnostic test studies. *Journal of Clinical
+Epidemiology*. 1991;44(8):763-770.
+
+Altman DG, Bland JM. Diagnostic tests 1: sensitivity and specificity. *BMJ*.
+1994;308(6943):1552.
+
+Hanley JA, McNeil BJ. The meaning and use of the area under a receiver
+operating characteristic (ROC) curve. *Radiology*. 1982;143(1):29-36.
+
+Youden WJ. Index for rating diagnostic tests. *Cancer*. 1950;3(1):32-35.
+
+Cohen J. A coefficient of agreement for nominal scales. *Educational and
+Psychological Measurement*. 1960;20(1):37-46.
+
+Fleiss JL, Cohen J, Everitt BS. Large sample standard errors of kappa and
+weighted kappa. *Psychological Bulletin*. 1969;72(5):323-327.
+
+Fleiss JL. *Statistical Methods for Rates and Proportions* (2nd ed.). Wiley;
+1981.
+
+Landis JR, Koch GG. The measurement of observer agreement for categorical
+data. *Biometrics*. 1977;33(1):159-174.
+
+Shrout PE, Fleiss JL. Intraclass correlations: uses in assessing rater
+reliability. *Psychological Bulletin*. 1979;86(2):420-428.
+
+McGraw KO, Wong SP. Forming inferences about some intraclass correlation
+coefficients. *Psychological Methods*. 1996;1(1):30-46.
+
+Koo TK, Li MY. A guideline of selecting and reporting intraclass
+correlation coefficients for reliability research. *Journal of Chiropractic
+Medicine*. 2016;15(2):155-163.
+
+Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
+
+Phillips KF. Power of the two one-sided tests procedure in bioequivalence.
+*Journal of Pharmacokinetics and Biopharmaceutics*. 1990;18(2):137-144.
+
+Donner A, Klar N. *Design and Analysis of Cluster Randomization Trials in
+Health Research*. Arnold; 2000.
