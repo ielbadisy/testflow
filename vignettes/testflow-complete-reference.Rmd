@@ -1,6 +1,9 @@
 ---
 title: "testflow: complete pedagogical reference"
 output: rmarkdown::pdf_document
+header-includes:
+  - \usepackage{fvextra}
+  - \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
 vignette: >
   %\VignetteIndexEntry{testflow: complete pedagogical reference}
   %\VignetteEngine{knitr::rmarkdown}
@@ -9,6 +12,7 @@ vignette: >
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = TRUE, fig.width = 6, fig.height = 4)
+options(width = 80)
 ```
 
 ```{r setup}
@@ -30,16 +34,26 @@ Every `test_*()` function returns a `testflow` object: a list containing the
 cleaned data, descriptive statistics, assumption checks, the recommended
 test with its rationale, the primary test result (with its null hypothesis),
 alternative test results for comparison, an effect size, an optional
-`ggplot`, the original call, and a plain-language interpretation. Four
+`ggplot`, the original call, and a plain-language interpretation. Five
 methods work on every object:
 
 ```{r}
 x <- test_two_groups(sbp_3m ~ sex, data = cardio)
 x                # print.testflow(): formatted console report
+summary(x)       # summary.testflow(): compact summary list
 report(x)        # report.testflow(): report-ready sentence
-as_tibble(x)      # as_tibble.testflow(): one-row tidy summary
-# plot(x)         # plot.testflow(): the workflow's ggplot
+as_tibble(x)     # as_tibble.testflow(): one-row tidy summary
 ```
+
+`plot(x)` produces the workflow's `ggplot`; every workflow's own plot is
+shown alongside its formula in the sections below.
+
+`report_test(x)` is a plain-function alias for `report(x)`, provided for
+callers who prefer not to rely on S3 dispatch. `make_cardio_data(n, seed)`
+(used throughout this vignette) simulates the small teaching dataset used
+in every non-survival, non-diagnostic, non-agreement example below - it is
+a data generator, not a statistical workflow, and carries no formula of its
+own.
 
 Notation used throughout: \(n\) is a sample size, \(\bar x\) and \(s_x\) are
 a sample mean and standard deviation, \(z_p\) and \(t_{df,p}\) are the
@@ -134,7 +148,9 @@ d = \frac{\bar x - \mu_0}{s_x}
 \]
 
 ```{r}
-test_one_sample(cardio, sbp_3m, mu = 140)
+x_one_sample <- test_one_sample(cardio, sbp_3m, mu = 140)
+x_one_sample
+plot(x_one_sample)
 ```
 
 # Two independent groups
@@ -159,7 +175,9 @@ test compares rank sums rather than means. Effect size is Cohen's \(d\)
 group."
 
 ```{r}
-test_two_groups(sbp_3m ~ sex, data = cardio)
+x_two_groups <- test_two_groups(sbp_3m ~ sex, data = cardio)
+x_two_groups
+plot(x_two_groups)
 ```
 
 # Paired measurements
@@ -177,7 +195,9 @@ alternative (selected when the differences fail the normality check), and a
 sign test reported for reference. Effect size is Cohen's \(d_z=\bar d/s_d\).
 
 ```{r}
-test_paired(sbp_3m ~ sbp_baseline, data = cardio)
+x_paired <- test_paired(sbp_3m ~ sbp_baseline, data = cardio)
+x_paired
+plot(x_paired)
 ```
 
 # More than two groups
@@ -203,7 +223,9 @@ ANOVA branches, or Kruskal's epsilon squared
 \(\epsilon^2 = (H-k+1)/(n-k)\) for the Kruskal-Wallis branch.
 
 ```{r}
-test_groups(sbp_3m ~ treatment, data = cardio)
+x_groups <- test_groups(sbp_3m ~ treatment, data = cardio)
+x_groups
+plot(x_groups)
 ```
 
 ## Post-hoc comparisons
@@ -233,7 +255,9 @@ normality (Shapiro-Wilk) and variance homogeneity (Levene, on the first
 factor) are checked as assumptions.
 
 ```{r}
-test_factorial(sbp_3m ~ sex * treatment, data = cardio)
+x_factorial <- test_factorial(sbp_3m ~ sex * treatment, data = cardio)
+x_factorial
+plot(x_factorial)
 ```
 
 # Repeated measurements (numeric)
@@ -260,7 +284,22 @@ BH-adjusted pairwise paired t-tests (ANOVA branch) or pairwise paired
 Wilcoxon tests (Friedman branch).
 
 ```{r}
-test_repeated(cardio, c(sbp_baseline, sbp_3m, sbp_6m), id = id)
+x_repeated <- test_repeated(cardio, c(sbp_baseline, sbp_3m, sbp_6m), id = id)
+x_repeated
+plot(x_repeated)
+```
+
+`test_repeated_long()` runs the identical workflow (same formulas, same
+recommendation logic, same plot) starting from long-format data instead of
+wide: pass the outcome, the within-subject time/condition column, and the
+subject id column directly, rather than a set of wide columns to pivot.
+
+```{r}
+long_sbp <- tidyr::pivot_longer(
+  cardio, c(sbp_baseline, sbp_3m, sbp_6m),
+  names_to = "time", values_to = "sbp"
+)
+test_repeated_long(long_sbp, outcome = sbp, within = time, id = id)
 ```
 
 # Categorical outcomes
@@ -283,7 +322,9 @@ V = \sqrt{\frac{\chi^2}{n(\min(r,c)-1)}}
 \]
 
 ```{r}
-test_categorical(treatment ~ controlled_3m, data = cardio)
+x_categorical <- test_categorical(treatment ~ controlled_3m, data = cardio)
+x_categorical
+plot(x_categorical)
 ```
 
 ## One-sample proportion
@@ -299,7 +340,9 @@ z = \frac{\hat p - p_0}{\sqrt{p_0(1-p_0)/n}}
 \]
 
 ```{r}
-test_proportion(cardio, controlled_3m, success = "yes", p = 0.5)
+x_proportion <- test_proportion(cardio, controlled_3m, success = "yes", p = 0.5)
+x_proportion
+plot(x_proportion)
 ```
 
 ## Multinomial goodness of fit
@@ -315,7 +358,9 @@ BH-adjusted per-category binomial tests are reported alongside as post-hoc
 comparisons.
 
 ```{r}
-test_multinomial(cardio, treatment)
+x_multinomial <- test_multinomial(cardio, treatment)
+x_multinomial
+plot(x_multinomial)
 ```
 
 ## Paired categorical measurements
@@ -332,7 +377,9 @@ twice on the same subjects via McNemar's test on the discordant cells
 Effect size is the number of discordant pairs \(b+c\).
 
 ```{r}
-test_paired_categorical(cardio, controlled_baseline, controlled_3m)
+x_paired_cat <- test_paired_categorical(cardio, controlled_baseline, controlled_3m)
+x_paired_cat
+plot(x_paired_cat)
 ```
 
 ## Repeated categorical measurements (3+ time points)
@@ -352,7 +399,9 @@ total. Effect size is the Cochran-Q analogue of Kendall's \(W\),
 comparisons.
 
 ```{r}
-test_repeated_categorical(cardio, c(controlled_baseline, controlled_3m, controlled_6m))
+x_repeated_cat <- test_repeated_categorical(cardio, c(controlled_baseline, controlled_3m, controlled_6m))
+x_repeated_cat
+plot(x_repeated_cat)
 ```
 
 # Correlation
@@ -378,7 +427,9 @@ method. Linearity (for Pearson) and monotonicity (for Spearman/Kendall) are
 checked as assumptions.
 
 ```{r}
-test_correlation(sbp_3m ~ age, data = cardio)
+x_correlation <- test_correlation(sbp_3m ~ age, data = cardio)
+x_correlation
+plot(x_correlation)
 ```
 
 `test_correlation_matrix()` extends this to all pairwise correlations among
@@ -386,7 +437,9 @@ test_correlation(sbp_3m ~ age, data = cardio)
 Benjamini-Hochberg-adjusted p-values across all pairs.
 
 ```{r}
-test_correlation_matrix(cardio, c(age, sbp_baseline, ldl, crp), method = "spearman")
+x_corr_matrix <- test_correlation_matrix(cardio, c(age, sbp_baseline, ldl, crp), method = "spearman")
+x_corr_matrix
+plot(x_corr_matrix)
 ```
 
 # Regression
@@ -416,7 +469,9 @@ homoscedasticity (Breusch-Pagan score test), and multicollinearity (VIF,
 when \(p>1\)) are checked as assumptions.
 
 ```{r}
-test_linear_regression(sbp_3m ~ age + ldl, data = cardio)
+x_linreg <- test_linear_regression(sbp_3m ~ age + ldl, data = cardio)
+x_linreg
+plot(x_linreg)
 ```
 
 ## Logistic regression
@@ -444,7 +499,9 @@ observations (Cook's distance, flagged at \(>4/n\)) are checked as
 assumptions.
 
 ```{r}
-test_logistic_regression(controlled_3m ~ age + ldl, data = cardio)
+x_logreg <- test_logistic_regression(controlled_3m ~ age + ldl, data = cardio)
+x_logreg
+plot(x_logreg)
 ```
 
 # Survival analysis
@@ -479,7 +536,9 @@ as the effect size; the hazard ratio is not itself part of the log-rank
 test and can disagree with it under strongly non-proportional hazards.
 
 ```{r}
-test_survival(Surv(time, status) ~ arm, data = survival_dat)
+x_survival <- test_survival(Surv(time, status) ~ arm, data = survival_dat)
+x_survival
+plot(x_survival)
 ```
 
 ## Cox proportional hazards regression
@@ -497,7 +556,9 @@ assumption is checked via the correlation between scaled Schoenfeld
 residuals and time (Grambsch & Therneau, 1994).
 
 ```{r}
-test_cox(Surv(time, status) ~ age + arm, data = survival_dat)
+x_cox <- test_cox(Surv(time, status) ~ age + arm, data = survival_dat)
+x_cox
+plot(x_cox)
 ```
 
 # Diagnostic test accuracy and agreement
@@ -533,7 +594,9 @@ diag_dat <- tibble::tibble(
   test = c(rep("positive", 55), rep("negative", 98)),
   reference = c(rep("positive", 45), rep("negative", 10), rep("positive", 8), rep("negative", 90))
 )
-test_diagnostic(diag_dat, test, reference)
+x_diagnostic <- test_diagnostic(diag_dat, test, reference)
+x_diagnostic
+plot(x_diagnostic)
 ```
 
 ## ROC / AUC
@@ -561,7 +624,9 @@ roc_dat <- tibble::tibble(
   marker = c(rnorm(60, 2, 1), rnorm(50, 0, 1)),
   disease = c(rep("yes", 60), rep("no", 50))
 )
-test_roc(roc_dat, marker, disease)
+x_roc <- test_roc(roc_dat, marker, disease)
+x_roc
+plot(x_roc)
 ```
 
 ## Inter-rater agreement (Cohen's kappa)
@@ -587,7 +652,9 @@ agree_dat <- tibble::tibble(
   rater1 = sample(c("mild", "moderate", "severe"), 100, replace = TRUE),
   rater2 = sample(c("mild", "moderate", "severe"), 100, replace = TRUE)
 )
-test_agreement(agree_dat, rater1, rater2)
+x_agreement <- test_agreement(agree_dat, rater1, rater2)
+x_agreement
+plot(x_agreement)
 ```
 
 ## Intraclass correlation coefficient
@@ -621,7 +688,9 @@ icc_dat <- tibble::tibble(
   rater2 = rnorm(30, 50, 10),
   rater3 = rnorm(30, 50, 10)
 )
-test_icc(icc_dat, c(rater1, rater2, rater3))
+x_icc <- test_icc(icc_dat, c(rater1, rater2, rater3))
+x_icc
+plot(x_icc)
 ```
 
 # Outlier screening
@@ -643,7 +712,9 @@ D_i^2 = (x_i-\bar x)^\top S^{-1}(x_i-\bar x), \qquad
 \]
 
 ```{r}
-test_outliers(c(sbp_3m, ldl, crp), data = cardio)
+x_outliers <- test_outliers(c(sbp_3m, ldl, crp), data = cardio)
+x_outliers
+plot(x_outliers)
 ```
 
 # Effect-size reference
@@ -741,7 +812,9 @@ n_A = \frac{(r+1)\sigma^2(z_{1-\beta}+z_{1-\alpha/2})^2}{r\Delta^2},
 \]
 
 ```{r}
-sample_size_continuous(design = "parallel", objective = "superiority", delta = 5, sd = 10, alpha = 0.05, power = 0.90)
+ss_parallel <- sample_size_continuous(design = "parallel", objective = "superiority", delta = 5, sd = 10, alpha = 0.05, power = 0.90)
+ss_parallel
+plot(ss_parallel, type = "summary")
 ```
 
 Paired designs replace \(\sigma\) with the paired-difference SD and drop the
@@ -750,6 +823,16 @@ allocation ratio:
 \[
 n_{pairs} = \frac{(z_{1-\alpha/2}+z_{1-\beta})^2\sigma_{diff}^2}{\Delta^2}
 \]
+
+`curve_data` (and therefore `plot(type = "curve"/"both")`) is populated only
+for `design = "paired"`/`"repeated"`, `objective = "superiority"`; other
+combinations fall back to the summary bar chart shown above.
+
+```{r}
+ss_paired <- sample_size_continuous(design = "paired", objective = "superiority", delta = 5, sd_diff = 10, alpha = 0.05, power = 0.90)
+ss_paired
+plot(ss_paired, type = "both")
+```
 
 For `design = "repeated"` with 3+ time points, \(\sigma_{diff}\) is rescaled
 under a compound-symmetry working correlation before the paired formula is
