@@ -18,17 +18,33 @@
 #' marginal category proportions):
 #' \deqn{\kappa = \frac{p_o - p_e}{1 - p_e}}
 #'
-#' The standard error uses the large-sample formula of Fleiss, Cohen &
-#' Everitt (1969), which accounts for the full marginal covariance
-#' structure (not the simpler \eqn{\sqrt{p_o(1-p_o)}/[(1-p_e)\sqrt n]}
-#' approximation sometimes seen, which understates the variance when
-#' categories are unevenly distributed).
+#' Two different standard errors are used for two different purposes, since
+#' the sampling variance of \eqn{\hat\kappa} depends on \eqn{\kappa} itself:
+#'
+#' - The confidence interval uses the large-sample SE of Fleiss, Cohen &
+#'   Everitt (1969), evaluated *at* \eqn{\hat\kappa}, which accounts for the
+#'   full marginal covariance structure (not the simpler
+#'   \eqn{\sqrt{p_o(1-p_o)}/[(1-p_e)\sqrt n]} approximation sometimes seen,
+#'   which understates the variance when categories are unevenly
+#'   distributed).
+#' - The z-test of \eqn{H_0:\kappa=0} uses a *different*, smaller-magnitude
+#'   SE (Fleiss, 1981), evaluated under the null \eqn{\kappa=0} rather than
+#'   at \eqn{\hat\kappa}: \eqn{SE_0=\sqrt{p_e+p_e^2-\sum_i\pi_{i\cdot}\pi_{\cdot
+#'   i}(\pi_{i\cdot}+\pi_{\cdot i})}/[(1-p_e)\sqrt n]}. Using the
+#'   confidence-interval SE for this test instead (a mistake this function
+#'   previously made) understates the null SE whenever agreement is
+#'   materially above chance - the typical case - inflating the z-statistic
+#'   and anti-conservatively shrinking the p-value; verified in package
+#'   tests to match `irr::kappa2()`'s reported z exactly.
 #' @references
 #' Cohen J. A coefficient of agreement for nominal scales. *Educational and
 #' Psychological Measurement*. 1960;20(1):37-46.
 #'
 #' Fleiss JL, Cohen J, Everitt BS. Large sample standard errors of kappa and
 #' weighted kappa. *Psychological Bulletin*. 1969;72(5):323-327.
+#'
+#' Fleiss JL. *Statistical Methods for Rates and Proportions* (2nd ed.).
+#' Wiley; 1981. (Null-hypothesis SE for testing kappa = 0.)
 #'
 #' Landis JR, Koch GG. The measurement of observer agreement for
 #' categorical data. *Biometrics*. 1977;33(1):159-174. (Magnitude
@@ -60,9 +76,20 @@ test_agreement <- function(data, rater1, rater2, alpha = 0.05, plot = TRUE, na.r
   term3 <- (kappa - pe * (1 - kappa))^2
   se_kappa <- sqrt((term1 + term2 - term3) / (n * (1 - pe)^2))
 
+  # Null-hypothesis SE (Fleiss, 1981), evaluated at kappa = 0 rather than at
+  # the observed kappa_hat, for the z-test of H0: kappa = 0. This is
+  # deliberately a *different* SE from se_kappa above: se_kappa (Fleiss,
+  # Cohen & Everitt 1969) is the asymptotic SE of kappa_hat around its own
+  # true value and is the correct SE for a confidence interval, but reusing
+  # it as the denominator of a null test is a known error (it understates
+  # se0_kappa whenever agreement is not near chance, which happens to be the
+  # typical case, inflating the z-statistic and anti-conservatively
+  # shrinking the p-value). Matches `irr::kappa2()`'s reported z exactly.
+  se0_kappa <- sqrt(pe + pe^2 - sum(pi_row * pi_col * (pi_row + pi_col))) / ((1 - pe) * sqrt(n))
+
   z <- stats::qnorm(1 - alpha / 2)
   kappa_ci <- kappa + c(-1, 1) * z * se_kappa
-  z_stat <- kappa / se_kappa
+  z_stat <- kappa / se0_kappa
   p_value <- 2 * stats::pnorm(-abs(z_stat))
 
   effect <- tibble::tibble(name = "Cohen's kappa", estimate = kappa, magnitude = magnitude_kappa(kappa))

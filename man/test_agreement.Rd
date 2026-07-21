@@ -36,11 +36,25 @@ both raters agree) and chance-expected agreement \eqn{p_e} (from the
 marginal category proportions):
 \deqn{\kappa = \frac{p_o - p_e}{1 - p_e}}
 
-The standard error uses the large-sample formula of Fleiss, Cohen &
-Everitt (1969), which accounts for the full marginal covariance
-structure (not the simpler \eqn{\sqrt{p_o(1-p_o)}/[(1-p_e)\sqrt n]}
-approximation sometimes seen, which understates the variance when
-categories are unevenly distributed).
+Two different standard errors are used for two different purposes, since
+the sampling variance of \eqn{\hat\kappa} depends on \eqn{\kappa} itself:
+\itemize{
+\item The confidence interval uses the large-sample SE of Fleiss, Cohen &
+Everitt (1969), evaluated \emph{at} \eqn{\hat\kappa}, which accounts for the
+full marginal covariance structure (not the simpler
+\eqn{\sqrt{p_o(1-p_o)}/[(1-p_e)\sqrt n]} approximation sometimes seen,
+which understates the variance when categories are unevenly
+distributed).
+\item The z-test of \eqn{H_0:\kappa=0} uses a \emph{different}, smaller-magnitude
+SE (Fleiss, 1981), evaluated under the null \eqn{\kappa=0} rather than
+at \eqn{\hat\kappa}: \eqn{SE_0=\sqrt{p_e+p_e^2-\sum_i\pi_{i\cdot}\pi_{\cdot
+  i}(\pi_{i\cdot}+\pi_{\cdot i})}/[(1-p_e)\sqrt n]}. Using the
+confidence-interval SE for this test instead (a mistake this function
+previously made) understates the null SE whenever agreement is
+materially above chance - the typical case - inflating the z-statistic
+and anti-conservatively shrinking the p-value; verified in package
+tests to match \code{irr::kappa2()}'s reported z exactly.
+}
 }
 \references{
 Cohen J. A coefficient of agreement for nominal scales. \emph{Educational and
@@ -48,6 +62,9 @@ Psychological Measurement}. 1960;20(1):37-46.
 
 Fleiss JL, Cohen J, Everitt BS. Large sample standard errors of kappa and
 weighted kappa. \emph{Psychological Bulletin}. 1969;72(5):323-327.
+
+Fleiss JL. \emph{Statistical Methods for Rates and Proportions} (2nd ed.).
+Wiley; 1981. (Null-hypothesis SE for testing kappa = 0.)
 
 Landis JR, Koch GG. The measurement of observer agreement for
 categorical data. \emph{Biometrics}. 1977;33(1):159-174. (Magnitude

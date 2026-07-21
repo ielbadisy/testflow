@@ -1,5 +1,78 @@
 # testflow (development version)
 
+## Bug fixes (scientific validity)
+
+- `sample_size_bioequivalence(method = "iterative_tost")` now computes the
+  two-one-sided-test (TOST) power exactly via the noncentral t distribution
+  (Phillips 1990), instead of a normal approximation that treated the
+  within-/between-subject variance as known. The previous version
+  under-sized bioequivalence studies by up to ~20% at small n or CV/GMR
+  combinations away from `GMR = 1` (e.g. 13 vs. the correct 16 subjects for
+  a 2x2 crossover at GMR = 0.95, CV = 0.15, 90% power). Verified in package
+  tests against `PowerTOST::power.TOST()`, the regulatory-standard,
+  Owen's-Q-based implementation, matching exactly for balanced designs.
+  **If you sized a bioequivalence study with `testflow` before this fix,
+  re-run it** - the corrected `n` may be larger. `method = "normal_approx"`
+  is unaffected.
+
+- `test_agreement()`'s hypothesis test of `kappa = 0` now uses the
+  null-hypothesis standard error (Fleiss, 1981), instead of incorrectly
+  reusing the confidence-interval standard error (Fleiss, Cohen & Everitt,
+  1969, evaluated at the observed kappa) as the test denominator. The CI
+  itself was already correct and is unchanged. Because the CI-based SE
+  understates the correct null SE whenever agreement is materially above
+  chance (the typical case), the previous z-statistic was inflated and
+  p-values were anti-conservative (too small); in one check this moved z
+  from 17.2 to the correct 14.4, matching `irr::kappa2()` exactly. **If you
+  relied on a `test_agreement()` p-value near your significance threshold,
+  re-run it** - the corrected p-value is larger (less significant).
+
+## Sample-size precision planning
+
+`sample_size_precision(endpoint = "binary", design = "one_sample")` gained
+rare-prevalence support (e.g. newborn-screening / rare-event studies):
+
+- New `method = c("wald", "wilson", "exact")`. `"wald"` is unchanged and
+  remains the default, so existing calls return identical numbers.
+  `"wilson"` and `"exact"` (Clopper-Pearson) instead run a deterministic
+  doubling-bisection integer search for the minimum `n` whose confidence
+  interval has maximum one-sided half-width no greater than `width` - more
+  reliable than the normal approximation for small or extreme proportions.
+  The achieved half-width is not perfectly monotone in `n` (integer event
+  counts round differently as `n` changes), so the search includes a
+  bounded backward repair scan to guard against converging on a
+  non-minimal `n`; verified against an exhaustive brute-force scan in the
+  package tests.
+- New `criterion = c("expected", "worst_case")` controls whether the search
+  targets precision at the single anticipated event count, or requires it
+  to hold across a prevalence-local band of plausible counts.
+- New `min_expected_events` and `max_n` control the rare-event diagnostic
+  threshold and the search's upper bound, respectively.
+- `x$diagnostics` now reports rare-event planning quantities that a
+  CI-width target alone does not guarantee: `expected_events`,
+  `probability_zero_events`, `probability_at_least_one_event`,
+  `complete_case_n` vs. `adjusted_n` (dropout-inflated), and achieved
+  precision at `complete_case_n`. An `approximation_warning` field (and a
+  matching single `warning()`) fires when the Wald approximation is used or
+  when expected event/non-event counts are small.
+- `conservative = TRUE` (worst-case `p = 0.5`) remains `method = "wald"`
+  only and now errors informatively if combined with `"wilson"`/`"exact"`,
+  since there is no well-defined worst-case `p` for the asymmetric search.
+- `print()`, `summary()`, and `as_tibble()` on `sample_size` objects gained
+  an optional "Diagnostics" section / columns, populated only when
+  diagnostics are available; all previously existing fields are unchanged.
+
+Binary `design = "two_sample"` precision planning (risk-difference
+half-width) now implements unequal allocation correctly instead of silently
+returning the equal-allocation result whenever `allocation != 1`. This is a
+**behavior change** for existing calls with `allocation != 1`; `allocation
+= 1` (the default) is numerically unaffected.
+
+A developer-facing numerical validation script
+(`inst/validation/validate-sample-size-precision.R`) independently
+recomputes achieved confidence intervals and checks the minimum-n property
+across a grid of prevalences, widths, and alpha levels.
+
 ## Bug fixes
 
 - `test_repeated()`/`test_repeated_long()` no longer error with "missing

@@ -463,16 +463,25 @@ the anticipated GMR must lie strictly inside the bounds).
 
 ### `method = "iterative_tost"` (default)
 
-Searches for the smallest \(n\) achieving the exact TOST power:
+Searches for the smallest \(n\) achieving the exact TOST power, computed via
+the *noncentral* t distribution (Phillips 1990) - not a normal
+approximation, since the estimated standard error itself carries sampling
+variability:
 
 \[
-Power(n) = \Phi\!\left(\frac{\theta_U-\theta_0}{SE(n)}-z_{1-\alpha}\right)
-+ \Phi\!\left(\frac{\theta_0-\theta_L}{SE(n)}-z_{1-\alpha}\right) - 1
+Power(n) = T_{df,\delta_U}(-t_{1-\alpha,df}) - T_{df,\delta_L}(t_{1-\alpha,df})
 \]
 
-with \(SE(n)=\sqrt{2\sigma_w^2/n}\) (crossover, total \(n\)) or
-\(SE(n_A)=\sigma_b\sqrt{(r+1)/(rn_A)}\) (parallel, per-arm \(n_A\)), and
-coefficients of variation converted via \(\sigma=\sqrt{\log(1+CV^2)}\):
+where \(T_{df,\delta}\) is the noncentral t CDF, \(\delta_U=(\theta_0-\theta_U)/SE\),
+\(\delta_L=(\theta_0-\theta_L)/SE\), \(SE(n)=\sqrt{2\sigma_w^2/n}\) with
+\(df=n-2\) (crossover, total \(n\)) or \(SE(n_A)=\sigma_b\sqrt{(r+1)/(rn_A)}\)
+with \(df=n_A+n_B-2\) (parallel, per-arm \(n_A\)), and coefficients of
+variation converted via \(\sigma=\sqrt{\log(1+CV^2)}\). Verified in package
+tests to match `PowerTOST::power.TOST()` (the regulatory-standard,
+Owen's-Q-based calculation) for balanced designs. An earlier version of this
+function used a normal approximation here, which under-sized studies by up
+to ~20% at small n - if you have results computed with `testflow` before
+this fix, re-run them.
 
 ```{r}
 sample_size_bioequivalence(
@@ -513,7 +522,10 @@ sample_size_precision(
   endpoint = c("continuous", "binary"),
   design = c("one_sample", "two_sample", "odds_ratio"),
   width, sd = NULL, p = NULL, p1 = NULL, p2 = NULL,
-  alpha = 0.05, allocation = 1, dropout = 0, conservative = FALSE
+  alpha = 0.05, allocation = 1, dropout = 0, conservative = FALSE,
+  method = c("wald", "wilson", "exact"),
+  criterion = c("expected", "worst_case"),
+  min_expected_events = 5, max_n = 1e7
 )
 ```
 
@@ -525,13 +537,48 @@ sample_size_precision(endpoint = "continuous", design = "one_sample", width = 2,
 sample_size_precision(endpoint = "continuous", design = "two_sample", width = 2, sd = 10, allocation = 1.5)
 sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3)
 sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, conservative = TRUE)
-sample_size_precision(endpoint = "binary", design = "two_sample", width = 0.08, p1 = 0.4, p2 = 0.3)
+sample_size_precision(endpoint = "binary", design = "two_sample", width = 0.08, p1 = 0.4, p2 = 0.3, allocation = 2)
 sample_size_precision(endpoint = "binary", design = "odds_ratio", width = 0.3, p1 = 0.4, p2 = 0.3, allocation = 2)
 ```
 
-`endpoint = "binary"`, `design = "two_sample"` is equal-allocation only;
-`allocation` is otherwise respected for `two_sample` (continuous) and
-`odds_ratio`.
+`allocation` is respected for every design here: `two_sample` (continuous),
+binary `two_sample` (risk-difference half-width, unequal-allocation variance
+- this used to be equal-allocation only), and `odds_ratio`.
+
+`method`, `criterion`, `min_expected_events`, and `max_n` apply only to
+`endpoint = "binary"`, `design = "one_sample"`. `method = "wald"` (the
+default) preserves the original closed-form formula exactly; `"wilson"` and
+`"exact"` instead search for the minimum integer `n` whose confidence
+interval has maximum one-sided half-width no greater than `width`, which
+matters for rare-prevalence planning (e.g. newborn-screening or rare-event
+screening) where the normal approximation underlying Wald intervals can be
+unreliable:
+
+```{r}
+# Wald (backward-compatible default)
+sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.02, p = 0.01)
+
+# Wilson score, iterative search - generally a smaller, better-calibrated n
+# for rare p than Wald
+sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.02, p = 0.01, method = "wilson")
+
+# Exact Clopper-Pearson, requiring the precision target to hold over a
+# prevalence-local band of event counts rather than just the anticipated one
+x <- sample_size_precision(
+  endpoint = "binary", design = "one_sample", width = 0.005,
+  p = 0.001, method = "exact", criterion = "worst_case"
+)
+x$diagnostics
+```
+
+`x$diagnostics` (populated only for `endpoint = "binary"`, `design =
+"one_sample"`) reports rare-event planning quantities that a CI-width target
+alone does not guarantee: `expected_events`, `probability_zero_events`,
+`probability_at_least_one_event`, and the achieved precision
+(`achieved_lower`/`achieved_upper`/`achieved_maximum_half_width`) at the
+`complete_case_n` before dropout inflation, separately from `adjusted_n`
+after it. A narrow planned interval does not, by itself, ensure that any
+events will be observed - see `?sample_size_precision` for details.
 
 ## `sample_size_cluster_adjust()`
 

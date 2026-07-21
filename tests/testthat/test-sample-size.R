@@ -149,10 +149,10 @@ test_that("sample_size_precision matches each spec formula exactly", {
   x2 <- sample_size_precision(endpoint = "continuous", design = "two_sample", width = 2, sd = 10, allocation = 1.5)
   expect_equal(x2$n, (1.5 + 1) * 10^2 * za^2 / (1.5 * 2^2))
 
-  x3 <- sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3)
+  x3 <- suppressWarnings(sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3))
   expect_equal(x3$n, za^2 * 0.3 * 0.7 / 0.05^2)
 
-  x4 <- sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, conservative = TRUE)
+  x4 <- suppressWarnings(sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, conservative = TRUE))
   expect_equal(x4$n, za^2 / (4 * 0.05^2))
 
   x5 <- sample_size_precision(endpoint = "binary", design = "two_sample", width = 0.08, p1 = 0.4, p2 = 0.3)
@@ -198,36 +198,93 @@ test_that("sample_size_survival's uniform accrual matches the closed-form formul
   expect_error(sample_size_survival(hr = hr, survival_a = 0.8, survival_b = 0.7, accrual_duration = 12), "follow_up")
 })
 
-test_that("sample_size_bioequivalence's iterative TOST matches the exact two-one-sided-test power formula", {
-  tost_power <- function(n, theta0, sigma_w, theta_l, theta_u, alpha) {
-    se <- sqrt(2 * sigma_w^2 / n)
-    za <- qnorm(1 - alpha)
-    pnorm((theta_u - theta0) / se - za) + pnorm((theta0 - theta_l) / se - za) - 1
+test_that("sample_size_bioequivalence's iterative TOST matches the exact noncentral-t TOST power formula", {
+  # Independent re-implementation of the Phillips (1990) exact TOST power
+  # (noncentral t, not a normal approximation): T_U, T_L are each
+  # noncentral-t(df, ncp) under the true theta0, so power is computed via
+  # stats::pt(..., ncp = ...), not pnorm()/qnorm(). A prior version of
+  # sample_size_bioequivalence() used the normal approximation below (kept
+  # here only as `old_normal_approx_tost_power` to document what changed);
+  # that version under-sized studies by up to ~20% at small n, confirmed
+  # against PowerTOST::power.TOST() during development.
+  exact_tost_power <- function(n, theta0, sigma, theta_l, theta_u, alpha, df) {
+    se <- sqrt(2 * sigma^2 / n)
+    tcrit <- qt(1 - alpha, df(n))
+    delta_u <- (theta0 - theta_u) / se
+    delta_l <- (theta0 - theta_l) / se
+    pt(-tcrit, df(n), ncp = delta_u) - pt(tcrit, df(n), ncp = delta_l)
   }
 
   cv_w <- 0.3
   sigma_w <- sqrt(log(1 + cv_w^2))
 
-  # GMR = 1 special case: iterative TOST must recover the documented closed form
-  x1 <- sample_size_bioequivalence(design = "crossover", gmr = 1, cv_within = cv_w, method = "iterative_tost")
+  # normal_approx (closed form, unchanged) still recovers its own documented formula
+  x1b <- sample_size_bioequivalence(design = "crossover", gmr = 1, cv_within = cv_w, method = "normal_approx")
   zbeta2 <- qnorm(1 - (1 - 0.90) / 2); za <- qnorm(1 - 0.05)
   n_closed <- 2 * sigma_w^2 * (zbeta2 + za)^2 / (log(1.25))^2
-  expect_equal(x1$n, n_closed, tolerance = 1e-4)
-
-  x1b <- sample_size_bioequivalence(design = "crossover", gmr = 1, cv_within = cv_w, method = "normal_approx")
   expect_equal(x1b$n, n_closed)
 
-  # off-center GMR: iterative TOST must match an independently computed uniroot search
+  # iterative_tost (GMR = 1): matches an independent noncentral-t search, and
+  # can legitimately differ from normal_approx now that it is exact
+  x1 <- sample_size_bioequivalence(design = "crossover", gmr = 1, cv_within = cv_w, method = "iterative_tost")
+  n_manual_center <- uniroot(function(n) exact_tost_power(n, 0, sigma_w, log(0.8), log(1.25), 0.05, function(n) n - 2) - 0.90, c(4, 1e6), extendInt = "upX")$root
+  expect_equal(x1$n, n_manual_center, tolerance = 1e-6)
+
+  # off-center GMR: iterative_tost matches an independently computed
+  # noncentral-t uniroot search
   gmr <- 0.95
   theta0 <- log(gmr); theta_l <- log(0.8); theta_u <- log(1.25)
-  n_manual <- uniroot(function(n) tost_power(n, theta0, sigma_w, theta_l, theta_u, 0.05) - 0.90, c(4, 1e6), extendInt = "upX")$root
+  n_manual <- uniroot(function(n) exact_tost_power(n, theta0, sigma_w, theta_l, theta_u, 0.05, function(n) n - 2) - 0.90, c(4, 1e6), extendInt = "upX")$root
   x2 <- sample_size_bioequivalence(design = "crossover", gmr = gmr, cv_within = cv_w, method = "iterative_tost")
-  expect_equal(x2$n, n_manual)
+  expect_equal(x2$n, n_manual, tolerance = 1e-6)
 
-  # parallel design: allocation ratio is respected
+  # minimum-power property: ceiling(n) achieves the target power (the raw,
+  # non-integer n from uniroot is exactly at the target by construction)
+  x2_power_at_raw <- exact_tost_power(x2$n, theta0, sigma_w, theta_l, theta_u, 0.05, function(n) n - 2)
+  expect_equal(x2_power_at_raw, 0.90, tolerance = 1e-6)
+
+  # parallel design: allocation ratio is respected, and matches an
+  # independent noncentral-t search with df = nA + nB - 2
   x3 <- sample_size_bioequivalence(design = "parallel", gmr = 0.95, cv_between = 0.35, allocation = 1.5, method = "iterative_tost")
   expect_equal(unname(x3$n_adjusted["B"]) / unname(x3$n_adjusted["A"]), 1.5, tolerance = 0.02)
 
+  sigma_b <- sqrt(log(1 + 0.35^2))
+  theta0_p <- log(0.95)
+  exact_tost_power_parallel <- function(n_a, r, theta0, sigma, theta_l, theta_u, alpha) {
+    n_b <- r * n_a
+    df <- n_a + n_b - 2
+    se <- sigma * sqrt((r + 1) / (r * n_a))
+    tcrit <- qt(1 - alpha, df)
+    delta_u <- (theta0 - theta_u) / se
+    delta_l <- (theta0 - theta_l) / se
+    pt(-tcrit, df, ncp = delta_u) - pt(tcrit, df, ncp = delta_l)
+  }
+  n_a_manual <- uniroot(function(n_a) exact_tost_power_parallel(n_a, 1.5, theta0_p, sigma_b, log(0.8), log(1.25), 0.05) - 0.90, c(4, 1e6), extendInt = "upX")$root
+  expect_equal(x3$n, n_a_manual, tolerance = 1e-6)
+
   expect_error(sample_size_bioequivalence(design = "crossover", gmr = 1.3, cv_within = 0.3), "inside")
   expect_error(sample_size_bioequivalence(design = "crossover", gmr = 1, cv_within = 0.3, lower = 0.8, upper = 0.5), "exceed")
+})
+
+test_that("sample_size_bioequivalence's iterative TOST matches PowerTOST::power.TOST() (regulatory-standard exact power)", {
+  skip_if_not_installed("PowerTOST")
+  # Balanced-design cross-check against Owen's-Q-based exact TOST power (the
+  # standard used in real bioequivalence submissions). Even total n avoids
+  # PowerTOST's unbalanced-sequence adjustment for odd n, which testflow
+  # (treating n as one continuous total) does not separately model.
+  for (cfg in list(c(gmr = 0.95, cv = 0.15), c(gmr = 1.00, cv = 0.20), c(gmr = 0.90, cv = 0.20))) {
+    x <- sample_size_bioequivalence(design = "crossover", gmr = cfg[["gmr"]], cv_within = cfg[["cv"]], method = "iterative_tost")
+    n_even <- 2 * ceiling(x$n / 2)
+    n_even_minus_2 <- n_even - 2
+    power_at_n <- PowerTOST::power.TOST(alpha = 0.05, theta0 = cfg[["gmr"]], theta1 = 0.8, theta2 = 1.25, CV = cfg[["cv"]], n = n_even, design = "2x2")
+    power_below <- PowerTOST::power.TOST(alpha = 0.05, theta0 = cfg[["gmr"]], theta1 = 0.8, theta2 = 1.25, CV = cfg[["cv"]], n = n_even_minus_2, design = "2x2")
+    # testflow's n (rounded up to the nearest even total) must achieve at
+    # least the target power under PowerTOST's exact calculation, and two
+    # fewer subjects (the next balanced design down) must not - the same
+    # minimality property already required of the Wilson/exact precision
+    # search, cross-checked here against an external, regulatory-standard
+    # implementation rather than an internal formula.
+    expect_true(power_at_n >= 0.90 - 1e-6)
+    expect_true(power_below < 0.90)
+  }
 })
