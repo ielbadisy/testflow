@@ -44,8 +44,9 @@ one-sided tests, each at \code{alpha}).}
 \item{dropout}{Expected dropout proportion.}
 
 \item{method}{\code{iterative_tost} (search for the smallest n achieving the
-target two-one-sided-test power exactly; the preferred method) or
-\code{normal_approx} (closed-form approximation).}
+target two-one-sided-test power, computed exactly via the noncentral t
+distribution; the preferred method) or \code{normal_approx} (closed-form
+approximation treating the variance as known).}
 }
 \value{
 A \code{sample_size} object.
@@ -60,14 +61,25 @@ On the log scale, with \eqn{\theta_0=\log(GMR)}, \eqn{\theta_L=\log(L)},
 strictly inside the bioequivalence bounds):
 
 \code{method = "iterative_tost"} searches for the smallest \eqn{n} such that
-the exact two-one-sided-test power is at least the target:
-\deqn{Power(n) = \Phi\left(\frac{\theta_U-\theta_0}{SE(n)}-z_{1-\alpha}\right)
-+ \Phi\left(\frac{\theta_0-\theta_L}{SE(n)}-z_{1-\alpha}\right) - 1}
-with \eqn{SE(n) = \sqrt{2\sigma_w^2/n}} for a crossover design (total
-\eqn{n}) or \eqn{SE(n_A) = \sigma_b\sqrt{(r+1)/(rn_A)}} for a parallel
-design (per-arm \eqn{n_A}, \eqn{n_B=rn_A}). Coefficients of variation are
-converted to log-scale standard deviations via
-\eqn{\sigma = \sqrt{\log(1+CV^2)}}.
+the exact two-one-sided-test power is at least the target. Let
+\eqn{SE(n) = \sqrt{2\sigma_w^2/n}} for a crossover design (total \eqn{n},
+\eqn{df=n-2}) or \eqn{SE(n_A) = \sigma_b\sqrt{(r+1)/(rn_A)}} for a
+parallel design (per-arm \eqn{n_A}, \eqn{n_B=rn_A}, \eqn{df=n_A+n_B-2}).
+The two one-sided test statistics \eqn{T_U=(\hat\theta_0-\theta_U)/SE}
+and \eqn{T_L=(\hat\theta_0-\theta_L)/SE} each follow a \emph{noncentral} t
+distribution with the above \eqn{df} and noncentrality parameters
+\eqn{\delta_U=(\theta_0-\theta_U)/SE}, \eqn{\delta_L=(\theta_0-\theta_L)/SE}
+\itemize{
+\item not a location-shifted central t, and not a normal approximation, since
+the estimated \eqn{SE} carries its own sampling variability. Power is
+\deqn{Power(n) = P(T_U<-t_{1-\alpha,df}) + P(T_L>t_{1-\alpha,df}) - 1
+= T_{df,\delta_U}(-t_{1-\alpha,df}) - T_{df,\delta_L}(t_{1-\alpha,df})}
+where \eqn{T_{df,\delta}} is the noncentral t CDF (\code{stats::pt(..., ncp = delta)}) - this is Phillips's (1990) formula, verified in package
+tests to match \code{PowerTOST::power.TOST()} (the regulatory-standard,
+Owen's-Q-based calculation) to numerical precision for balanced designs.
+Coefficients of variation are converted to log-scale standard deviations
+via \eqn{\sigma = \sqrt{\log(1+CV^2)}}.
+}
 
 \code{method = "normal_approx"} uses the closed-form approximation
 \deqn{n_{total} \approx \frac{2\sigma_w^2(z_{1-\beta}+z_{1-\alpha})^2}{d_{BE}^2}}
@@ -76,8 +88,10 @@ converted to log-scale standard deviations via
 (parallel), switching to \eqn{z_{1-\beta/2}} in place of \eqn{z_{1-\beta}}
 when \eqn{GMR=1} exactly, matching the analogous special case in
 \code{\link[=sample_size_continuous]{sample_size_continuous()}}. \code{iterative_tost} is preferred because this
-approximation can meaningfully differ from the exact TOST power away
-from \eqn{GMR=1}.
+approximation - which treats \eqn{\sigma} as known and uses normal
+rather than noncentral-t quantiles - can under-size a study by a
+material margin (verified up to ~20\% at small n) away from \eqn{GMR=1}
+or at small n.
 }
 \references{
 Julious SA. \emph{Sample Sizes for Clinical Trials}. Chapman & Hall/CRC; 2010.

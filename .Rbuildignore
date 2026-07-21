@@ -2,6 +2,7 @@
 ^raw-code$
 ^examples$
 ^cran-comments[.]md$
+^VALIDATION-PLAN[.]md$
 ^README[.]Rmd$
 ^README_files$
 ^[.][.]Rcheck$

@@ -15,7 +15,11 @@ sample_size_precision(
   alpha = 0.05,
   allocation = 1,
   dropout = 0,
-  conservative = FALSE
+  conservative = FALSE,
+  method = c("wald", "wilson", "exact"),
+  criterion = c("expected", "worst_case"),
+  min_expected_events = 5,
+  max_n = 1e+07
 )
 }
 \arguments{
@@ -38,18 +42,43 @@ estimate (or of the log odds ratio for \code{design = "odds_ratio"}).}
 
 \item{alpha}{Type I error rate (two-sided CI coverage is \code{1 - alpha}).}
 
-\item{allocation}{Allocation ratio \code{n_B / n_A}. Only used for
-\code{endpoint = "continuous"}, \code{design = "two_sample"} and
-\code{design = "odds_ratio"}; the binary \code{two_sample} formula is
-equal-allocation only.}
+\item{allocation}{Allocation ratio \code{n_B / n_A}. Used for
+\code{endpoint = "continuous"}, \code{design = "two_sample"}; binary
+\code{design = "two_sample"} (risk-difference half-width, unequal-allocation
+variance); and \code{design = "odds_ratio"}.}
 
 \item{dropout}{Expected dropout proportion.}
 
 \item{conservative}{For \code{endpoint = "binary"}, \code{design = "one_sample"}
-only: use the worst-case \code{p = 0.5} instead of the anticipated \code{p}.}
+only: use the worst-case \code{p = 0.5} instead of the anticipated \code{p}. Only
+supported with \code{method = "wald"}.}
+
+\item{method}{For \code{endpoint = "binary"}, \code{design = "one_sample"} only:
+the confidence-interval method used for planning. \code{"wald"} (default,
+backward-compatible) uses the closed-form normal-approximation formula.
+\code{"wilson"} and \code{"exact"} (Clopper-Pearson) instead run a deterministic
+integer search (see Details) for the minimum sample size whose
+confidence interval has a half-width no greater than \code{width}.}
+
+\item{criterion}{For \code{endpoint = "binary"}, \code{design = "one_sample"},
+\code{method \%in\% c("wilson", "exact")} only: \code{"expected"} (default)
+evaluates precision at the single anticipated event count
+\code{round(n * p)}. \code{"worst_case"} requires the precision target to hold
+over a prevalence-local band of plausible event counts (see Details).
+Recorded but does not alter the \code{"wald"} closed-form calculation.}
+
+\item{min_expected_events}{For \code{endpoint = "binary"}, \code{design = "one_sample"} only: threshold below which the expected event count or
+expected non-event count triggers a rare-event diagnostic warning.}
+
+\item{max_n}{For \code{endpoint = "binary"}, \code{design = "one_sample"},
+\code{method \%in\% c("wilson", "exact")} only: upper bound for the minimum-n
+search. The search errors informatively if no \code{n <= max_n} satisfies
+the requested precision.}
 }
 \value{
-A \code{sample_size} object.
+A \code{sample_size} object. For one-sample binary precision planning,
+\code{x$diagnostics} additionally holds rare-event and achieved-precision
+diagnostics (see Details).
 }
 \description{
 Sample size for confidence-interval precision
@@ -65,17 +94,85 @@ Continuous, one sample:
 Continuous, two independent means:
 \deqn{n_A = \frac{(r+1)\sigma^2z_{1-\alpha/2}^2}{rw^2}}
 
-Binary, one proportion:
+Binary, one proportion, \code{method = "wald"} (normal approximation; the
+original, backward-compatible formula):
 \deqn{n = \frac{z_{1-\alpha/2}^2p(1-p)}{w^2}}
 (or \eqn{n = z_{1-\alpha/2}^2/(4w^2)} for the conservative \eqn{p=0.5} case)
 
-Binary, two independent proportions (equal allocation):
-\deqn{n_{per\ group} = \frac{z_{1-\alpha/2}^2\left[p_A(1-p_A)+p_B(1-p_B)\right]}{w^2}}
+Binary, one proportion, \code{method = "wilson"} or \code{"exact"}: there is no
+closed form. Instead, the smallest integer \eqn{n} is found such that the
+relevant confidence interval, evaluated at (a) the anticipated event count
+\eqn{x=\mathrm{round}(np)} when \code{criterion = "expected"}, or (b) every
+event count in a prevalence-local band \code{qbinom(c(0.001, 0.999), n, p)}
+when \code{criterion = "worst_case"}, has maximum one-sided half-width
+\eqn{\max(\hat p - lower,\ upper - \hat p) \le w}. Because Wilson and
+Clopper-Pearson intervals are generally asymmetric around \eqn{\hat p},
+this maximum one-sided distance - not half of the total interval width -
+is the planning criterion. The search itself is a deterministic
+doubling-then-bisection integer search with a bounded backward repair scan
+(see \code{sample_size_binomial_search()}), not a closed-form calculation, and
+a Clopper-Pearson interval guarantees at-least-nominal coverage at the
+evaluated count(s) - this is not the same as guaranteeing the achieved
+width at every conceivable outcome. The achieved half-width is not
+perfectly monotone in \eqn{n} (integer event counts round differently as
+\eqn{n} changes), so a plain bisection search can converge on an integer
+more than one step above the true minimum; the backward repair scan
+guards against this (verified against an exhaustive brute-force scan in
+the package tests) without falling back to an unbounded linear search.
+
+A precision-based sample size answers "how wide will my confidence
+interval be", not "how likely am I to observe any events at all"; for
+rare-prevalence planning (e.g. newborn-screening or rare-adverse-event
+studies) the expected event count, and the probability of observing zero
+events, are reported as diagnostics precisely because a narrow interval
+does not guarantee that any events will be observed.
+
+Binary, two independent proportions, risk-difference half-width, with
+allocation ratio \eqn{r = n_B/n_A}:
+\deqn{n_A = \frac{z_{1-\alpha/2}^2}{w^2}\left[p_A(1-p_A) + p_B(1-p_B)/r\right], \qquad n_B = r n_A}
+(reduces to the earlier equal-allocation-only formula when \eqn{r=1}).
 
 Binary, log-odds-ratio half-width:
 \deqn{n_A = \frac{z_{1-\alpha/2}^2}{w^2}
 \left[\frac1{p_A}+\frac1{1-p_A}+\frac1{rp_B}+\frac1{r(1-p_B)}\right]}
 }
+\examples{
+# 1) Common prevalence, Wald (backward-compatible default)
+sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.30)
+
+# 2) Rare prevalence, Wilson score, iterative search
+sample_size_precision(
+  endpoint = "binary", design = "one_sample", width = 0.02,
+  p = 0.01, method = "wilson"
+)
+
+# 3) Rare prevalence, exact Clopper-Pearson, worst-case criterion
+sample_size_precision(
+  endpoint = "binary", design = "one_sample", width = 0.005,
+  p = 0.001, method = "exact", criterion = "worst_case"
+)
+
+# 4) Dropout inflation: complete_case_n vs. adjusted_n
+x <- sample_size_precision(
+  endpoint = "binary", design = "one_sample", width = 0.02,
+  p = 0.05, method = "wilson", dropout = 0.10
+)
+x$diagnostics$complete_case_n
+x$diagnostics$adjusted_n
+
+# 5) Two independent proportions, unequal allocation
+sample_size_precision(
+  endpoint = "binary", design = "two_sample", width = 0.08,
+  p1 = 0.4, p2 = 0.3, allocation = 2
+)
+}
 \references{
 Julious SA. \emph{Sample Sizes for Clinical Trials}. Chapman & Hall/CRC; 2010.
+
+Wilson EB. Probable inference, the law of succession, and statistical
+inference. \emph{Journal of the American Statistical Association}.
+1927;22(158):209-212.
+
+Clopper CJ, Pearson ES. The use of confidence or fiducial limits
+illustrated in the case of the binomial. \emph{Biometrika}. 1934;26(4):404-413.
 }

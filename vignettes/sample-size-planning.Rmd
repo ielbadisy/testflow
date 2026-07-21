@@ -367,14 +367,12 @@ be_ss
 ```
 
 The default `method = "iterative_tost"` searches for the smallest sample
-size achieving the *exact* TOST power,
-
-\[
-Power(n) = \Phi\!\left(\frac{\theta_U-\theta_0}{SE(n)}-z_{1-\alpha}\right)
-+ \Phi\!\left(\frac{\theta_0-\theta_L}{SE(n)}-z_{1-\alpha}\right) - 1,
-\]
-
-rather than the closed-form approximation
+size achieving the *exact* TOST power, computed via the noncentral t
+distribution (verified against `PowerTOST::power.TOST()`, the
+regulatory-standard calculation, in package tests) rather than a normal
+approximation, since the estimated standard error carries its own sampling
+variability. See `?sample_size_bioequivalence` for the full formula. This is
+more accurate than the closed-form approximation
 \(n_{total} \approx 2\sigma_w^2(z_{1-\beta}+z_{1-\alpha})^2/d_{BE}^2\)
 available via `method = "normal_approx"`; the two agree closely near
 \(GMR=1\) but can diverge further away from it. `design = "parallel"` uses
@@ -408,7 +406,94 @@ sample_size_precision(
 `design` is `one_sample`, `two_sample`, or (binary only) `odds_ratio`
 (precision on the log-odds-ratio scale); `endpoint = "binary"`,
 `design = "one_sample"` also accepts `conservative = TRUE` to plan against
-the worst-case \(p=0.5\) instead of an anticipated `p`.
+the worst-case \(p=0.5\) instead of an anticipated `p` (only with the
+default `method = "wald"`).
+
+### Rare-prevalence planning: Wilson and exact confidence intervals
+
+For `endpoint = "binary"`, `design = "one_sample"`, `method` chooses the
+confidence-interval used for planning: `"wald"` (default) is the original
+closed-form normal approximation, unchanged; `"wilson"` and `"exact"`
+(Clopper-Pearson) instead run a deterministic search for the minimum integer
+`n` whose confidence interval has maximum one-sided half-width no greater
+than `width`. This matters for rare-prevalence screening studies (e.g.
+newborn screening, rare adverse events), where the Wald normal approximation
+can be unreliable and where a naive doubling of the closed-form `n` is not
+guaranteed to hit the target precision.
+
+```{r}
+# Common prevalence: Wald is adequate and remains the default
+sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.30)
+
+# Rare prevalence: Wilson score confidence interval
+sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.02, p = 0.01, method = "wilson")
+
+# Rare prevalence: exact Clopper-Pearson, with the precision requirement
+# extended over a prevalence-local band of event counts (criterion =
+# "worst_case") rather than just the single anticipated count
+sample_size_precision(
+  endpoint = "binary", design = "one_sample", width = 0.005,
+  p = 0.001, method = "exact", criterion = "worst_case"
+)
+```
+
+`criterion = "expected"` (the default for `wilson`/`exact`) checks precision
+at the single anticipated event count `round(n * p)`; `criterion =
+"worst_case"` additionally requires the target to hold across nearby
+plausible event counts, which is more conservative and typically requires a
+somewhat larger `n`.
+
+A confidence-interval width target is not the same planning objective as
+"observe at least one case": a narrow interval can still be planned around a
+study that, by chance, observes zero events. `sample_size_precision()`
+reports this explicitly via `x$diagnostics` for one-sample binary precision
+planning:
+
+```{r}
+x <- sample_size_precision(
+  endpoint = "binary", design = "one_sample", width = 0.02,
+  p = 0.05, method = "wilson", dropout = 0.10
+)
+x$diagnostics$complete_case_n       # n required by the precision criterion alone
+x$diagnostics$adjusted_n            # complete_case_n inflated for dropout
+x$diagnostics$expected_events       # anticipated events at adjusted_n
+x$diagnostics$probability_zero_events
+x$diagnostics$achieved_maximum_half_width
+```
+
+`complete_case_n` is the statistical answer to "how many complete
+observations achieve the requested precision"; `adjusted_n` is the
+recruitment target after inflating for `dropout`. Achieved-precision
+diagnostics (`achieved_lower`, `achieved_upper`,
+`achieved_maximum_half_width`) are evaluated at `complete_case_n`, since
+dropout does not change the precision of the completed-case analysis.
+`expected_events` and `probability_zero_events` are evaluated at
+`adjusted_n`, the actual number of participants recruited. When either the
+expected event count or expected non-event count falls below
+`min_expected_events` (default `5`), or when `method = "wald"` is used,
+`x$diagnostics$approximation_warning` explains why the reported precision
+may be optimistic, and the same message is raised as a single `warning()`.
+
+### Unequal allocation for two proportions
+
+Binary `design = "two_sample"` precision planning now implements unequal
+allocation directly, rather than silently defaulting to the equal-allocation
+formula whenever `allocation != 1`:
+
+```{r}
+sample_size_precision(
+  endpoint = "binary", design = "two_sample", width = 0.08,
+  p1 = 0.4, p2 = 0.3, allocation = 2
+)
+```
+
+With \(r = n_B/n_A\) and \(\mathrm{Var}(\hat p_1-\hat p_2) =
+p_1(1-p_1)/n_A + p_2(1-p_2)/n_B\):
+\[
+n_A = \frac{z_{1-\alpha/2}^2}{w^2}\left[p_1(1-p_1) + \frac{p_2(1-p_2)}{r}\right],
+\qquad n_B = r\,n_A
+\]
+which reduces exactly to the previous equal-allocation formula when \(r=1\).
 
 ## Cluster-randomized adjustment
 

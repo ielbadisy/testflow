@@ -797,8 +797,9 @@ sample_size_survival <- function(
 #'   `design = "parallel"`.
 #' @param dropout Expected dropout proportion.
 #' @param method `iterative_tost` (search for the smallest n achieving the
-#'   target two-one-sided-test power exactly; the preferred method) or
-#'   `normal_approx` (closed-form approximation).
+#'   target two-one-sided-test power, computed exactly via the noncentral t
+#'   distribution; the preferred method) or `normal_approx` (closed-form
+#'   approximation treating the variance as known).
 #' @return A `sample_size` object.
 #' @details
 #' On the log scale, with \eqn{\theta_0=\log(GMR)}, \eqn{\theta_L=\log(L)},
@@ -807,14 +808,24 @@ sample_size_survival <- function(
 #' strictly inside the bioequivalence bounds):
 #'
 #' `method = "iterative_tost"` searches for the smallest \eqn{n} such that
-#' the exact two-one-sided-test power is at least the target:
-#' \deqn{Power(n) = \Phi\left(\frac{\theta_U-\theta_0}{SE(n)}-z_{1-\alpha}\right)
-#' + \Phi\left(\frac{\theta_0-\theta_L}{SE(n)}-z_{1-\alpha}\right) - 1}
-#' with \eqn{SE(n) = \sqrt{2\sigma_w^2/n}} for a crossover design (total
-#' \eqn{n}) or \eqn{SE(n_A) = \sigma_b\sqrt{(r+1)/(rn_A)}} for a parallel
-#' design (per-arm \eqn{n_A}, \eqn{n_B=rn_A}). Coefficients of variation are
-#' converted to log-scale standard deviations via
-#' \eqn{\sigma = \sqrt{\log(1+CV^2)}}.
+#' the exact two-one-sided-test power is at least the target. Let
+#' \eqn{SE(n) = \sqrt{2\sigma_w^2/n}} for a crossover design (total \eqn{n},
+#' \eqn{df=n-2}) or \eqn{SE(n_A) = \sigma_b\sqrt{(r+1)/(rn_A)}} for a
+#' parallel design (per-arm \eqn{n_A}, \eqn{n_B=rn_A}, \eqn{df=n_A+n_B-2}).
+#' The two one-sided test statistics \eqn{T_U=(\hat\theta_0-\theta_U)/SE}
+#' and \eqn{T_L=(\hat\theta_0-\theta_L)/SE} each follow a *noncentral* t
+#' distribution with the above \eqn{df} and noncentrality parameters
+#' \eqn{\delta_U=(\theta_0-\theta_U)/SE}, \eqn{\delta_L=(\theta_0-\theta_L)/SE}
+#' - not a location-shifted central t, and not a normal approximation, since
+#' the estimated \eqn{SE} carries its own sampling variability. Power is
+#' \deqn{Power(n) = P(T_U<-t_{1-\alpha,df}) + P(T_L>t_{1-\alpha,df}) - 1
+#' = T_{df,\delta_U}(-t_{1-\alpha,df}) - T_{df,\delta_L}(t_{1-\alpha,df})}
+#' where \eqn{T_{df,\delta}} is the noncentral t CDF (`stats::pt(...,
+#' ncp = delta)`) - this is Phillips's (1990) formula, verified in package
+#' tests to match `PowerTOST::power.TOST()` (the regulatory-standard,
+#' Owen's-Q-based calculation) to numerical precision for balanced designs.
+#' Coefficients of variation are converted to log-scale standard deviations
+#' via \eqn{\sigma = \sqrt{\log(1+CV^2)}}.
 #'
 #' `method = "normal_approx"` uses the closed-form approximation
 #' \deqn{n_{total} \approx \frac{2\sigma_w^2(z_{1-\beta}+z_{1-\alpha})^2}{d_{BE}^2}}
@@ -823,8 +834,10 @@ sample_size_survival <- function(
 #' (parallel), switching to \eqn{z_{1-\beta/2}} in place of \eqn{z_{1-\beta}}
 #' when \eqn{GMR=1} exactly, matching the analogous special case in
 #' [sample_size_continuous()]. `iterative_tost` is preferred because this
-#' approximation can meaningfully differ from the exact TOST power away
-#' from \eqn{GMR=1}.
+#' approximation - which treats \eqn{\sigma} as known and uses normal
+#' rather than noncentral-t quantiles - can under-size a study by a
+#' material margin (verified up to ~20% at small n) away from \eqn{GMR=1}
+#' or at small n.
 #' @references
 #' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
 #'
@@ -874,15 +887,33 @@ sample_size_bioequivalence <- function(
     sample_size_validate_positive(cv_within, "cv_within")
     sigma <- sqrt(log(1 + cv_within^2))
     se_fn <- function(n) sqrt(2 * sigma^2 / n)
+    df_fn <- function(n) n - 2
   } else {
     sample_size_validate_positive(cv_between, "cv_between")
     sigma <- sqrt(log(1 + cv_between^2))
     se_fn <- function(n) sigma * sqrt((allocation + 1) / (allocation * n))
+    df_fn <- function(n) n * (1 + allocation) - 2
   }
 
+  # Exact two-one-sided-test (TOST) power via the noncentral t distribution
+  # (Phillips 1990, already cited below): with T_U = (theta0_hat -
+  # theta_U)/SE_hat and T_L = (theta0_hat - theta_L)/SE_hat, each is
+  # noncentral-t(df, ncp) under the true theta0 - not a location-shifted
+  # central t, and not a normal approximation - and the joint TOST power is
+  # bounded via P(T_U < -tcrit, T_L > tcrit) >= P(T_U < -tcrit) +
+  # P(T_L > tcrit) - 1, which Phillips shows is close to exact in practice.
+  # Verified against PowerTOST::power.TOST() (Owen's-Q-based, the
+  # regulatory-standard exact calculation): matches to numerical precision
+  # for balanced designs (see package tests); a prior version of this
+  # function used stats::pnorm()/qnorm() (a normal approximation treating
+  # sigma as known), which under-sized studies by up to ~20% at small n.
   tost_power <- function(n) {
     se <- se_fn(n)
-    stats::pnorm((theta_u - theta0) / se - z_alpha_one) + stats::pnorm((theta0 - theta_l) / se - z_alpha_one) - 1
+    df <- df_fn(n)
+    tcrit <- stats::qt(1 - alpha, df)
+    delta_u <- (theta0 - theta_u) / se
+    delta_l <- (theta0 - theta_l) / se
+    stats::pt(-tcrit, df, ncp = delta_u) - stats::pt(tcrit, df, ncp = delta_l)
   }
 
   if (identical(method, "iterative_tost")) {
@@ -1071,14 +1102,36 @@ sample_size_cluster_adjust <- function(n_ind, m, rho, cv_m = NULL) {
 #' @param p2 Anticipated proportion in arm B (binary, `two_sample` or
 #'   `odds_ratio`).
 #' @param alpha Type I error rate (two-sided CI coverage is `1 - alpha`).
-#' @param allocation Allocation ratio `n_B / n_A`. Only used for
-#'   `endpoint = "continuous"`, `design = "two_sample"` and
-#'   `design = "odds_ratio"`; the binary `two_sample` formula is
-#'   equal-allocation only.
+#' @param allocation Allocation ratio `n_B / n_A`. Used for
+#'   `endpoint = "continuous"`, `design = "two_sample"`; binary
+#'   `design = "two_sample"` (risk-difference half-width, unequal-allocation
+#'   variance); and `design = "odds_ratio"`.
 #' @param dropout Expected dropout proportion.
 #' @param conservative For `endpoint = "binary"`, `design = "one_sample"`
-#'   only: use the worst-case `p = 0.5` instead of the anticipated `p`.
-#' @return A `sample_size` object.
+#'   only: use the worst-case `p = 0.5` instead of the anticipated `p`. Only
+#'   supported with `method = "wald"`.
+#' @param method For `endpoint = "binary"`, `design = "one_sample"` only:
+#'   the confidence-interval method used for planning. `"wald"` (default,
+#'   backward-compatible) uses the closed-form normal-approximation formula.
+#'   `"wilson"` and `"exact"` (Clopper-Pearson) instead run a deterministic
+#'   integer search (see Details) for the minimum sample size whose
+#'   confidence interval has a half-width no greater than `width`.
+#' @param criterion For `endpoint = "binary"`, `design = "one_sample"`,
+#'   `method %in% c("wilson", "exact")` only: `"expected"` (default)
+#'   evaluates precision at the single anticipated event count
+#'   `round(n * p)`. `"worst_case"` requires the precision target to hold
+#'   over a prevalence-local band of plausible event counts (see Details).
+#'   Recorded but does not alter the `"wald"` closed-form calculation.
+#' @param min_expected_events For `endpoint = "binary"`, `design =
+#'   "one_sample"` only: threshold below which the expected event count or
+#'   expected non-event count triggers a rare-event diagnostic warning.
+#' @param max_n For `endpoint = "binary"`, `design = "one_sample"`,
+#'   `method %in% c("wilson", "exact")` only: upper bound for the minimum-n
+#'   search. The search errors informatively if no `n <= max_n` satisfies
+#'   the requested precision.
+#' @return A `sample_size` object. For one-sample binary precision planning,
+#'   `x$diagnostics` additionally holds rare-event and achieved-precision
+#'   diagnostics (see Details).
 #' @details
 #' Unlike the other `sample_size_*()` functions, precision-based planning is
 #' driven by a target confidence-interval half-width \eqn{w} rather than
@@ -1090,18 +1143,85 @@ sample_size_cluster_adjust <- function(n_ind, m, rho, cv_m = NULL) {
 #' Continuous, two independent means:
 #' \deqn{n_A = \frac{(r+1)\sigma^2z_{1-\alpha/2}^2}{rw^2}}
 #'
-#' Binary, one proportion:
+#' Binary, one proportion, `method = "wald"` (normal approximation; the
+#' original, backward-compatible formula):
 #' \deqn{n = \frac{z_{1-\alpha/2}^2p(1-p)}{w^2}}
 #' (or \eqn{n = z_{1-\alpha/2}^2/(4w^2)} for the conservative \eqn{p=0.5} case)
 #'
-#' Binary, two independent proportions (equal allocation):
-#' \deqn{n_{per\ group} = \frac{z_{1-\alpha/2}^2\left[p_A(1-p_A)+p_B(1-p_B)\right]}{w^2}}
+#' Binary, one proportion, `method = "wilson"` or `"exact"`: there is no
+#' closed form. Instead, the smallest integer \eqn{n} is found such that the
+#' relevant confidence interval, evaluated at (a) the anticipated event count
+#' \eqn{x=\mathrm{round}(np)} when `criterion = "expected"`, or (b) every
+#' event count in a prevalence-local band `qbinom(c(0.001, 0.999), n, p)`
+#' when `criterion = "worst_case"`, has maximum one-sided half-width
+#' \eqn{\max(\hat p - lower,\ upper - \hat p) \le w}. Because Wilson and
+#' Clopper-Pearson intervals are generally asymmetric around \eqn{\hat p},
+#' this maximum one-sided distance - not half of the total interval width -
+#' is the planning criterion. The search itself is a deterministic
+#' doubling-then-bisection integer search with a bounded backward repair scan
+#' (see `sample_size_binomial_search()`), not a closed-form calculation, and
+#' a Clopper-Pearson interval guarantees at-least-nominal coverage at the
+#' evaluated count(s) - this is not the same as guaranteeing the achieved
+#' width at every conceivable outcome. The achieved half-width is not
+#' perfectly monotone in \eqn{n} (integer event counts round differently as
+#' \eqn{n} changes), so a plain bisection search can converge on an integer
+#' more than one step above the true minimum; the backward repair scan
+#' guards against this (verified against an exhaustive brute-force scan in
+#' the package tests) without falling back to an unbounded linear search.
+#'
+#' A precision-based sample size answers "how wide will my confidence
+#' interval be", not "how likely am I to observe any events at all"; for
+#' rare-prevalence planning (e.g. newborn-screening or rare-adverse-event
+#' studies) the expected event count, and the probability of observing zero
+#' events, are reported as diagnostics precisely because a narrow interval
+#' does not guarantee that any events will be observed.
+#'
+#' Binary, two independent proportions, risk-difference half-width, with
+#' allocation ratio \eqn{r = n_B/n_A}:
+#' \deqn{n_A = \frac{z_{1-\alpha/2}^2}{w^2}\left[p_A(1-p_A) + p_B(1-p_B)/r\right], \qquad n_B = r n_A}
+#' (reduces to the earlier equal-allocation-only formula when \eqn{r=1}).
 #'
 #' Binary, log-odds-ratio half-width:
 #' \deqn{n_A = \frac{z_{1-\alpha/2}^2}{w^2}
 #' \left[\frac1{p_A}+\frac1{1-p_A}+\frac1{rp_B}+\frac1{r(1-p_B)}\right]}
 #' @references
 #' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
+#'
+#' Wilson EB. Probable inference, the law of succession, and statistical
+#' inference. *Journal of the American Statistical Association*.
+#' 1927;22(158):209-212.
+#'
+#' Clopper CJ, Pearson ES. The use of confidence or fiducial limits
+#' illustrated in the case of the binomial. *Biometrika*. 1934;26(4):404-413.
+#' @examples
+#' # 1) Common prevalence, Wald (backward-compatible default)
+#' sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.30)
+#'
+#' # 2) Rare prevalence, Wilson score, iterative search
+#' sample_size_precision(
+#'   endpoint = "binary", design = "one_sample", width = 0.02,
+#'   p = 0.01, method = "wilson"
+#' )
+#'
+#' # 3) Rare prevalence, exact Clopper-Pearson, worst-case criterion
+#' sample_size_precision(
+#'   endpoint = "binary", design = "one_sample", width = 0.005,
+#'   p = 0.001, method = "exact", criterion = "worst_case"
+#' )
+#'
+#' # 4) Dropout inflation: complete_case_n vs. adjusted_n
+#' x <- sample_size_precision(
+#'   endpoint = "binary", design = "one_sample", width = 0.02,
+#'   p = 0.05, method = "wilson", dropout = 0.10
+#' )
+#' x$diagnostics$complete_case_n
+#' x$diagnostics$adjusted_n
+#'
+#' # 5) Two independent proportions, unequal allocation
+#' sample_size_precision(
+#'   endpoint = "binary", design = "two_sample", width = 0.08,
+#'   p1 = 0.4, p2 = 0.3, allocation = 2
+#' )
 #' @export
 sample_size_precision <- function(
   endpoint = c("continuous", "binary"),
@@ -1114,7 +1234,11 @@ sample_size_precision <- function(
   alpha = 0.05,
   allocation = 1,
   dropout = 0,
-  conservative = FALSE
+  conservative = FALSE,
+  method = c("wald", "wilson", "exact"),
+  criterion = c("expected", "worst_case"),
+  min_expected_events = 5,
+  max_n = 1e7
 ) {
   endpoint <- match.arg(endpoint)
   design <- match.arg(design)
@@ -1156,35 +1280,32 @@ sample_size_precision <- function(
   }
 
   if (identical(design, "one_sample")) {
-    if (conservative) {
-      n_raw <- z_alpha^2 / (4 * width^2)
-    } else {
-      sample_size_validate_probability(p, "p")
-      n_raw <- z_alpha^2 * p * (1 - p) / width^2
-    }
-    n_adj <- sample_size_apply_dropout(sample_size_round(n_raw), dropout)
-    return(sample_size_result(
-      endpoint = endpoint, design = design, objective = "precision",
-      method = if (conservative) "one-proportion CI half-width (conservative p = 0.5)" else "one-proportion CI half-width",
-      n = n_raw, n_adjusted = n_adj, n_total = n_adj,
-      assumptions = sample_size_assumptions(paste0("Target CI half-width = ", format_sample_value(width), ".")),
-      report = paste0("One-proportion precision sample size was calculated with width = ", format_sample_value(width), "; required n = ", format_sample_count(n_adj), "."),
-      plot_data = sample_size_plot_frame("Required n", n_raw, n_adj)
+    return(sample_size_precision_binary_one_sample(
+      width = width, p = p, alpha = alpha, dropout = dropout, conservative = conservative,
+      method = method, criterion = criterion, min_expected_events = min_expected_events, max_n = max_n,
+      z_alpha = z_alpha
     ))
   }
 
   sample_size_validate_probability(p1, "p1")
   sample_size_validate_probability(p2, "p2")
   if (identical(design, "two_sample")) {
-    n_raw <- z_alpha^2 * (p1 * (1 - p1) + p2 * (1 - p2)) / width^2
-    n_adj <- sample_size_apply_dropout(sample_size_round(n_raw), dropout)
+    n_a_raw <- (z_alpha^2 / width^2) * (p1 * (1 - p1) + p2 * (1 - p2) / allocation)
+    n_b_raw <- allocation * n_a_raw
+    n_a <- sample_size_round(n_a_raw)
+    n_b <- sample_size_round(n_b_raw)
+    n_a_adj <- sample_size_apply_dropout(n_a, dropout)
+    n_b_adj <- sample_size_apply_dropout(n_b, dropout)
     return(sample_size_result(
       endpoint = endpoint, design = design, objective = "precision",
-      method = "two-proportion CI half-width (equal allocation)",
-      n = n_raw, n_adjusted = c(A = n_adj, B = n_adj), n_per_group = c(A = n_adj, B = n_adj), n_total = 2 * n_adj,
-      assumptions = sample_size_assumptions(paste0("Target CI half-width for the risk difference = ", format_sample_value(width), "."), "Equal allocation is assumed; this formula does not generalize to unequal allocation."),
-      report = paste0("Two-proportion precision sample size was calculated with p1 = ", format_sample_value(p1), ", p2 = ", format_sample_value(p2), ", width = ", format_sample_value(width), "; required per-group size = ", format_sample_count(n_adj), "."),
-      plot_data = sample_size_plot_frame(c("A", "B"), c(n_raw, n_raw), c(n_adj, n_adj))
+      method = "two-proportion CI half-width (unequal-allocation risk-difference variance)",
+      n = n_a_raw, n_adjusted = c(A = n_a_adj, B = n_b_adj), n_per_group = c(A = n_a_adj, B = n_b_adj), n_total = n_a_adj + n_b_adj,
+      assumptions = sample_size_assumptions(
+        paste0("Target CI half-width for the risk difference = ", format_sample_value(width), "."),
+        paste0("Allocation ratio n_B / n_A = ", format_sample_value(allocation), "; Var(p1_hat - p2_hat) = p1(1-p1)/n_A + p2(1-p2)/n_B is used directly (this generalizes the equal-allocation formula, which is the r = 1 special case).")
+      ),
+      report = paste0("Two-proportion precision sample size was calculated with p1 = ", format_sample_value(p1), ", p2 = ", format_sample_value(p2), ", width = ", format_sample_value(width), ", allocation ratio = ", format_sample_value(allocation), "; required per-group sizes = A ", format_sample_count(n_a_adj), ", B ", format_sample_count(n_b_adj), "."),
+      plot_data = sample_size_plot_frame(c("A", "B"), c(n_a_raw, n_b_raw), c(n_a_adj, n_b_adj))
     ))
   }
 
@@ -1200,6 +1321,317 @@ sample_size_precision <- function(
     report = paste0("Log-odds-ratio precision sample size was calculated with p1 = ", format_sample_value(p1), ", p2 = ", format_sample_value(p2), ", width = ", format_sample_value(width), "; required per-group sizes = A ", format_sample_count(n_a_adj), ", B ", format_sample_count(n_b_adj), "."),
     plot_data = sample_size_plot_frame(c("A", "B"), c(n_a_raw, n_b_raw), c(n_a_adj, n_b_adj))
   )
+}
+
+# --- One-proportion precision planning (endpoint = "binary", design = "one_sample") ---
+#
+# Dispatches across method = wald/wilson/exact and criterion =
+# expected/worst_case, builds rare-event and achieved-precision diagnostics,
+# and assembles the sample_size_result(). Kept out of sample_size_precision()
+# itself to keep that dispatcher flat.
+sample_size_precision_binary_one_sample <- function(width, p, alpha, dropout, conservative, method, criterion, min_expected_events, max_n, z_alpha) {
+  if (width >= 1) {
+    stop("`width` must be in (0, 1) for binary precision planning.", call. = FALSE)
+  }
+  method <- match.arg(method, c("wald", "wilson", "exact"))
+  criterion <- match.arg(criterion, c("expected", "worst_case"))
+  sample_size_validate_nonnegative(min_expected_events, "min_expected_events")
+  max_n <- sample_size_validate_max_n(max_n)
+
+  if (conservative && !identical(method, "wald")) {
+    stop("`conservative = TRUE` is only supported for `method = \"wald\"`; Wilson and exact planning require an anticipated `p` (there is no worst-case p for an asymmetric search).", call. = FALSE)
+  }
+
+  if (conservative) {
+    p_effective <- 0.5
+    n_raw <- z_alpha^2 / (4 * width^2)
+    complete_case_n <- sample_size_round(n_raw)
+  } else {
+    sample_size_validate_probability(p, "p")
+    p_effective <- p
+    if (identical(method, "wald")) {
+      n_raw <- z_alpha^2 * p * (1 - p) / width^2
+      complete_case_n <- sample_size_round(n_raw)
+    } else {
+      complete_case_n <- sample_size_binomial_required_n(p, width, alpha, method, criterion, max_n)
+      n_raw <- complete_case_n
+    }
+  }
+  n_adj <- sample_size_apply_dropout(complete_case_n, dropout)
+
+  diagnostics <- sample_size_binary_precision_diagnostics(
+    p = p_effective, complete_case_n = complete_case_n, n_adj = n_adj, width = width,
+    alpha = alpha, method = method, criterion = criterion, min_expected_events = min_expected_events,
+    dropout = dropout
+  )
+
+  ci_display_name <- switch(method,
+    wald = "normal-approximation (Wald)",
+    wilson = "Wilson score",
+    exact = "Clopper-Pearson exact"
+  )
+  method_label <- paste0(
+    "one-proportion CI half-width (", method, if (conservative) ", conservative p = 0.5" else "", ", ", criterion, " criterion)"
+  )
+  p_label <- if (conservative) "conservative p = 0.5" else paste0("p = ", format_sample_value(p_effective))
+  conf_pct <- formatC(100 * (1 - alpha), format = "f", digits = 0)
+  dropout_pct <- formatC(100 * dropout, format = "f", digits = 0)
+
+  report <- paste0(
+    "One-proportion precision planning used a ", conf_pct, "% ", ci_display_name, " confidence interval, ",
+    if (conservative) "a conservative p = 0.5" else paste0("anticipated prevalence p = ", format_sample_value(p_effective)),
+    ", and requested maximum half-width ", format_sample_value(width), ". ",
+    "The minimum complete-case sample size was ", format_sample_count(complete_case_n), ". ",
+    if (dropout > 0) {
+      paste0("After ", dropout_pct, "% dropout inflation, the recruitment target was ", format_sample_count(n_adj), ". ")
+    } else {
+      paste0("No dropout inflation was applied; the recruitment target was ", format_sample_count(n_adj), ". ")
+    },
+    "The expected number of events is ", format_sample_value(diagnostics$expected_events),
+    " and the achieved maximum half-width is ", format_sample_value(diagnostics$achieved_maximum_half_width), "."
+  )
+
+  sample_size_result(
+    endpoint = "binary", design = "one_sample", objective = "precision",
+    method = method_label,
+    n = n_raw, n_adjusted = n_adj, n_total = n_adj,
+    assumptions = sample_size_assumptions(
+      paste0("Confidence interval method: ", ci_display_name, "."),
+      if (identical(criterion, "expected")) {
+        "Event counts are evaluated at the single anticipated event count round(n * p)."
+      } else {
+        "Event counts are evaluated over a prevalence-local band of plausible counts (binomial 0.001/0.999 quantiles around n * p), not the anticipated count alone."
+      },
+      "\"Half-width\" is the maximum one-sided distance from the reference proportion to either confidence limit; for asymmetric (Wilson/exact) intervals this is not the same as half of the total interval width.",
+      if (identical(method, "wald")) {
+        "Wald planning uses a closed-form normal approximation and can be unreliable for small or extreme proportions."
+      } else {
+        "Wilson/exact planning uses a deterministic integer numerical search for the minimum sample size (no closed-form formula exists)."
+      },
+      if (identical(method, "exact")) {
+        "Clopper-Pearson exact planning guarantees at-least-nominal coverage at the evaluated event count(s); this is not a guarantee on the achieved width at every conceivable outcome."
+      } else {
+        NULL
+      },
+      "Precision-based planning targets confidence-interval width, not the probability of observing any events; a narrow planned interval does not by itself ensure that cases will be observed (see the rare-event diagnostics)."
+    ),
+    report = report,
+    plot_data = sample_size_plot_frame("Required n", complete_case_n, n_adj),
+    diagnostics = diagnostics
+  )
+}
+
+# Rare-event and achieved-precision diagnostics for one-proportion precision
+# planning. Computes the achieved interval at the anticipated event count
+# round(complete_case_n * p) using the same CI method selected for planning;
+# for criterion = "worst_case" (non-Wald), achieved_maximum_half_width instead
+# reports the actual worst-case value used by the search. Any warnings are
+# collected and issued exactly once here (never inside the search helpers).
+#
+# For method = "wald", the reference proportion is p itself, not a rounded
+# event count: the closed-form n_raw = z^2*p*(1-p)/w^2 already guarantees
+# z*sqrt(p(1-p)/n) <= w at continuous p, and complete_case_n = ceiling(n_raw)
+# preserves that; using round(n*p)/n instead would reintroduce integer
+# rounding noise the closed form was never meant to have.
+sample_size_binary_precision_diagnostics <- function(p, complete_case_n, n_adj, width, alpha, method, criterion, min_expected_events, dropout) {
+  if (identical(method, "wald")) {
+    x_expected <- p * complete_case_n
+    p_ref <- p
+  } else {
+    x_expected <- round(complete_case_n * p)
+    p_ref <- x_expected / complete_case_n
+  }
+  ci <- sample_size_binomial_half_width(x_expected, complete_case_n, alpha, method, p_ref)
+  achieved_maximum_half_width <- if (identical(criterion, "worst_case") && !identical(method, "wald")) {
+    sample_size_binomial_max_half_width(complete_case_n, p, alpha, method, criterion)
+  } else {
+    ci$maximum_half_width
+  }
+
+  expected_events <- n_adj * p
+  expected_non_events <- n_adj * (1 - p)
+
+  messages <- character(0)
+  if (expected_events < min_expected_events || expected_non_events < min_expected_events) {
+    messages <- c(messages, paste0(
+      "Expected event or non-event count is below min_expected_events = ", min_expected_events,
+      "; rare-event asymptotics may be unreliable regardless of the confidence-interval method."
+    ))
+  }
+  if (identical(method, "wald")) {
+    messages <- c(messages, "Wald normal-approximation intervals can be unreliable for small or extreme proportions; consider method = \"wilson\" or method = \"exact\".")
+  }
+  approximation_warning <- if (length(messages)) paste(messages, collapse = " ") else NULL
+  if (!is.null(approximation_warning)) warning(approximation_warning, call. = FALSE)
+
+  list(
+    anticipated_prevalence = p,
+    expected_events_raw = complete_case_n * p,
+    expected_events = expected_events,
+    expected_non_events = expected_non_events,
+    probability_zero_events = exp(n_adj * log1p(-p)),
+    probability_at_least_one_event = -expm1(n_adj * log1p(-p)),
+    requested_half_width = width,
+    achieved_lower = ci$lower,
+    achieved_upper = ci$upper,
+    achieved_lower_half_width = ci$lower_half_width,
+    achieved_upper_half_width = ci$upper_half_width,
+    achieved_maximum_half_width = achieved_maximum_half_width,
+    achieved_total_width = ci$total_width,
+    confidence_level = 1 - alpha,
+    ci_method = method,
+    precision_criterion = criterion,
+    complete_case_n = complete_case_n,
+    adjusted_n = n_adj,
+    dropout = dropout,
+    approximation_warning = approximation_warning
+  )
+}
+
+# --- Binomial confidence-interval helpers (base R only) ---
+#
+# Shared by sample_size_precision_binary_one_sample() for both diagnostics on
+# a fixed n and the minimum-n search. `method` is one of "wald", "wilson",
+# "exact"; intervals are truncated to [0, 1] after computation.
+
+sample_size_binomial_ci <- function(x, n, alpha, method) {
+  z <- stats::qnorm(1 - alpha / 2)
+  p_hat <- x / n
+  if (identical(method, "wald")) {
+    se <- sqrt(p_hat * (1 - p_hat) / n)
+    lower <- p_hat - z * se
+    upper <- p_hat + z * se
+  } else if (identical(method, "wilson")) {
+    denom <- 1 + z^2 / n
+    center <- (p_hat + z^2 / (2 * n)) / denom
+    half <- (z / denom) * sqrt(p_hat * (1 - p_hat) / n + z^2 / (4 * n^2))
+    lower <- center - half
+    upper <- center + half
+  } else {
+    lower <- if (x == 0) 0 else stats::qbeta(alpha / 2, x, n - x + 1)
+    upper <- if (x == n) 1 else stats::qbeta(1 - alpha / 2, x + 1, n - x)
+  }
+  list(lower = max(0, min(1, lower)), upper = max(0, min(1, upper)))
+}
+
+# Half-width relative to a reference proportion (not necessarily p_hat = x/n):
+# for asymmetric intervals, the one-sided distances to each limit differ, and
+# the planning criterion is their maximum, never half of the total width.
+sample_size_binomial_half_width <- function(x, n, alpha, method, p_reference) {
+  ci <- sample_size_binomial_ci(x, n, alpha, method)
+  lower_half_width <- p_reference - ci$lower
+  upper_half_width <- ci$upper - p_reference
+  list(
+    lower = ci$lower,
+    upper = ci$upper,
+    lower_half_width = lower_half_width,
+    upper_half_width = upper_half_width,
+    maximum_half_width = max(lower_half_width, upper_half_width),
+    total_width = ci$upper - ci$lower
+  )
+}
+
+# Candidate event counts for a given planning criterion at sample size n.
+# "expected": the single anticipated count round(n * p).
+# "worst_case": a prevalence-local band of counts (binomial 0.001/0.999
+# quantiles) - far cheaper and more relevant to the planned p than a global
+# search over x = 0..n, which would mostly probe implausible outcomes. When
+# the band exceeds 10,000 integers (only for very large n), a deterministic
+# grid (both endpoints, floor/ceiling/round of n*p, and an evenly spaced
+# 2,000-point subset) approximates it instead of enumerating every integer.
+sample_size_binomial_candidate_counts <- function(n, p, criterion) {
+  if (identical(criterion, "expected")) {
+    return(round(n * p))
+  }
+  q <- stats::qbinom(c(0.001, 0.999), size = n, prob = p)
+  lo <- max(0, q[1])
+  hi <- min(n, q[2])
+  if (hi - lo + 1 > 10000) {
+    grid <- c(lo, hi, floor(n * p), ceiling(n * p), round(n * p), as.integer(round(seq(lo, hi, length.out = 2000))))
+    grid <- grid[grid >= 0 & grid <= n]
+    return(sort(unique(grid)))
+  }
+  lo:hi
+}
+
+sample_size_binomial_max_half_width <- function(n, p, alpha, method, criterion) {
+  counts <- sample_size_binomial_candidate_counts(n, p, criterion)
+  hws <- vapply(counts, function(x) {
+    sample_size_binomial_half_width(x, n, alpha, method, p_reference = x / n)$maximum_half_width
+  }, numeric(1))
+  max(hws)
+}
+
+# Deterministic minimum-n search for Wilson/exact planning (no simulation, no
+# random numbers): start from the Wald closed-form n as an initial scale,
+# double the upper bound until the precision criterion passes (or `max_n` is
+# exceeded), bisect for a boundary n, then run a bounded backward repair scan
+# (see below) to correct for local non-monotonicity in the (integer-valued,
+# rounding-driven) criterion.
+#
+# IMPORTANT: max_half_width(n) is not guaranteed strictly monotone
+# non-increasing in n. Because x = round(n * p) (and, for criterion =
+# "worst_case", the qbinom() quantile band) jump discretely as n changes,
+# max_half_width(n) can briefly *increase* at isolated n even though the
+# underlying interval width shrinks on average as n grows. Empirically this
+# affects up to ~5-7% of individual n -> n+1 steps (worse for moderate rare
+# p, e.g. p = 0.05), and can leave an isolated smaller passing n more than
+# one step below the point where plain bisection converges - a single
+# "does n - 1 also pass" check is not enough to catch it (verified by
+# brute-force comparison in tests). The backward scan below re-scans a
+# window immediately below the bisection result and slides further back
+# whenever it finds a smaller passing n, which empirically closes this gap
+# without falling back to an unbounded linear scan from n = 1.
+sample_size_binomial_search <- function(p, width, alpha, method, criterion, max_n) {
+  passes <- function(n) sample_size_binomial_max_half_width(n, p, alpha, method, criterion) <= width
+
+  if (passes(2)) return(2L)
+
+  z <- stats::qnorm(1 - alpha / 2)
+  hi <- min(max(2, ceiling(z^2 * p * (1 - p) / width^2)), max_n)
+  while (!passes(hi)) {
+    if (hi >= max_n) {
+      if (passes(max_n)) {
+        hi <- max_n
+        break
+      }
+      stop(
+        "No sample size up to max_n = ", max_n, " achieves the requested precision ",
+        "(method = \"", method, "\", criterion = \"", criterion, "\"). ",
+        "Increase `max_n` or relax `width`.",
+        call. = FALSE
+      )
+    }
+    hi <- min(hi * 2, max_n)
+  }
+
+  lo <- 2L
+  while (hi - lo > 1) {
+    mid <- lo + (hi - lo) %/% 2L
+    if (passes(mid)) hi <- mid else lo <- mid
+  }
+
+  # Backward repair scan: local non-monotonicity can hide a smaller passing n
+  # within a window below `hi`. Re-scan windows immediately below the current
+  # candidate and adopt the smallest passing n found; repeat until a window
+  # yields no improvement. `window` scales with 1/p so it comfortably spans
+  # the spacing between consecutive round(n * p) jumps.
+  window <- max(50L, as.integer(ceiling(4 / p)))
+  repeat {
+    scan_lo <- max(2L, hi - window)
+    if (scan_lo >= hi) break
+    candidates <- scan_lo:(hi - 1L)
+    passing <- candidates[vapply(candidates, passes, logical(1))]
+    if (length(passing) == 0) break
+    new_hi <- min(passing)
+    if (new_hi >= hi) break
+    hi <- new_hi
+  }
+  as.integer(hi)
+}
+
+sample_size_binomial_required_n <- function(p, width, alpha, method, criterion, max_n) {
+  sample_size_binomial_search(p, width, alpha, method, criterion, max_n)
 }
 
 #' Plot a sample size object
@@ -1299,8 +1731,31 @@ print.sample_size <- function(x, ...) {
     tf_blank()
     tf_section("Report")
     tf_line(report(x))
+    print_diagnostics_section(x$diagnostics)
     invisible(x)
   })
+}
+
+# Compact "Diagnostics" section shared by print.sample_size() and
+# print.summary.sample_size(); a no-op when diagnostics are absent (e.g. for
+# endpoints/designs other than one-sample binary precision).
+print_diagnostics_section <- function(d) {
+  if (is.null(d)) return(invisible(NULL))
+  tf_blank()
+  tf_section("Diagnostics")
+  tf_field("Anticipated prevalence", format_sample_value(d$anticipated_prevalence))
+  tf_field("Confidence level", format_sample_value(d$confidence_level))
+  tf_field("CI method", d$ci_method)
+  tf_field("Precision criterion", d$precision_criterion)
+  tf_field("Complete-case n", format_sample_count(d$complete_case_n))
+  tf_field("Adjusted (recruitment) n", format_sample_count(d$adjusted_n))
+  tf_field("Expected events (adjusted n)", format_sample_value(d$expected_events))
+  tf_field("P(zero events)", format_sample_value(d$probability_zero_events))
+  tf_field("Achieved maximum half-width", format_sample_value(d$achieved_maximum_half_width))
+  if (!is.null(d$approximation_warning)) {
+    tf_line(paste0("Note: ", d$approximation_warning))
+  }
+  invisible(NULL)
 }
 
 #' Summarize a sample size object
@@ -1321,7 +1776,8 @@ summary.sample_size <- function(object, ...) {
     n_total = object$n_total,
     required_events = object$required_events,
     assumptions = object$assumptions,
-    report = report(object)
+    report = report(object),
+    diagnostics = object$diagnostics
   )
   class(out) <- "summary.sample_size"
   out
@@ -1350,6 +1806,7 @@ print.summary.sample_size <- function(x, ...) {
       tf_section("Report")
       tf_line(x$report)
     }
+    print_diagnostics_section(x$diagnostics)
     invisible(x)
   })
 }
@@ -1361,7 +1818,7 @@ print.summary.sample_size <- function(x, ...) {
 #' @return A one-row tibble summarizing the planning result.
 #' @export
 as_tibble.sample_size <- function(x, ...) {
-  tibble::tibble(
+  out <- tibble::tibble(
     endpoint = x$endpoint,
     design = x$design,
     objective = x$objective,
@@ -1373,6 +1830,24 @@ as_tibble.sample_size <- function(x, ...) {
     required_events = format_sample_size_value(x$required_events),
     report = x$report
   )
+  d <- x$diagnostics
+  if (!is.null(d)) {
+    out <- dplyr::bind_cols(out, tibble::tibble(
+      anticipated_prevalence = d$anticipated_prevalence,
+      confidence_level = d$confidence_level,
+      ci_method = d$ci_method,
+      precision_criterion = d$precision_criterion,
+      complete_case_n = d$complete_case_n,
+      adjusted_n = d$adjusted_n,
+      expected_events = d$expected_events,
+      expected_non_events = d$expected_non_events,
+      probability_zero_events = d$probability_zero_events,
+      probability_at_least_one_event = d$probability_at_least_one_event,
+      achieved_maximum_half_width = d$achieved_maximum_half_width,
+      dropout = d$dropout
+    ))
+  }
+  out
 }
 
 #' Return a sample size report
@@ -1385,7 +1860,7 @@ report.sample_size <- function(x, ...) {
   x$report
 }
 
-sample_size_result <- function(endpoint, design, objective, method, n, n_adjusted, n_per_group = NULL, n_total = NULL, required_events = NULL, assumptions = NULL, report, plot_data = NULL, curve_data = NULL) {
+sample_size_result <- function(endpoint, design, objective, method, n, n_adjusted, n_per_group = NULL, n_total = NULL, required_events = NULL, assumptions = NULL, report, plot_data = NULL, curve_data = NULL, diagnostics = NULL) {
   x <- list(
     endpoint = endpoint,
     design = design,
@@ -1399,7 +1874,8 @@ sample_size_result <- function(endpoint, design, objective, method, n, n_adjuste
     assumptions = assumptions,
     report = report,
     plot_data = plot_data,
-    curve_data = curve_data
+    curve_data = curve_data,
+    diagnostics = diagnostics
   )
   class(x) <- c("sample_size", "testflow_sample_size")
   x
@@ -1488,6 +1964,20 @@ sample_size_validate_positive <- function(x, name) {
 
 sample_size_validate_dropout <- function(dropout) {
   sample_size_validate_probability(dropout, "dropout", allow_zero = TRUE)
+}
+
+sample_size_validate_nonnegative <- function(x, name) {
+  if (length(x) != 1 || is.na(x) || !is.numeric(x) || x < 0) {
+    stop("`", name, "` must be a single non-negative numeric value.", call. = FALSE)
+  }
+  invisible(x)
+}
+
+sample_size_validate_max_n <- function(max_n) {
+  if (length(max_n) != 1 || is.na(max_n) || !is.numeric(max_n) || !is.finite(max_n) || max_n < 2 || !isTRUE(all.equal(max_n, round(max_n)))) {
+    stop("`max_n` must be a single finite integer greater than or equal to 2.", call. = FALSE)
+  }
+  as.integer(round(max_n))
 }
 
 sample_size_round <- function(x) {

@@ -49,6 +49,8 @@ Suggests:
     knitr,
     rmarkdown,
     effectsize,
-    patchwork
+    patchwork,
+    PowerTOST,
+    irr
 Config/testthat/edition: 3
 VignetteBuilder: knitr

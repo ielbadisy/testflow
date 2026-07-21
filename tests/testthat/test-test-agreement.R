@@ -26,13 +26,43 @@ test_that("test_agreement matches the Fleiss-Cohen-Everitt (1969) kappa SE formu
   ci_ref <- kappa_ref + c(-1, 1) * stats::qnorm(0.975) * se_ref
   expect_equal(c(x$primary_test$conf.low, x$primary_test$conf.high), ci_ref)
 
-  z_ref <- kappa_ref / se_ref
+  # The z-test of H0: kappa = 0 must use the NULL-hypothesis SE (Fleiss,
+  # 1981), evaluated at kappa = 0 - a different, generally smaller-magnitude
+  # SE than se_ref above (which is appropriate for the CI, not this test).
+  # Reusing se_ref here was a real bug: it understates the null SE whenever
+  # kappa is materially above 0, inflating z and anti-conservatively
+  # shrinking the p-value.
+  se0_ref <- sqrt(pe + pe^2 - sum(pi_row * pi_col * (pi_row + pi_col))) / ((1 - pe) * sqrt(n_tot))
+  z_ref <- kappa_ref / se0_ref
   p_ref <- 2 * stats::pnorm(-abs(z_ref))
+  expect_equal(x$primary_test$statistic, z_ref)
   expect_equal(x$primary_test$p.value, p_ref)
   expect_equal(x$effect_size$magnitude[1], "substantial")
 
+  # se0_ref must differ from se_ref (otherwise this test can't distinguish
+  # the fix from the original bug), and must be the larger of the two here
+  # (kappa is well above chance, the typical case where the bug mattered).
+  expect_true(se0_ref > se_ref)
+
   expect_s3_class(plot(x), "ggplot")
   expect_type(report(x), "character")
+})
+
+test_that("test_agreement's kappa hypothesis test matches irr::kappa2()'s null-hypothesis z-test", {
+  skip_if_not_installed("irr")
+  set.seed(2)
+  n <- 200
+  cats <- c("A", "B", "C")
+  rater1 <- sample(cats, n, replace = TRUE, prob = c(0.5, 0.3, 0.2))
+  rater2 <- ifelse(stats::runif(n) < 0.75, rater1, sample(cats, n, replace = TRUE))
+  dat <- data.frame(r1 = factor(rater1, levels = cats), r2 = factor(rater2, levels = cats))
+
+  x <- test_agreement(dat, rater1 = r1, rater2 = r2)
+  irr_res <- irr::kappa2(dat[, c("r1", "r2")])
+
+  expect_equal(unname(x$effect_size$estimate[1]), unname(irr_res$value), tolerance = 1e-8)
+  expect_equal(unname(x$primary_test$statistic), unname(irr_res$statistic), tolerance = 1e-6)
+  expect_equal(unname(x$primary_test$p.value), unname(irr_res$p.value), tolerance = 1e-6)
 })
 
 test_that("test_agreement handles category sets that appear in only one rater's column", {
