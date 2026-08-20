@@ -35,7 +35,7 @@ sumtab <- function(
   group_labels <- sumtab_group_labels(data, parsed$group, group_levels)
   overall_label <- paste0("Overall (n = ", nrow(data), ")")
 
-  purrr::map_dfr(parsed$vars, function(variable) {
+  out <- purrr::map_dfr(parsed$vars, function(variable) {
     rows <- if (is.numeric(data[[variable]])) {
       sumtab_numeric_rows(data, variable, parsed$group, group_levels, group_labels, overall, overall_label, digits, na.rm)
     } else {
@@ -50,6 +50,25 @@ sumtab <- function(
 
     rows
   })
+
+  class(out) <- c("testflow_sumtab", class(out))
+  out
+}
+
+#' Print a testflow summary table
+#'
+#' @description
+#' Prints a `sumtab()` result without column truncation, unlike the default
+#' tibble print method, which hides columns and truncates cell text (e.g.
+#' `"58.0 (10.4)…"`) once the table exceeds the console width.
+#'
+#' @param x A `testflow_sumtab` object, as returned by [sumtab()].
+#' @param ... Unused.
+#' @return The input object, invisibly.
+#' @export
+print.testflow_sumtab <- function(x, ...) {
+  tf_table(x)
+  invisible(x)
 }
 
 parse_sumtab_formula <- function(expr) {
