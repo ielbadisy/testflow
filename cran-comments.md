@@ -1,38 +1,34 @@
 ## Resubmission
 
-This release fixes the r-devel errors CRAN reported against the currently
-published version (0.8.2) on 2026-07-16:
+This is a resubmission. The previously published CRAN version was 0.9.0.
 
-  Running 'testthat.R' [...] failed / Error in
-  `if (is.finite(resvar) && resvar < (mean(fitted)^2 + var(c(fitted))) *
-  1e-30) perfect.fit[y] <- TRUE`: missing value where TRUE/FALSE needed
+Since 0.9.0, this release:
 
-The error originated in `repeated_anova_test()`, which called `summary()`
-on an `aovlist` fit (`aov(... + Error(id/within))`). That walks every
-`Error()` stratum, including the degenerate intercept-only stratum, which
-has a single fitted value. A recent r-devel change to
-`stats:::summary.aov()`'s "perfect fit" check computes `var()` on that
-stratum's fitted values, which is `NA` for a length-1 vector, turning the
-guard's result into `NA` instead of `TRUE`/`FALSE`. This broke 5 tests
-(`test-assumptions-repeated.R`, `test-assumptions-structure.R`,
-`test-print.R`, `test-test-repeated.R`) and re-building the
-`statistical-test-workflows.Rmd` vignette on r-devel (Debian, Fedora,
-Windows), though not on release R.
-
-`repeated_anova_test()` (R/repeated-methods.R) now summarizes each
-`Error()` stratum independently and skips any that fail to summarize,
-since the intercept-only stratum was never used for the reported test.
-Verified with 421 passing tests locally (release R doesn't reproduce the
-bug, so this can't be confirmed against r-devel until the next CRAN
-pretest).
-
-This version also folds in unrelated work already queued on the
-development branch before the CRAN report arrived: closed remaining
-`"not checked"` assumption gaps (sphericity, symmetry-of-deviations,
-linearity, BH-adjusted correlation-matrix p-values; `car` moved from
-`Suggests` to `Imports`), and removed the unverified Whitehead ordinal
-sample-size method (`sample_size_ordinal(method = "whitehead")`) since its
-formula couldn't be checked against a published worked example.
+- Fixes two scientific-validity bugs: `sample_size_bioequivalence(method =
+  "iterative_tost")` computed TOST power via a normal approximation instead
+  of the exact noncentral-t formula (Phillips 1990), under-sizing studies by
+  up to ~20% in some designs; `test_agreement()`'s test of `kappa = 0` reused
+  the confidence-interval standard error instead of the correct
+  null-hypothesis standard error (Fleiss 1981), inflating z and
+  anti-conservative p-values. Both verified against reference implementations
+  (`PowerTOST::power.TOST()`, `irr::kappa2()`).
+- Adds rare-prevalence support to `sample_size_precision(endpoint =
+  "binary")` (new Wilson/exact search methods, rare-event diagnostics), and
+  fixes a bug where two-sample binary precision planning silently ignored
+  unequal allocation.
+- Closes remaining "not checked" assumption-diagnostic gaps (sphericity,
+  symmetry-of-deviations, linearity, BH-adjusted correlation matrix); `car`
+  moved from `Suggests` to `Imports` accordingly.
+- Fixes an R-devel error in `test_repeated()`/`test_repeated_long()` (see
+  prior resubmission note below, now folded into this release).
+- Removes the unverified `sample_size_ordinal(method = "whitehead")`.
+- Refocuses the DESCRIPTION Title/Description on statistical-test workflows
+  (drops a stale `ggplot2`-visualization framing) and adds a new consolidated
+  pedagogical reference vignette.
+- Package version bumped to 1.0.0 to mark the first release with the full
+  statistical-testing + sample-size-planning surface validated against
+  reference implementations across the board (see NEWS.md for the complete
+  per-function detail).
 
 ## R CMD check results
 
@@ -43,6 +39,10 @@ The note is:
 - unable to verify current time. This appears to be local environment-related
   during `R CMD check --as-cran`; no future timestamps were found in package
   files.
+
+`R CMD build --compact-vignettes=both` was used to compact the 5 vignette
+PDFs (largest: 648Kb to 346Kb), which otherwise triggered a "checking sizes
+of PDF files under 'inst/doc'" WARNING under `--as-cran`.
 
 ## test environments
 
