@@ -32,17 +32,25 @@ Since 0.9.0, this release:
 
 ## R CMD check results
 
-0 errors | 0 warnings | 1 note
+0 errors | 0 warnings | 2 notes
 
-The note is:
+The notes are:
 
 - unable to verify current time. This appears to be local environment-related
   during `R CMD check --as-cran`; no future timestamps were found in package
   files.
+- "New maintainer" — the Maintainer field's family-name casing changed from
+  "EL BADISY" to "El Badisy" (title case); same person, same email address,
+  no change in maintainership.
 
 `R CMD build --compact-vignettes=both` was used to compact the 5 vignette
 PDFs (largest: 648Kb to 346Kb), which otherwise triggered a "checking sizes
 of PDF files under 'inst/doc'" WARNING under `--as-cran`.
+
+Also fixed a "no visible binding for global variable '.data'" NOTE across
+6 functions (`descriptives_numeric`, `iqr_outliers`, `make_plot`,
+`plot.sample_size`, `repeated_core`, `test_agreement`) by adding
+`@importFrom rlang .data` via a new `R/testflow-package.R`.
 
 ## test environments
 
