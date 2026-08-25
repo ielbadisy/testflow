@@ -38,7 +38,7 @@ test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2
   } else {
     outcome_nm <- rlang::as_name(second_expr)
     factor_nms <- tidyselect_names(data_obj, {{ factors }})
-    formula_obj <- stats::as.formula(paste(outcome_nm, "~", paste(factor_nms, collapse = " * ")))
+    formula_obj <- stats::as.formula(paste(tf_backtick(outcome_nm), "~", paste(tf_backtick(factor_nms), collapse = " * ")))
   }
   warn_if_two_groups_for_factorial(factor_nms)
   stopifnot(type %in% c(1, 2, 3))

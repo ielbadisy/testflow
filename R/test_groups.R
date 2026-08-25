@@ -26,7 +26,7 @@ test_groups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRU
   independence <- check_independence_note()
   outliers <- check_outliers(df[[outcome_nm]])
   recommendation <- recommend_groups(normality, levene)
-  formula <- stats::as.formula(paste(outcome_nm, "~", group_nm))
+  formula <- tf_formula(outcome_nm, group_nm)
   aov_fit <- stats::aov(formula, data = df)
   aov_test <- broom::tidy(aov_fit) |> dplyr::slice(1) |> dplyr::rename(p.value = "p.value")
   welch <- stats::oneway.test(formula, data = df, var.equal = FALSE)

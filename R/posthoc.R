@@ -1,5 +1,5 @@
 posthoc_groups <- function(data, outcome, group, recommendation, alpha = 0.05) {
-  formula <- stats::as.formula(paste(outcome, "~", group))
+  formula <- tf_formula(outcome, group)
   if (recommendation == "One-way ANOVA") {
     fit <- stats::aov(formula, data = data)
     return(list(method = "Tukey HSD", result = stats::TukeyHSD(fit), p.adjust.method = "Tukey"))

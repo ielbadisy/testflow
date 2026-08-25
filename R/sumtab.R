@@ -219,7 +219,7 @@ sumtab_numeric_two_group_test <- function(data, variable, group, alpha) {
   normality <- check_normality(data, variable, group, alpha)
   variance <- check_variance_homogeneity(data, variable, group, alpha)
   recommendation <- recommend_two_groups(normality, variance)
-  formula <- stats::as.formula(paste(variable, "~", group))
+  formula <- tf_formula(variable, group)
 
   test <- switch(
     recommendation,
@@ -235,7 +235,7 @@ sumtab_numeric_multi_group_test <- function(data, variable, group, alpha) {
   normality <- check_normality(data, variable, group, alpha)
   variance <- check_variance_homogeneity(data, variable, group, alpha)
   recommendation <- recommend_groups(normality, variance)
-  formula <- stats::as.formula(paste(variable, "~", group))
+  formula <- tf_formula(variable, group)
 
   p <- switch(
     recommendation,

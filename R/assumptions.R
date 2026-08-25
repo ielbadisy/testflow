@@ -172,7 +172,7 @@ check_sphericity <- function(wide_matrix, alpha = 0.05) {
 #' Check homogeneity of variance
 #' @noRd
 check_variance_homogeneity <- function(data, outcome, group, alpha = 0.05) {
-  formula <- stats::as.formula(paste(outcome, "~", group))
+  formula <- tf_formula(outcome, group)
   lt <- car::leveneTest(formula, data = data)
   p <- lt[["Pr(>F)"]][1]
   stat <- lt[["F value"]][1]
@@ -191,7 +191,7 @@ check_variance_homogeneity <- function(data, outcome, group, alpha = 0.05) {
 #' Check variance for two groups
 #' @noRd
 check_variance_two_groups <- function(data, outcome, group, alpha = 0.05) {
-  formula <- stats::as.formula(paste(outcome, "~", group))
+  formula <- tf_formula(outcome, group)
   test <- stats::var.test(formula, data = data)
   tibble::tibble(
     name = "Variance ratio check",
@@ -209,7 +209,7 @@ check_variance_two_groups <- function(data, outcome, group, alpha = 0.05) {
 #' Check Bartlett homogeneity
 #' @noRd
 check_bartlett <- function(data, outcome, group, alpha = 0.05) {
-  test <- stats::bartlett.test(stats::as.formula(paste(outcome, "~", group)), data = data)
+  test <- stats::bartlett.test(tf_formula(outcome, group), data = data)
   tibble::tibble(
     name = "Bartlett test",
     method = "Bartlett test",

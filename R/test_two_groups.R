@@ -36,7 +36,7 @@ test_two_groups <- function(
   outliers <- check_outliers(df[[outcome_nm]])
   independence <- check_independence_note()
   recommendation <- recommend_two_groups(normality, levene)
-  formula <- stats::as.formula(paste(outcome_nm, "~", group_nm))
+  formula <- tf_formula(outcome_nm, group_nm)
 
   student <- stats::t.test(formula, data = df, var.equal = TRUE, alternative = alternative)
   welch <- stats::t.test(formula, data = df, var.equal = FALSE, alternative = alternative)

@@ -174,6 +174,17 @@ resolve_formula_pair <- function(first_expr, second_expr, third_expr, third_miss
   )
 }
 
+# Backtick-quotes column names before they're pasted into a formula string,
+# so names with spaces/hyphens (non-syntactic names) don't break
+# stats::as.formula()'s str2lang() parse. Backticks around already-syntactic
+# names are harmless.
+tf_backtick <- function(x) paste0("`", x, "`")
+
+# Builds `outcome ~ group`, backtick-quoting both sides.
+tf_formula <- function(outcome, group) {
+  stats::as.formula(paste(tf_backtick(outcome), "~", tf_backtick(group)))
+}
+
 resolve_data_first_or_formula <- function(first_value, second_value) {
   if (inherits(first_value, "data.frame")) first_value else second_value
 }

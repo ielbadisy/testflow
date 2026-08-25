@@ -1,5 +1,5 @@
 repeated_anova_test <- function(long, outcome, within, id) {
-  formula <- stats::as.formula(paste(outcome, "~", within, "+ Error(", id, "/", within, ")"))
+  formula <- stats::as.formula(paste(tf_backtick(outcome), "~", tf_backtick(within), "+ Error(", tf_backtick(id), "/", tf_backtick(within), ")"))
   fit <- stats::aov(formula, data = long)
   tab <- purrr::map(fit, function(stratum) {
     tryCatch(summary(stratum), error = function(e) NULL)
