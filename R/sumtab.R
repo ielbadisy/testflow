@@ -252,8 +252,17 @@ sumtab_categorical_test <- function(data, variable, group, fisher_threshold) {
   chi <- suppressWarnings(stats::chisq.test(tab, correct = FALSE))
 
   if (any(chi$expected < fisher_threshold)) {
-    fisher <- stats::fisher.test(tab)
-    return(list(p.value = fisher$p.value, method = "Fisher exact test"))
+    fisher <- tryCatch(stats::fisher.test(tab), error = function(e) e)
+    if (!inherits(fisher, "error")) {
+      return(list(p.value = fisher$p.value, method = "Fisher exact test"))
+    }
+    warning(
+      "`", variable, "` has too many levels for an exact Fisher test (",
+      conditionMessage(fisher), "); falling back to the chi-square test of ",
+      "independence despite small expected counts. Interpret with caution, ",
+      "or collapse rare levels before calling `sumtab()`.",
+      call. = FALSE
+    )
   }
 
   list(p.value = chi$p.value, method = "Chi-square test of independence")
