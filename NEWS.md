@@ -1,3 +1,23 @@
+# testflow 1.0.1
+
+## Bug fixes
+
+- `sumtab()`, `test_groups()`, `test_two_groups()`, `test_factorial()`,
+  `posthoc_groups()`, and the repeated-measures ANOVA helper crashed with
+  `str2lang(): unexpected symbol` on column names containing spaces or
+  hyphens (e.g. `` `Healthy-lifestyle counselling` ``), because formulas
+  were built by pasting raw names into a string. Names are now always
+  backtick-quoted before being parsed.
+- `sumtab()` on a categorical column with many levels (e.g. ~40 unique
+  values against a small group) crashed with `integer overflow in exact
+  computation` inside `fisher.test()`. Now falls back to the chi-square
+  test of independence with a warning naming the variable, instead of
+  erroring.
+- `test_paired()`'s Wilcoxon branch never reported a location-shift
+  estimate or confidence interval (Hodges-Lehmann pseudomedian), leaving
+  `estimate`/`conf.low`/`conf.high` `NA` and inconsistent with the t-test
+  branch. `wilcox.test()` is now called with `conf.int = TRUE`.
+
 # testflow 1.0.0
 
 ## Bug fixes
