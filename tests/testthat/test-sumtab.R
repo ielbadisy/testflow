@@ -55,6 +55,34 @@ test_that("sumtab selects Fisher exact test for sparse categorical tables", {
   expect_false(is.na(out$p.value[1]))
 })
 
+test_that("sumtab handles non-syntactic column names", {
+  dat <- tibble::tibble(
+    `weird-name here` = c(stats::rnorm(20), stats::rnorm(20, 1)),
+    grp = rep(c("A", "B"), each = 20)
+  )
+
+  out <- sumtab(~ `weird-name here` | grp, dat, p_value = TRUE)
+
+  expect_equal(out$variable, "weird-name here")
+  expect_false(is.na(out$p.value[1]))
+})
+
+test_that("sumtab falls back to chi-square when Fisher's exact test overflows", {
+  set.seed(3)
+  dat <- tibble::tibble(
+    cat = sample(paste0("cat", 1:40), 200, replace = TRUE),
+    grp = sample(c("A", "B"), 200, replace = TRUE)
+  )
+
+  expect_warning(
+    out <- sumtab(~ cat | grp, dat, p_value = TRUE),
+    "too many levels"
+  )
+
+  expect_equal(out$test[1], "Chi-square test of independence")
+  expect_false(is.na(out$p.value[1]))
+})
+
 test_that("sumtab validates formula shape and selected columns", {
   dat <- tibble::tibble(x = 1:3)
 

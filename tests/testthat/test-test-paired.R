@@ -13,3 +13,14 @@ test_that("test_paired computes differences and returns plot", {
   expect_true("effect_size" %in% names(z$primary_test))
   expect_false(is.na(z$primary_test$effect_size[1]))
 })
+
+test_that("test_paired's Wilcoxon branch reports a Hodges-Lehmann estimate and CI", {
+  set.seed(4)
+  dat <- tibble::tibble(before = stats::rexp(30, 1), after = before + stats::rexp(30, 1) - 0.5)
+  x <- test_paired(dat, before, after)
+
+  wilcox <- x$alternative_tests$wilcox
+  expect_false(is.na(wilcox$estimate[1]))
+  expect_false(is.na(wilcox$conf.low[1]))
+  expect_false(is.na(wilcox$conf.high[1]))
+})
