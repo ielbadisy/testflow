@@ -38,7 +38,7 @@ test_paired <- function(formula, data, after = NULL, alternative = c("two.sided"
   outliers <- check_outliers(df$diff)
   recommendation <- recommend_paired(normality)
   ttest <- stats::t.test(df[[after_nm]], df[[before_nm]], paired = TRUE, alternative = alternative)
-  wilcox <- stats::wilcox.test(df[[after_nm]], df[[before_nm]], paired = TRUE, alternative = alternative, exact = FALSE)
+  wilcox <- stats::wilcox.test(df[[after_nm]], df[[before_nm]], paired = TRUE, alternative = alternative, exact = FALSE, conf.int = TRUE)
   signs <- stats::binom.test(sum(df$diff > 0), sum(df$diff != 0), p = 0.5, alternative = alternative)
   primary <- if (recommendation == "Paired t-test") ttest else wilcox
   effect <- cohens_d_paired(df[[before_nm]], df[[after_nm]])
