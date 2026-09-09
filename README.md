@@ -33,8 +33,13 @@ and a concise written interpretation.
 
 ## Installation
 
-`testflow` is not on CRAN yet. Install the development version from
-GitHub:
+Install the released version from CRAN:
+
+``` r
+install.packages("testflow")
+```
+
+Or install the development version from GitHub:
 
 ``` r
 install.packages("remotes")
@@ -122,7 +127,7 @@ paired
 #> Assumptions
 #> * Independence of observations: assumed: Paired observations from the same subjects are assumed by design.
 #> * Normality: diff: acceptable: Approximate normality looks reasonable. (method=Shapiro-Wilk; statistic=0.99; p=0.557)
-#> * Symmetry of paired differences: not checked: Normality made the symmetry check unnecessary.
+#> * Symmetry of paired differences: acceptable: The deviations from the reference value look approximately symmetric. (method=Cabilio-Masaro test; statistic=0.47; p=0.635)
 #> * Extreme outliers: warning: 1 potential outlier(s) flagged by IQR. (IQR rule, n = 1)
 #> 
 #> Recommended test
@@ -242,14 +247,11 @@ p-values based on variable type and grouping structure.
 
 ``` r
 sumtab(~ age + sex + sbp_3m | treatment, cardio, p_value = TRUE)
-#> # A tibble: 4 × 8
-#>   variable level  `Overall (n = 180)` `usual care (n = 55)` `lifestyle (n = 71)`
-#>   <chr>    <chr>  <chr>               <chr>                 <chr>               
-#> 1 age      <NA>   57.9 (10.7); 58.0 … 56.3 (10.0); 56.0 [5… 59.4 (10.4); 60.0 […
-#> 2 sex      female 96 (53.3%)          32 (58.2%)            39 (54.9%)          
-#> 3 sex      male   84 (46.7%)          23 (41.8%)            32 (45.1%)          
-#> 4 sbp_3m   <NA>   139.3 (19.5); 139.… 144.1 (19.3); 146.0 … 140.1 (18.2); 139.4…
-#> # ℹ 3 more variables: `medication (n = 54)` <chr>, p.value <chr>, test <chr>
+#>  variable  level                         Overall (n = 180)                      usual care (n = 55)                       lifestyle (n = 71)                      medication (n = 54) p.value                            test
+#>       age   <NA>     57.9 (10.7); 58.0 [51.0, 64.2]; n=180     56.3 (10.0); 56.0 [51.0, 61.0]; n=55     59.4 (10.4); 60.0 [52.0, 67.0]; n=71     57.6 (11.7); 57.5 [50.0, 64.0]; n=54   0.255                   One-way ANOVA
+#>       sex female                                96 (53.3%)                               32 (58.2%)                               39 (54.9%)                               25 (46.3%)   0.435 Chi-square test of independence
+#>       sex   male                                84 (46.7%)                               23 (41.8%)                               32 (45.1%)                               29 (53.7%)    <NA>                            <NA>
+#>    sbp_3m   <NA> 139.3 (19.5); 139.8 [127.5, 151.0]; n=180 144.1 (19.3); 146.0 [132.8, 152.7]; n=55 140.1 (18.2); 139.4 [132.4, 150.9]; n=71 133.5 (20.1); 135.4 [119.1, 148.2]; n=54   0.023             Kruskal-Wallis test
 ```
 
 ## Sample Size Planning
@@ -386,6 +388,25 @@ sumtab(~ age + sex + sbp_3m | treatment, cardio, p_value = TRUE)
 
 Effect-size formulas are documented in
 `vignettes/effect-size-formulas.Rmd`.
+
+## Citation
+
+``` r
+citation("testflow")
+#> To cite testflow in publications, use:
+#> 
+#>   El Badisy I (2026). _testflow: A Workflow for Statistical Testing and
+#>   Interpretation_. <https://CRAN.R-project.org/package=testflow>.
+#> 
+#> A BibTeX entry for LaTeX users is
+#> 
+#>   @Manual{,
+#>     title = {testflow: A Workflow for Statistical Testing and Interpretation},
+#>     author = {Imad {El Badisy}},
+#>     year = {2026},
+#>     url = {https://CRAN.R-project.org/package=testflow},
+#>   }
+```
 
 ## References
 

@@ -42,7 +42,13 @@ interpretation.
 
 ## Installation
 
-`testflow` is not on CRAN yet. Install the development version from GitHub:
+Install the released version from CRAN:
+
+```r
+install.packages("testflow")
+```
+
+Or install the development version from GitHub:
 
 ```r
 install.packages("remotes")
@@ -304,6 +310,12 @@ sumtab(~ age + sex + sbp_3m | treatment, cardio, p_value = TRUE)
 
 Effect-size formulas are documented in
 `vignettes/effect-size-formulas.Rmd`.
+
+## Citation
+
+```{r citation}
+citation("testflow")
+```
 
 ## References
 
