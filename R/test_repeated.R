@@ -31,7 +31,7 @@ test_repeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.0
   id_nm <- if (missing(id) || is.null(substitute(id))) ".testflow_id" else rlang::as_name(rlang::ensym(id))
   df <- data
   if (id_nm == ".testflow_id") df[[id_nm]] <- seq_len(nrow(df))
-  long <- tidyr::pivot_longer(df, dplyr::all_of(measure_nms), names_to = "time", values_to = "value")
+  long <- .pivot_longer_simple(df, measure_nms, "time", "value")
   repeated_core(long, "value", "time", id_nm, outcome_label = paste(measure_nms, collapse = ", "), display_by_within = TRUE, alpha = alpha, plot = plot, na.rm = na.rm, call = match.call())
 }
 
@@ -70,7 +70,16 @@ repeated_core <- function(data, outcome_nm, within_nm, id_nm, outcome_label = NU
     normality$name <- sub(paste0("^Normality: ", outcome_nm, " \\((.*)\\)$"), "Normality: \\1", normality$name)
     normality$variable <- normality$group
   }
-  wide <- tidyr::pivot_wider(df, names_from = dplyr::all_of(within_nm), values_from = dplyr::all_of(outcome_nm), id_cols = dplyr::all_of(id_nm))
+  wide <- stats::reshape(
+    as.data.frame(df[, c(id_nm, within_nm, outcome_nm), drop = FALSE]),
+    idvar = id_nm, timevar = within_nm, direction = "wide"
+  )
+  # stats::reshape() names the new value columns "<outcome_nm>.<level>"; strip
+  # the fixed prefix to match tidyr::pivot_wider()'s bare-level column names.
+  value_cols <- setdiff(names(wide), id_nm)
+  names(wide)[match(value_cols, names(wide))] <- substring(value_cols, nchar(outcome_nm) + 2)
+  rownames(wide) <- NULL
+  wide <- tibble::as_tibble(wide)
   measure_nms <- setdiff(names(wide), id_nm)
   complete <- stats::na.omit(wide[, measure_nms, drop = FALSE])
   sphericity <- check_sphericity(as.matrix(complete), alpha)

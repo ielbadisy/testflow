@@ -19,7 +19,7 @@ test_groups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRU
   data_obj <- resolve_data_first_or_formula(formula, data)
   df <- drop_missing(data_obj, c(outcome_nm, group_nm), na.rm = na.rm)
   df[[group_nm]] <- as.factor(df[[group_nm]])
-  if (dplyr::n_distinct(df[[group_nm]]) < 3) stop("`group` must contain at least three groups.", call. = FALSE)
+  if (length(unique(df[[group_nm]])) < 3) stop("`group` must contain at least three groups.", call. = FALSE)
   normality <- check_normality(df, outcome_nm, group_nm, alpha)
   levene <- check_variance_homogeneity(df, outcome_nm, group_nm, alpha)
   bartlett <- check_bartlett(df, outcome_nm, group_nm, alpha)
@@ -28,7 +28,7 @@ test_groups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRU
   recommendation <- recommend_groups(normality, levene)
   formula <- tf_formula(outcome_nm, group_nm)
   aov_fit <- stats::aov(formula, data = df)
-  aov_test <- broom::tidy(aov_fit) |> dplyr::slice(1) |> dplyr::rename(p.value = "p.value")
+  aov_test <- broom::tidy(aov_fit)[1, , drop = FALSE]
   welch <- stats::oneway.test(formula, data = df, var.equal = FALSE)
   kruskal <- stats::kruskal.test(formula, data = df)
   primary <- switch(recommendation, "One-way ANOVA" = list_obj_from_tidy(aov_test, "One-way ANOVA"), "Welch ANOVA" = welch, "Kruskal-Wallis test" = kruskal)
@@ -37,9 +37,9 @@ test_groups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRU
   primary_tidy <- add_null_hypothesis(primary_tidy, h0)
   ph <- if (posthoc) posthoc_groups(df, outcome_nm, group_nm, recommendation, alpha = alpha) else NULL
   effect <- if (recommendation == "Kruskal-Wallis test") {
-    h <- unname(kruskal$statistic); n <- nrow(df); k <- dplyr::n_distinct(df[[group_nm]])
+    h <- unname(kruskal$statistic); n <- nrow(df); k <- length(unique(df[[group_nm]]))
     tibble::tibble(name = "Kruskal epsilon squared", estimate = (h - k + 1) / (n - k), magnitude = magnitude_eta2((h - k + 1) / (n - k)))
-  } else eta_squared_aov(aov_fit) |> dplyr::slice(1)
+  } else eta_squared_aov(aov_fit)[1, , drop = FALSE]
   plt <- if (plot) make_plot("groups", df, outcome_nm, group_nm, recommendation, if (inherits(primary, "htest")) primary else list(p.value = primary_tidy$p.value[1]), effect) else NULL
   out <- new_testflow("groups", "more than two independent groups", outcome_nm, group_nm, data = df, descriptives = descriptives_numeric(df, outcome_nm, group_nm), assumptions = assumption_checks(independence, normality, levene, bartlett, outliers), recommended = list(test = recommendation), primary_test = primary_tidy, alternative_tests = list(anova = add_null_hypothesis(aov_test, h0), welch = add_null_hypothesis(safe_tidy_htest(welch, "Welch ANOVA"), h0), kruskal = add_null_hypothesis(safe_tidy_htest(kruskal, "Kruskal-Wallis test"), h0)), posthoc = ph, effect_size = effect, plot = plt, call = match.call(), subclass = "groups")
   out$interpretation <- make_report(out, alpha)

@@ -181,7 +181,7 @@ test_icc <- function(data, measures, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   measure_nms <- tidyselect_names(data, {{ measures }})
   df <- drop_missing(data, measure_nms, na.rm = na.rm)
   df$.subject <- factor(seq_len(nrow(df)))
-  long <- tidyr::pivot_longer(df, dplyr::all_of(measure_nms), names_to = ".rater", values_to = ".value")
+  long <- .pivot_longer_simple(df, measure_nms, ".rater", ".value")
   long$.rater <- factor(long$.rater)
 
   n <- nrow(df)

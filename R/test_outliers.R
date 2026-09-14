@@ -29,14 +29,11 @@ test_outliers <- function(formula, data, group = NULL, method = c("iqr", "mahala
   method_label <- ifelse(method == "iqr", "IQR outlier detection", title_case_method(paste(method, "outlier detection")))
   primary <- tibble::tibble(method = method_label, statistic = sum((iqr$is_outlier %||% FALSE), na.rm = TRUE), parameter = NA_real_, p.value = NA_real_)
   plt <- if (plot) {
-    long <- tidyr::pivot_longer(df, dplyr::all_of(vars), names_to = "variable", values_to = "value")
+    long <- .pivot_longer_simple(df, vars, "variable", "value")
     if (!is.null(iqr)) {
-      iqr_flags <- dplyr::select(iqr, "row", "variable", "is_outlier", "is_extreme")
-      long <- dplyr::left_join(
-        dplyr::mutate(long, row = dplyr::row_number(), .by = "variable"),
-        iqr_flags,
-        by = c("row", "variable")
-      )
+      iqr_flags <- iqr[, c("row", "variable", "is_outlier", "is_extreme"), drop = FALSE]
+      long$row <- stats::ave(seq_len(nrow(long)), long$variable, FUN = seq_along)
+      long <- merge(long, iqr_flags, by = c("row", "variable"), all.x = TRUE, sort = FALSE)
     }
     fences <- iqr_fences(df, vars)
     ggplot2::ggplot(long, ggplot2::aes(x = .data$variable, y = .data$value)) +
@@ -56,7 +53,7 @@ test_outliers <- function(formula, data, group = NULL, method = c("iqr", "mahala
 }
 
 iqr_fences <- function(data, vars) {
-  purrr::map_dfr(vars, function(v) {
+  .map_dfr(vars, function(v) {
     q1 <- stats::quantile(data[[v]], 0.25, na.rm = TRUE, names = FALSE)
     q3 <- stats::quantile(data[[v]], 0.75, na.rm = TRUE, names = FALSE)
     i <- q3 - q1
@@ -66,14 +63,24 @@ iqr_fences <- function(data, vars) {
 
 iqr_outliers <- function(data, vars, group = NULL) {
   calc <- function(df) {
-    purrr::map_dfr(vars, function(v) {
+    .map_dfr(vars, function(v) {
       q1 <- stats::quantile(df[[v]], 0.25, na.rm = TRUE)
       q3 <- stats::quantile(df[[v]], 0.75, na.rm = TRUE)
       i <- q3 - q1
       tibble::tibble(row = seq_len(nrow(df)), variable = v, value = df[[v]], is_outlier = df[[v]] < q1 - 1.5 * i | df[[v]] > q3 + 1.5 * i, is_extreme = df[[v]] < q1 - 3 * i | df[[v]] > q3 + 3 * i)
     })
   }
-  if (is.null(group)) calc(data) else data |> dplyr::group_by(.data[[group]]) |> dplyr::group_modify(~ calc(.x)) |> dplyr::ungroup()
+  if (is.null(group)) return(calc(data))
+
+  g <- data[[group]]
+  lvls <- sort(unique(g[!is.na(g)]))
+  if (anyNA(g)) lvls <- c(lvls, NA)
+  .map_dfr(lvls, function(lv) {
+    rows <- if (is.na(lv)) is.na(g) else !is.na(g) & g == lv
+    res <- calc(data[rows, , drop = FALSE])
+    res[[group]] <- lv
+    res[, c(group, setdiff(names(res), group)), drop = FALSE]
+  })
 }
 
 mahalanobis_outliers <- function(data, vars) {

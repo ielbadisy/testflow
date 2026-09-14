@@ -1,6 +1,6 @@
 Package: testflow
 Title: A Workflow for Statistical Testing and Interpretation
-Version: 1.0.1
+Version: 1.0.2
 Authors@R: c(
     person(
       given = "Imad",
@@ -35,11 +35,9 @@ Imports:
     stats,
     cli,
     rlang,
-    dplyr,
-    tidyr,
+    basetable (>= 1.4.1),
     tidyselect,
     tibble,
-    purrr,
     broom,
     ggplot2,
     survival,

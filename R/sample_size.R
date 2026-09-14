@@ -1832,7 +1832,7 @@ as_tibble.sample_size <- function(x, ...) {
   )
   d <- x$diagnostics
   if (!is.null(d)) {
-    out <- dplyr::bind_cols(out, tibble::tibble(
+    out <- tibble::as_tibble(cbind(out, tibble::tibble(
       anticipated_prevalence = d$anticipated_prevalence,
       confidence_level = d$confidence_level,
       ci_method = d$ci_method,
@@ -1845,7 +1845,7 @@ as_tibble.sample_size <- function(x, ...) {
       probability_at_least_one_event = d$probability_at_least_one_event,
       achieved_maximum_half_width = d$achieved_maximum_half_width,
       dropout = d$dropout
-    ))
+    )))
   }
   out
 }
@@ -1888,7 +1888,7 @@ sample_size_plot_frame <- function(labels, raw_values, adjusted_values) {
   }
   raw_df <- tibble::tibble(label = labels, type = "raw", value = as.numeric(raw_values), display = vapply(raw_values, format_sample_size_value, character(1)))
   adj_df <- tibble::tibble(label = labels, type = "adjusted", value = as.numeric(adjusted_values), display = vapply(adjusted_values, format_sample_size_value, character(1)))
-  dplyr::bind_rows(raw_df, adj_df)
+  tibble::as_tibble(basetable::rbindfill(raw_df, adj_df, fill = TRUE))
 }
 
 sample_size_curve_bundle <- function(n_target, power_target, n_grid, power_grid, unit_label, power_label) {
@@ -1933,8 +1933,8 @@ sample_size_repeated_effective_sd <- function(sd, n_time, correlation) {
 
 sample_size_assumptions <- function(...) {
   items <- list(...)
-  items <- purrr::keep(items, ~ !is.null(.x) && length(.x) > 0 && !all(is.na(.x)) && nzchar(as.character(.x)[1]))
-  purrr::imap_dfr(items, function(x, idx) {
+  items <- Filter(function(.x) !is.null(.x) && length(.x) > 0 && !all(is.na(.x)) && nzchar(as.character(.x)[1]), items)
+  .imap_dfr(items, function(x, idx) {
     assumption_check(
       name = paste0("Planning note ", idx),
       status = "assumed",

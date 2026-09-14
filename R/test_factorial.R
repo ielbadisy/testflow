@@ -85,7 +85,13 @@ test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2
   type_label <- c(`1` = "Type I (sequential)", `2` = "Type II", `3` = "Type III")[[as.character(type)]]
   balanced <- assumption_check("Balanced design", "not required", ifelse(length(unique(table(df[factor_nms]))) > 1, paste0("Cell sizes are unbalanced; ", type_label, " sums of squares are used so the terms are not order-dependent.", if (identical(type, 1)) " Type I sums of squares depend on the order factors are listed in the formula for unbalanced designs; consider `type = 2` or `type = 3`." else ""), "Cell sizes are balanced; Type I, II, and III sums of squares agree."))
   effect <- eta_squared_aov(fit, tab = ss_tab)
-  primary <- tab |> dplyr::filter(.data$term != "Residuals") |> dplyr::slice(1) |> dplyr::transmute(method = paste0("Factorial ANOVA (", type_label, ")"), statistic = .data$statistic, parameter = .data$df, p.value = .data$p.value)
+  keep_row <- tab[!is.na(tab$term) & tab$term != "Residuals", , drop = FALSE][1, , drop = FALSE]
+  primary <- tibble::tibble(
+    method = paste0("Factorial ANOVA (", type_label, ")"),
+    statistic = keep_row$statistic,
+    parameter = keep_row$df,
+    p.value = keep_row$p.value
+  )
   plt <- if (plot && length(factor_nms) >= 2) {
     ggplot2::ggplot(df, ggplot2::aes(x = .data[[factor_nms[1]]], y = .data[[outcome_nm]], color = .data[[factor_nms[2]]], group = .data[[factor_nms[2]]])) +
       ggplot2::stat_summary(fun = mean, geom = "line") +

@@ -28,7 +28,7 @@ paired_posthoc_numeric <- function(wide, method = c("t", "wilcox"), p.adjust.met
   method <- match.arg(method)
   measures <- names(wide)
   pairs <- utils::combn(measures, 2, simplify = FALSE)
-  out <- purrr::map_dfr(pairs, function(pair) {
+  out <- .map_dfr(pairs, function(pair) {
     x <- wide[[pair[1]]]
     y <- wide[[pair[2]]]
     test <- if (method == "t") {
@@ -51,7 +51,7 @@ paired_posthoc_numeric <- function(wide, method = c("t", "wilcox"), p.adjust.met
 
 pairwise_mcnemar <- function(mat, measure_names, p.adjust.method = "BH") {
   pairs <- utils::combn(seq_along(measure_names), 2, simplify = FALSE)
-  out <- purrr::map_dfr(pairs, function(pair) {
+  out <- .map_dfr(pairs, function(pair) {
     tab <- table(mat[, pair[1]], mat[, pair[2]])
     test <- stats::mcnemar.test(tab)
     tibble::tibble(

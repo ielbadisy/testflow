@@ -28,14 +28,21 @@ check_normality <- function(data, vars, group = NULL, alpha = 0.05) {
 
   vars <- as.character(vars)
   if (is.null(group)) {
-    purrr::map_dfr(vars, function(v) {
-      dplyr::mutate(run_one(data[[v]]), name = paste0("Normality: ", v), variable = v)
+    .map_dfr(vars, function(v) {
+      res <- run_one(data[[v]])
+      res$name <- paste0("Normality: ", v)
+      res$variable <- v
+      res
     })
   } else {
-    purrr::map_dfr(vars, function(v) {
+    .map_dfr(vars, function(v) {
       split(data[[v]], data[[group]]) |>
-        purrr::imap_dfr(function(x, g) {
-          dplyr::mutate(run_one(x), name = paste0("Normality: ", v, " (", g, ")"), variable = v, group = g)
+        .imap_dfr(function(x, g) {
+          res <- run_one(x)
+          res$name <- paste0("Normality: ", v, " (", g, ")")
+          res$variable <- v
+          res$group <- g
+          res
         })
     })
   }
@@ -238,7 +245,7 @@ assumption_check <- function(name, status, message, method = NA_character_, stat
 #' Combine assumption checks
 #' @noRd
 assumption_checks <- function(...) {
-  dplyr::bind_rows(...)
+  tibble::as_tibble(basetable::rbindfill(..., fill = TRUE))
 }
 
 #' Format assumption checks
@@ -251,7 +258,7 @@ format_assumptions <- function(assumptions) {
     return(tibble::as_tibble(assumptions))
   }
   if (is.list(assumptions)) {
-    out <- purrr::imap_dfr(assumptions, function(x, nm) {
+    out <- .imap_dfr(assumptions, function(x, nm) {
       if (is.data.frame(x)) {
         x$name <- x$name %||% nm
         return(x)

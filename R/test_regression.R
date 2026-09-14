@@ -69,7 +69,7 @@ test_linear_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.
     )
   }
 
-  effect <- dplyr::bind_rows(r_squared_lm(fit), adjusted_r_squared_lm(fit))
+  effect <- tibble::as_tibble(basetable::rbindfill(r_squared_lm(fit), adjusted_r_squared_lm(fit), fill = TRUE))
   primary <- tibble::tibble(
     method = "Linear regression (overall F-test)",
     statistic = unname(g$statistic),

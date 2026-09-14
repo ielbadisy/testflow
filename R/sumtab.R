@@ -27,7 +27,7 @@ sumtab <- function(
 ) {
   parsed <- parse_sumtab_formula(substitute(formula))
   require_columns(data, c(parsed$vars, parsed$group))
-  if (!is.null(parsed$group) && dplyr::n_distinct(stats::na.omit(data[[parsed$group]])) < 2) {
+  if (!is.null(parsed$group) && length(unique(stats::na.omit(data[[parsed$group]]))) < 2) {
     warning("`sumtab()` cannot compute automatic p-values when the grouping variable has fewer than two levels.", call. = FALSE)
   }
 
@@ -35,7 +35,7 @@ sumtab <- function(
   group_labels <- sumtab_group_labels(data, parsed$group, group_levels)
   overall_label <- paste0("Overall (n = ", nrow(data), ")")
 
-  out <- purrr::map_dfr(parsed$vars, function(variable) {
+  out <- .map_dfr(parsed$vars, function(variable) {
     rows <- if (is.numeric(data[[variable]])) {
       sumtab_numeric_rows(data, variable, parsed$group, group_levels, group_labels, overall, overall_label, digits, na.rm)
     } else {
@@ -131,14 +131,16 @@ sumtab_numeric_rows <- function(data, variable, group, group_levels, group_label
     cells[[group_labels[[level]]]] <- sumtab_numeric_cell(data[[variable]][data[[group]] == level], digits, na.rm)
   }
 
-  tibble::tibble(variable = variable, level = NA_character_) |>
-    dplyr::bind_cols(tibble::as_tibble_row(cells))
+  tibble::as_tibble(cbind(
+    tibble::tibble(variable = variable, level = NA_character_),
+    tibble::as_tibble_row(cells)
+  ))
 }
 
 sumtab_categorical_rows <- function(data, variable, group, group_levels, group_labels, overall, overall_label, digits, na.rm) {
   levels <- sumtab_variable_levels(data[[variable]], na.rm)
 
-  purrr::map_dfr(levels, function(level) {
+  .map_dfr(levels, function(level) {
     cells <- list()
     if (isTRUE(overall)) {
       cells[[overall_label]] <- sumtab_categorical_cell(data[[variable]], level, digits, na.rm)
@@ -147,8 +149,10 @@ sumtab_categorical_rows <- function(data, variable, group, group_levels, group_l
       cells[[group_labels[[group_level]]]] <- sumtab_categorical_cell(data[[variable]][data[[group]] == group_level], level, digits, na.rm)
     }
 
-    tibble::tibble(variable = variable, level = level) |>
-      dplyr::bind_cols(tibble::as_tibble_row(cells))
+    tibble::as_tibble(cbind(
+      tibble::tibble(variable = variable, level = level),
+      tibble::as_tibble_row(cells)
+    ))
   })
 }
 
@@ -199,7 +203,7 @@ sumtab_categorical_cell <- function(x, level, digits, na.rm) {
 sumtab_auto_test <- function(data, variable, group, alpha, fisher_threshold, na.rm) {
   df <- drop_missing(data, c(variable, group), na.rm = na.rm)
   df[[group]] <- as.factor(df[[group]])
-  n_groups <- dplyr::n_distinct(df[[group]])
+  n_groups <- length(unique(df[[group]]))
 
   if (n_groups < 2) {
     return(list(p.value = NA_real_, method = NA_character_))

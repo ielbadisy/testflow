@@ -75,8 +75,9 @@ print_assumption_line <- function(assumptions) {
   } else {
     assumptions$name <- ifelse(is.na(assumptions$name) | !nzchar(as.character(assumptions$name)), paste0("Assumption ", seq_len(nrow(assumptions))), assumptions$name)
   }
-  assumptions <- dplyr::select(assumptions, dplyr::any_of(c("name", "status", "message", "method", "statistic", "p_value", "details")))
-  purrr::pwalk(assumptions, function(name, status, message, method, statistic, p_value, details) {
+  keep_cols <- intersect(c("name", "status", "message", "method", "statistic", "p_value", "details"), names(assumptions))
+  assumptions <- assumptions[, keep_cols, drop = FALSE]
+  row_fn <- function(name, status, message, method, statistic, p_value, details) {
     line <- paste0(tf_label(name), " ", tf_value(status), ": ", message)
     extras <- c()
     if (!is.na(method) && nzchar(method)) extras <- c(extras, paste0("method=", method))
@@ -85,7 +86,10 @@ print_assumption_line <- function(assumptions) {
     if (!is.na(details) && nzchar(details)) extras <- c(extras, details)
     if (length(extras)) line <- paste0(line, " (", paste(extras, collapse = "; "), ")")
     tf_bullet(line)
-  })
+  }
+  for (i in seq_len(nrow(assumptions))) {
+    do.call(row_fn, as.list(assumptions[i, , drop = FALSE]))
+  }
   invisible(NULL)
 }
 

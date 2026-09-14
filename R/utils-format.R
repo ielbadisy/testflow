@@ -21,76 +21,56 @@ format_stat <- function(x, digits = 2) {
 #' @noRd
 magnitude_cohens_d <- function(d) {
   ad <- abs(d)
-  dplyr::case_when(
-    is.na(ad) ~ NA_character_,
-    ad < 0.2 ~ "negligible",
-    ad < 0.5 ~ "small",
-    ad < 0.8 ~ "moderate",
-    TRUE ~ "large"
-  )
+  as.character(cut(
+    ad, breaks = c(-Inf, 0.2, 0.5, 0.8, Inf),
+    labels = c("negligible", "small", "moderate", "large"), right = FALSE
+  ))
 }
 
 #' Classify eta squared magnitude
 #' @noRd
 magnitude_eta2 <- function(eta2) {
-  dplyr::case_when(
-    is.na(eta2) ~ NA_character_,
-    eta2 < 0.01 ~ "negligible",
-    eta2 < 0.06 ~ "small",
-    eta2 < 0.14 ~ "moderate",
-    TRUE ~ "large"
-  )
+  as.character(cut(
+    eta2, breaks = c(-Inf, 0.01, 0.06, 0.14, Inf),
+    labels = c("negligible", "small", "moderate", "large"), right = FALSE
+  ))
 }
 
 #' Classify Cramer's V magnitude
 #' @noRd
 magnitude_cramers_v <- function(v) {
-  dplyr::case_when(
-    is.na(v) ~ NA_character_,
-    v < 0.1 ~ "negligible",
-    v < 0.3 ~ "small",
-    v < 0.5 ~ "moderate",
-    TRUE ~ "large"
-  )
+  as.character(cut(
+    v, breaks = c(-Inf, 0.1, 0.3, 0.5, Inf),
+    labels = c("negligible", "small", "moderate", "large"), right = FALSE
+  ))
 }
 
 #' Classify AUC magnitude (Hosmer, Lemeshow & Sturdivant, 2013, p. 177)
 #' @noRd
 magnitude_auc <- function(auc) {
   a <- ifelse(is.na(auc), NA_real_, pmax(auc, 1 - auc))
-  dplyr::case_when(
-    is.na(a) ~ NA_character_,
-    a < 0.7 ~ "no better than chance / poor",
-    a < 0.8 ~ "acceptable",
-    a < 0.9 ~ "excellent",
-    TRUE ~ "outstanding"
-  )
+  as.character(cut(
+    a, breaks = c(-Inf, 0.7, 0.8, 0.9, Inf),
+    labels = c("no better than chance / poor", "acceptable", "excellent", "outstanding"), right = FALSE
+  ))
 }
 
 #' Classify Cohen's kappa magnitude (Landis & Koch, 1977)
 #' @noRd
 magnitude_kappa <- function(kappa) {
-  dplyr::case_when(
-    is.na(kappa) ~ NA_character_,
-    kappa < 0 ~ "poor",
-    kappa < 0.21 ~ "slight",
-    kappa < 0.41 ~ "fair",
-    kappa < 0.61 ~ "moderate",
-    kappa < 0.81 ~ "substantial",
-    TRUE ~ "almost perfect"
-  )
+  as.character(cut(
+    kappa, breaks = c(-Inf, 0, 0.21, 0.41, 0.61, 0.81, Inf),
+    labels = c("poor", "slight", "fair", "moderate", "substantial", "almost perfect"), right = FALSE
+  ))
 }
 
 #' Classify ICC magnitude (Koo & Li, 2016)
 #' @noRd
 magnitude_icc <- function(icc) {
-  dplyr::case_when(
-    is.na(icc) ~ NA_character_,
-    icc < 0.5 ~ "poor",
-    icc < 0.75 ~ "moderate",
-    icc < 0.9 ~ "good",
-    TRUE ~ "excellent"
-  )
+  as.character(cut(
+    icc, breaks = c(-Inf, 0.5, 0.75, 0.9, Inf),
+    labels = c("poor", "moderate", "good", "excellent"), right = FALSE
+  ))
 }
 
 significance_decision <- function(p, alpha = 0.05) {

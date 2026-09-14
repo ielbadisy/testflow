@@ -68,7 +68,7 @@ iqr_outlier_assumption <- function(data, vars) {
 }
 
 iqr_outlier_flags <- function(data, vars) {
-  purrr::map_dfr(vars, function(v) {
+  .map_dfr(vars, function(v) {
     x <- data[[v]]
     x <- x[!is.na(x)]
     if (length(x) < 4) {
@@ -109,7 +109,7 @@ test_correlation_matrix <- function(data, vars, method = c("spearman", "pearson"
   full_vars <- as.data.frame(data)[, vars, drop = FALSE]
   mat <- stats::cor(full_vars, method = method, use = "pairwise.complete.obs")
   pairs <- utils::combn(vars, 2, simplify = FALSE)
-  long <- purrr::map_dfr(pairs, function(z) {
+  long <- .map_dfr(pairs, function(z) {
     test <- suppressWarnings(stats::cor.test(full_vars[[z[1]]], full_vars[[z[2]]], method = method, exact = FALSE))
     tibble::tibble(var1 = z[1], var2 = z[2], estimate = unname(test$estimate), p = test$p.value)
   })

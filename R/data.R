@@ -11,7 +11,7 @@ make_cardio_data <- function(n = 180, seed = 2026) {
   diabetes <- sample(c("no", "yes"), n, replace = TRUE, prob = c(0.78, 0.22))
   age <- round(stats::rnorm(n, 58, 11))
   sbp_baseline <- round(stats::rnorm(n, 146, 15) + ifelse(diabetes == "yes", 5, 0), 1)
-  treatment_drop <- dplyr::case_when(treatment == "usual care" ~ 5, treatment == "lifestyle" ~ 10, TRUE ~ 14)
+  treatment_drop <- ifelse(treatment == "usual care", 5, ifelse(treatment == "lifestyle", 10, 14))
   sbp_3m <- round(sbp_baseline - treatment_drop + ifelse(sex == "male", 3, 0) + stats::rnorm(n, 0, 10), 1)
   sbp_6m <- round(sbp_3m - treatment_drop / 3 + stats::rnorm(n, 0, 9), 1)
   ldl <- round(stats::rnorm(n, 3.2, 0.8) + ifelse(smoker == "yes", 0.25, 0), 2)

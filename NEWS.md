@@ -1,3 +1,37 @@
+# testflow 1.0.2
+
+* Dropped the `dplyr`, `tidyr`, and `purrr` dependencies entirely, in favor
+  of `basetable` and base R:
+  - Row-binding (`bind_rows()`) uses `basetable::rbindfill()`; grouped
+    counts/means use `basetable::count()`/`aggregate()`.
+  - `dplyr::all_of()`/`any_of()`/`everything()` (tidyselect re-exports) now
+    go through `tidyselect` directly.
+  - `case_when()`-style magnitude classification (`magnitude_cohens_d()`,
+    `magnitude_eta2()`, `magnitude_cramers_v()`, `magnitude_auc()`,
+    `magnitude_kappa()`, `magnitude_icc()`) uses `cut()`.
+  - `purrr::map_dfr()`/`imap_dfr()` are replaced by new internal
+    `.map_dfr()`/`.imap_dfr()` helpers built on `basetable::map()`/
+    `traverse()`/`rbindfill()`; other purrr verbs (`walk`, `pwalk`, `keep`,
+    `map_lgl`, `compact`) use base R or `basetable::compact()`/`map()`
+    directly.
+  - `tidyr::pivot_longer()`'s simple "melt these columns, keep the rest as
+    id columns" pattern is replaced by a new internal
+    `.pivot_longer_simple()`; the one `pivot_wider()` call uses
+    `stats::reshape()` (converting to a plain data frame first --
+    `stats::reshape()` mishandles tibble input).
+  - `descriptives_numeric()`'s grouped branch (previously
+    `group_by()`/`summarise(across(...))`/`pivot_longer`/`separate`/
+    `pivot_wider`) is now a per-group loop reusing the ungrouped
+    computation, matching `dplyr::group_by()`'s NA-is-its-own-group
+    semantics.
+  - `test_outliers()`'s grouped IQR screening (previously
+    `group_by()`/`group_modify()`) is now a per-group loop; its
+    `left_join()`/per-group `row_number()` use `merge()`/`stats::ave()`.
+  All 30+ affected functions cross-checked against their previous dplyr/
+  tidyr/purrr implementations on the existing test suite (all pass) plus
+  targeted boundary-value comparisons for the `cut()`-based magnitude
+  functions. Requires `basetable (>= 1.4.1)` (`compact()`).
+
 # testflow 1.0.1
 
 ## Bug fixes

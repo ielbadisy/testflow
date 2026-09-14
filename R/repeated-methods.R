@@ -1,14 +1,14 @@
 repeated_anova_test <- function(long, outcome, within, id) {
   formula <- stats::as.formula(paste(tf_backtick(outcome), "~", tf_backtick(within), "+ Error(", tf_backtick(id), "/", tf_backtick(within), ")"))
   fit <- stats::aov(formula, data = long)
-  tab <- purrr::map(fit, function(stratum) {
+  tab <- basetable::map(fit, function(stratum) {
     tryCatch(summary(stratum), error = function(e) NULL)
   })
-  tab <- purrr::compact(tab)
-  candidates <- purrr::map(tab, 1)
-  has_test <- purrr::map_lgl(candidates, function(x) {
+  tab <- basetable::compact(tab)
+  candidates <- lapply(tab, `[[`, 1)
+  has_test <- vapply(candidates, function(x) {
     "Pr(>F)" %in% names(x) && any(!is.na(x[["Pr(>F)"]]))
-  })
+  }, logical(1))
   within_tab <- candidates[[which(has_test)[1]]]
   row <- which(!is.na(within_tab[["Pr(>F)"]]))[1]
   p <- within_tab[["Pr(>F)"]][row]

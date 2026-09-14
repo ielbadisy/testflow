@@ -29,7 +29,7 @@ test_multinomial <- function(data, outcome, p = NULL, alpha = 0.05, plot = TRUE,
   expected <- sum(counts) * p
   chisq <- suppressWarnings(stats::chisq.test(x = counts, p = p))
   expected_ok <- all(expected >= 5)
-  pairwise <- purrr::map_dfr(seq_along(counts), function(i) {
+  pairwise <- .map_dfr(seq_along(counts), function(i) {
     bt <- stats::binom.test(counts[i], sum(counts), p = p[i])
     tibble::tibble(level = levels[i], observed = counts[i], expected = expected[i], p = bt$p.value)
   })
@@ -37,8 +37,10 @@ test_multinomial <- function(data, outcome, p = NULL, alpha = 0.05, plot = TRUE,
   pairwise$p.adjust.method <- "BH"
   effect <- tibble::tibble(name = "Chi-square goodness-of-fit", estimate = unname(chisq$statistic), magnitude = NA_character_)
   plt <- if (plot) {
-    pd <- tibble::tibble(level = levels, observed = counts, expected = expected) |>
-      tidyr::pivot_longer(c("observed", "expected"), names_to = "type", values_to = "n")
+    pd <- .pivot_longer_simple(
+      tibble::tibble(level = levels, observed = counts, expected = expected),
+      c("observed", "expected"), "type", "n"
+    )
     ggplot2::ggplot(pd, ggplot2::aes(x = .data$level, y = .data$n, fill = .data$type)) +
       ggplot2::geom_col(position = "dodge") +
       ggplot2::labs(title = "Multinomial workflow", subtitle = plot_subtitle("Chi-square goodness-of-fit", chisq), x = outcome_nm, y = "Count") +

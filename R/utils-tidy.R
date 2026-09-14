@@ -44,6 +44,38 @@ new_testflow <- function(
   if (is.null(x)) y else x
 }
 
+# basetable/base-R replacements for purrr::map_dfr()/purrr::imap_dfr(): map
+# (or index-map) .f over .x and row-bind the results, matching purrr's
+# silent drop of NULL results (basetable::rbindfill() already drops NULLs).
+.map_dfr <- function(.x, .f, ...) {
+  tibble::as_tibble(basetable::rbindfill(basetable::map(.x, .f, ...), fill = TRUE))
+}
+
+.imap_dfr <- function(.x, .f) {
+  idx <- if (!is.null(names(.x))) names(.x) else seq_along(.x)
+  tibble::as_tibble(basetable::rbindfill(basetable::traverse(list(.x, idx), .f), fill = TRUE))
+}
+
+# tidyr::pivot_longer() replacement for the simple "melt these columns, keep
+# everything else as id columns" case used throughout this package (no
+# multi-value-column / names_pattern features).
+.pivot_longer_simple <- function(df, cols, names_to, values_to) {
+  id_cols <- setdiff(names(df), cols)
+  n <- nrow(df)
+  k <- length(cols)
+  row_idx <- rep(seq_len(n), each = k)
+  id_part <- df[row_idx, id_cols, drop = FALSE]
+  name_part <- rep(cols, times = n)
+  value_cols <- df[, cols, drop = FALSE]
+  value_part <- do.call(c, lapply(seq_len(n), function(i) unlist(value_cols[i, ], use.names = FALSE)))
+  out <- cbind(id_part, stats::setNames(
+    data.frame(name_part, value_part, stringsAsFactors = FALSE),
+    c(names_to, values_to)
+  ))
+  rownames(out) <- NULL
+  tibble::as_tibble(out)
+}
+
 primary_p <- function(x) {
   if (is.null(x$primary_test$p.value)) NA_real_ else x$primary_test$p.value
 }
