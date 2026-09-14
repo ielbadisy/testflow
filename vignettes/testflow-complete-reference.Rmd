@@ -295,9 +295,10 @@ wide: pass the outcome, the within-subject time/condition column, and the
 subject id column directly, rather than a set of wide columns to pivot.
 
 ```{r}
-long_sbp <- tidyr::pivot_longer(
-  cardio, c(sbp_baseline, sbp_3m, sbp_6m),
-  names_to = "time", values_to = "sbp"
+long_sbp <- data.frame(
+  id = rep(cardio$id, 3),
+  time = rep(c("sbp_baseline", "sbp_3m", "sbp_6m"), each = nrow(cardio)),
+  sbp = c(cardio$sbp_baseline, cardio$sbp_3m, cardio$sbp_6m)
 )
 test_repeated_long(long_sbp, outcome = sbp, within = time, id = id)
 ```
