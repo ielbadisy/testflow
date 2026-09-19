@@ -1,12 +1,11 @@
 testflow
 ================
 
-![Version 0.9.0](https://img.shields.io/badge/version-0.9.0-blue.svg)
+[![CRAN status](https://www.r-pkg.org/badges/version/testflow)](https://CRAN.R-project.org/package=testflow)
 [![License:
 MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![R \>= 4.1.0](https://img.shields.io/badge/R-%3E%3D%204.1.0-blue.svg)
 
-Current development release: `0.9.0`. First public release: `0.7.0`.
 
 `testflow` helps choose, run, and report common statistical tests from
 the study design. The package returns a consistent object with
