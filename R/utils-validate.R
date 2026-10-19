@@ -156,6 +156,17 @@ capture_pair <- function(outcome, group, rhs_label = "group") {
   )
 }
 
+# Returns the formula object when `expr` is an unevaluated symbol or call
+# (e.g. a formula stored in a variable, or as.formula(...)) that evaluates to
+# a formula in the caller's environment; otherwise returns `expr` unchanged.
+tf_formula_arg <- function(expr, env) {
+  if (is.symbol(expr) || (is.call(expr) && !identical(expr[[1]], as.name("~")))) {
+    val <- tryCatch(eval(expr, env), error = function(e) NULL)
+    if (inherits(val, "formula")) return(val)
+  }
+  expr
+}
+
 resolve_formula_pair <- function(first_expr, second_expr, third_expr, third_missing, rhs_label = "group") {
   if (inherits(first_expr, "formula") || (is.call(first_expr) && identical(first_expr[[1]], as.name("~")))) {
     parsed <- formula_lhs_rhs(first_expr, rhs_n = 1)
