@@ -7,7 +7,7 @@ test_that("test_repeated uses repeated-measures ANOVA when normality passes", {
     t3 = t1 + rnorm(40, 2, 1)
   )
   x <- test_repeated(dat, c(t1, t2, t3), id = id)
-  long <- tidyr::pivot_longer(dat, c(t1, t2, t3), names_to = "time", values_to = "value")
+  long <- data.frame(id = rep(dat$id, 3), time = rep(c("t1", "t2", "t3"), each = nrow(dat)), value = c(dat$t1, dat$t2, dat$t3))
   long$id <- factor(long$id)
   ref <- summary(stats::aov(value ~ time + Error(id / time), data = long))[["Error: id:time"]][[1]][["Pr(>F)"]][1]
   expect_s3_class(x, "testflow_repeated")
@@ -38,7 +38,7 @@ test_that("test_repeated coerces id to a factor so Error() builds the correct st
   x <- test_repeated(wide, measures = c(t1, t2, t3))
   expect_s3_class(x$data[[x$id]], "factor")
 
-  long <- tidyr::pivot_longer(cbind(id = factor(seq_len(n)), wide), c(t1, t2, t3), names_to = "time", values_to = "value")
+  long <- data.frame(id = factor(rep(seq_len(n), 3)), time = rep(c("t1", "t2", "t3"), each = n), value = c(wide$t1, wide$t2, wide$t3))
   ref <- summary(stats::aov(value ~ time + Error(id / time), data = long))[["Error: id:time"]][[1]]
   expect_equal(x$primary_test$statistic[1], unname(ref[["F value"]][1]))
   expect_equal(x$primary_test$parameter[1], unname(ref[["Df"]][1]))
