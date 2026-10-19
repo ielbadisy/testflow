@@ -23,7 +23,7 @@
 #' @export
 test_correlation <- function(formula, data, y = NULL, method = c("auto", "pearson", "spearman", "kendall"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   method <- match.arg(method)
-  vars <- resolve_formula_pair(substitute(formula), substitute(data), substitute(y), missing(y), rhs_label = "x")
+  vars <- resolve_formula_pair(tf_formula_arg(substitute(formula), parent.frame()), tf_formula_arg(substitute(data), parent.frame()), substitute(y), missing(y), rhs_label = "x")
   y_nm <- vars$outcome
   x_nm <- vars$group
   data_obj <- resolve_data_first_or_formula(formula, data)
