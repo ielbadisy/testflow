@@ -24,17 +24,17 @@
 #' Sciences} (2nd ed.). Lawrence Erlbaum.
 #' @export
 test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2, plot = TRUE, na.rm = TRUE) {
-  first_expr <- substitute(formula)
-  second_expr <- substitute(data)
+  first_expr <- tf_formula_arg(substitute(formula), parent.frame())
+  second_expr <- tf_formula_arg(substitute(data), parent.frame())
   data_obj <- resolve_data_first_or_formula(formula, data)
   if (inherits(first_expr, "formula") || (is.call(first_expr) && identical(first_expr[[1]], as.name("~")))) {
     outcome_nm <- all.vars(first_expr[[2]])[1]
     factor_nms <- all.vars(first_expr[[3]])
-    formula_obj <- stats::as.formula(deparse(first_expr))
+    formula_obj <- stats::as.formula(paste(deparse(first_expr), collapse = " "))
   } else if (inherits(second_expr, "formula") || (is.call(second_expr) && identical(second_expr[[1]], as.name("~")))) {
     outcome_nm <- all.vars(second_expr[[2]])[1]
     factor_nms <- all.vars(second_expr[[3]])
-    formula_obj <- stats::as.formula(deparse(second_expr))
+    formula_obj <- stats::as.formula(paste(deparse(second_expr), collapse = " "))
   } else {
     outcome_nm <- rlang::as_name(second_expr)
     factor_nms <- tidyselect_names(data_obj, {{ factors }})
