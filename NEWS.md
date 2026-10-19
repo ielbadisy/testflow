@@ -1,3 +1,18 @@
+# testflow 1.0.3
+
+* `test_two_groups()`, `test_groups()`, `test_correlation()`,
+  `test_categorical()`, `test_paired()`, `test_factorial()` and `sumtab()`
+  now accept a formula stored in a variable or built with `as.formula()`,
+  e.g. `f <- y ~ g; test_two_groups(f, df)`. Previously only a formula
+  written inline was recognised.
+* `test_linear_regression()` and `test_logistic_regression()` now accept
+  factor and character predictors. Descriptives cover the numeric variables
+  only, and multicollinearity uses the generalized VIF (GVIF^(1/(2*Df))
+  squared) when a term has more than one degree of freedom. A single factor
+  predictor no longer triggers a VIF error.
+* Long formulas in the regression, survival and factorial workflows are no
+  longer split by `deparse()`.
+
 # testflow 1.0.2
 
 * Dropped the `dplyr`, `tidyr`, and `purrr` dependencies entirely, in favor
