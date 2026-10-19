@@ -25,7 +25,7 @@ sumtab <- function(
   fisher_threshold = 5,
   na.rm = TRUE
 ) {
-  parsed <- parse_sumtab_formula(substitute(formula))
+  parsed <- parse_sumtab_formula(tf_formula_arg(substitute(formula), parent.frame()))
   require_columns(data, c(parsed$vars, parsed$group))
   if (!is.null(parsed$group) && length(unique(stats::na.omit(data[[parsed$group]]))) < 2) {
     warning("`sumtab()` cannot compute automatic p-values when the grouping variable has fewer than two levels.", call. = FALSE)
