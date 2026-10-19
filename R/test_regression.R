@@ -26,7 +26,7 @@
 #' Draper NR, Smith H. *Applied Regression Analysis* (3rd ed.). Wiley; 1998.
 #' @export
 test_linear_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
-  formula_obj <- stats::as.formula(deparse(formula))
+  formula_obj <- stats::as.formula(paste(deparse(formula), collapse = " "))
   outcome_nm <- all.vars(formula_obj[[2]])[1]
   predictor_nms <- all.vars(formula_obj[[3]])
   df <- drop_missing(data, c(outcome_nm, predictor_nms), na.rm = na.rm)
@@ -54,20 +54,7 @@ test_linear_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.
     p_value = nv$p
   )
 
-  multicollinearity <- if (length(predictor_nms) < 2) {
-    assumption_check("Multicollinearity", "not applicable", "Only one predictor; multicollinearity does not apply.")
-  } else {
-    vifs <- car::vif(fit)
-    max_vif <- max(vifs)
-    assumption_check(
-      "Multicollinearity",
-      ifelse(max_vif < 5, "acceptable", "not acceptable"),
-      ifelse(max_vif < 5, "Variance inflation factors are all below 5.", "At least one predictor has a variance inflation factor of 5 or higher, indicating multicollinearity."),
-      method = "Variance inflation factor",
-      statistic = max_vif,
-      details = paste0("Max VIF (", names(vifs)[which.max(vifs)], ") = ", format_stat(max_vif))
-    )
-  }
+  multicollinearity <- check_multicollinearity(fit)
 
   effect <- tibble::as_tibble(basetable::rbindfill(r_squared_lm(fit), adjusted_r_squared_lm(fit), fill = TRUE))
   primary <- tibble::tibble(
@@ -99,7 +86,7 @@ test_linear_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.
     outcome_nm,
     paste(predictor_nms, collapse = ", "),
     data = df,
-    descriptives = descriptives_numeric(df, c(outcome_nm, predictor_nms)),
+    descriptives = descriptives_numeric(df, numeric_columns(df, c(outcome_nm, predictor_nms))),
     assumptions = assumption_checks(check_independence_note(), normality, homoscedasticity, multicollinearity),
     recommended = list(test = "Linear regression", rationale = "Continuous outcome modeled as a linear function of the predictors."),
     primary_test = add_null_hypothesis(primary, h0),
@@ -147,7 +134,7 @@ test_linear_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.
 #' ed.). Wiley; 2013.
 #' @export
 test_logistic_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
-  formula_obj <- stats::as.formula(deparse(formula))
+  formula_obj <- stats::as.formula(paste(deparse(formula), collapse = " "))
   outcome_nm <- all.vars(formula_obj[[2]])[1]
   predictor_nms <- all.vars(formula_obj[[3]])
   df <- drop_missing(data, c(outcome_nm, predictor_nms), na.rm = na.rm)
@@ -165,20 +152,7 @@ test_logistic_regression <- function(formula, data, alpha = 0.05, plot = TRUE, n
   coefs_or <- broom::tidy(fit, conf.int = TRUE, exponentiate = TRUE)
   names(coefs_or)[names(coefs_or) %in% c("estimate", "conf.low", "conf.high")] <- c("odds_ratio", "or.conf.low", "or.conf.high")
 
-  multicollinearity <- if (length(predictor_nms) < 2) {
-    assumption_check("Multicollinearity", "not applicable", "Only one predictor; multicollinearity does not apply.")
-  } else {
-    vifs <- car::vif(fit)
-    max_vif <- max(vifs)
-    assumption_check(
-      "Multicollinearity",
-      ifelse(max_vif < 5, "acceptable", "not acceptable"),
-      ifelse(max_vif < 5, "Variance inflation factors are all below 5.", "At least one predictor has a variance inflation factor of 5 or higher, indicating multicollinearity."),
-      method = "Variance inflation factor",
-      statistic = max_vif,
-      details = paste0("Max VIF (", names(vifs)[which.max(vifs)], ") = ", format_stat(max_vif))
-    )
-  }
+  multicollinearity <- check_multicollinearity(fit)
 
   cooks_d <- stats::cooks.distance(fit)
   cooks_threshold <- 4 / length(cooks_d)
@@ -232,4 +206,35 @@ test_logistic_regression <- function(formula, data, alpha = 0.05, plot = TRUE, n
   )
   out$interpretation <- make_report(out, alpha)
   out
+}
+
+# Numeric columns among `vars` (factor/character predictors are skipped).
+numeric_columns <- function(data, vars) {
+  vars[vapply(data[vars], is.numeric, logical(1))]
+}
+
+# VIF check that also handles factor terms. For terms with more than one
+# degree of freedom, car::vif() returns a GVIF matrix; GVIF^(1/(2*Df)) squared
+# puts every term on the usual VIF scale (Fox and Monette, 1992).
+check_multicollinearity <- function(fit) {
+  if (length(attr(stats::terms(fit), "term.labels")) < 2) {
+    return(assumption_check("Multicollinearity", "not applicable", "Only one predictor; multicollinearity does not apply."))
+  }
+  v <- car::vif(fit)
+  if (is.matrix(v)) {
+    vifs <- v[, "GVIF^(1/(2*Df))"]^2
+    method <- "Generalized variance inflation factor, GVIF^(1/(2*Df)) squared"
+  } else {
+    vifs <- v
+    method <- "Variance inflation factor"
+  }
+  max_vif <- max(vifs)
+  assumption_check(
+    "Multicollinearity",
+    ifelse(max_vif < 5, "acceptable", "not acceptable"),
+    ifelse(max_vif < 5, "Variance inflation factors are all below 5.", "At least one predictor has a variance inflation factor of 5 or higher, indicating multicollinearity."),
+    method = method,
+    statistic = unname(max_vif),
+    details = paste0("Max VIF (", names(vifs)[which.max(vifs)], ") = ", format_stat(max_vif))
+  )
 }
