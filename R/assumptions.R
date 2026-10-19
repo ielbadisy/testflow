@@ -245,7 +245,7 @@ assumption_check <- function(name, status, message, method = NA_character_, stat
 #' Combine assumption checks
 #' @noRd
 assumption_checks <- function(...) {
-  tibble::as_tibble(basetable::rbindfill(..., fill = TRUE))
+  .rbind_rows(...)
 }
 
 #' Format assumption checks

@@ -12,10 +12,11 @@
       n = sum(!is.na(x)),
       mean = mean(x, na.rm = TRUE),
       sd = stats::sd(x, na.rm = TRUE),
-      median = stats::median(x, na.rm = TRUE),
-      iqr = stats::IQR(x, na.rm = TRUE),
-      min = min(x, na.rm = TRUE),
-      max = max(x, na.rm = TRUE)
+      # as.double(): median()/min()/max() keep the integer type of x
+      median = as.double(stats::median(x, na.rm = TRUE)),
+      iqr = as.double(stats::IQR(x, na.rm = TRUE)),
+      min = if (any(!is.na(x))) as.double(min(x, na.rm = TRUE)) else NA_real_,
+      max = if (any(!is.na(x))) as.double(max(x, na.rm = TRUE)) else NA_real_
     )
   })
 }

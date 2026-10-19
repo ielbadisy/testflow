@@ -34,15 +34,7 @@ test_linear_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.
   g <- broom::glance(fit)
   coefs <- broom::tidy(fit, conf.int = TRUE)
 
-  resid_normality_test <- stats::shapiro.test(stats::residuals(fit))
-  normality <- assumption_check(
-    "Normality of residuals",
-    ifelse(resid_normality_test$p.value >= alpha, "acceptable", "not acceptable"),
-    ifelse(resid_normality_test$p.value >= alpha, "Residuals appear approximately normal.", "Residuals deviate from normality."),
-    method = "Shapiro-Wilk",
-    statistic = unname(resid_normality_test$statistic),
-    p_value = resid_normality_test$p.value
-  )
+  normality <- .residual_normality(stats::residuals(fit), alpha, "Residuals appear approximately normal.", "Residuals deviate from normality.")
 
   nv <- car::ncvTest(fit)
   homoscedasticity <- assumption_check(
@@ -56,7 +48,7 @@ test_linear_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.
 
   multicollinearity <- check_multicollinearity(fit)
 
-  effect <- tibble::as_tibble(basetable::rbindfill(r_squared_lm(fit), adjusted_r_squared_lm(fit), fill = TRUE))
+  effect <- .rbind_rows(r_squared_lm(fit), adjusted_r_squared_lm(fit))
   primary <- tibble::tibble(
     method = "Linear regression (overall F-test)",
     statistic = unname(g$statistic),

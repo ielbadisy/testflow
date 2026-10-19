@@ -63,15 +63,7 @@ test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2
   tab <- broom::tidy(ss_tab)
   tab <- tab[tab$term != "(Intercept)", , drop = FALSE]
   residual_df <- tibble::tibble(.resid = stats::residuals(fit))
-  residual_normality_test <- stats::shapiro.test(residual_df$.resid)
-  normality <- assumption_check(
-    "Normality of residuals",
-    ifelse(residual_normality_test$p.value >= alpha, "acceptable", "not acceptable"),
-    ifelse(residual_normality_test$p.value >= alpha, "Residuals appear approximately normal.", "Residuals deviate from normality."),
-    method = "Shapiro-Wilk",
-    statistic = unname(residual_normality_test$statistic),
-    p_value = residual_normality_test$p.value
-  )
+  normality <- .residual_normality(residual_df$.resid, alpha, "Residuals appear approximately normal.", "Residuals deviate from normality.")
   levene_test <- check_variance_homogeneity(df, outcome_nm, factor_nms[1], alpha)
   levene <- assumption_check(
     "Variance homogeneity",

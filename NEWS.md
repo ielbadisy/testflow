@@ -1,3 +1,19 @@
+# testflow 1.0.4
+
+* `test_groups()` and other workflows no longer fail with "Column `median` has
+  conflicting types" when an integer outcome has groups of odd and even size
+  (`median()` returns an integer for one and a double for the other).
+  Numeric descriptives are now always doubles, and internal row-binding
+  widens integer/double and all-missing columns before binding; other type
+  mismatches still raise an error.
+* `test_linear_regression()`, `test_logistic_regression()` and
+  `test_factorial()` no longer fail for n > 5000: residual normality is
+  reported as "not checked" (Shapiro-Wilk is limited to 3 to 5000
+  observations), as already done in `test_groups()`.
+* `test_categorical()` no longer fails on large tables where Fisher's exact
+  test runs out of workspace: it falls back to a Monte Carlo p-value
+  (B = 10000), labelled as such.
+
 # testflow 1.0.3
 
 * `test_two_groups()`, `test_groups()`, `test_correlation()`,

@@ -1888,7 +1888,7 @@ sample_size_plot_frame <- function(labels, raw_values, adjusted_values) {
   }
   raw_df <- tibble::tibble(label = labels, type = "raw", value = as.numeric(raw_values), display = vapply(raw_values, format_sample_size_value, character(1)))
   adj_df <- tibble::tibble(label = labels, type = "adjusted", value = as.numeric(adjusted_values), display = vapply(adjusted_values, format_sample_size_value, character(1)))
-  tibble::as_tibble(basetable::rbindfill(raw_df, adj_df, fill = TRUE))
+  .rbind_rows(raw_df, adj_df)
 }
 
 sample_size_curve_bundle <- function(n_target, power_target, n_grid, power_grid, unit_label, power_label) {

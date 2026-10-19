@@ -31,9 +31,11 @@ test_categorical <- function(formula, data, y = NULL, alpha = 0.05, fisher_thres
   df <- drop_missing(data_obj, c(x_nm, y_nm), na.rm = na.rm)
   tab <- table(df[[x_nm]], df[[y_nm]])
   chi <- suppressWarnings(stats::chisq.test(tab, correct = FALSE))
-  fisher <- stats::fisher.test(tab)
-  recommendation <- if (any(chi$expected < fisher_threshold)) "Fisher exact test" else "Chi-square test of independence"
-  primary <- if (recommendation == "Fisher exact test") fisher else chi
+  fisher <- .fisher_safe(tab)
+  use_fisher <- any(chi$expected < fisher_threshold)
+  fisher_label <- if (grepl("Monte Carlo", fisher$method, fixed = TRUE)) fisher$method else "Fisher exact test"
+  recommendation <- if (use_fisher) fisher_label else "Chi-square test of independence"
+  primary <- if (use_fisher) fisher else chi
   effect <- cramers_v(tab)
   expected <- check_expected_counts(tab, fisher_threshold)
   plt <- if (plot) {
@@ -43,7 +45,7 @@ test_categorical <- function(formula, data, y = NULL, alpha = 0.05, fisher_thres
       ggplot2::theme_minimal()
   } else NULL
   h0 <- h0_no_association(x_nm, y_nm)
-  out <- new_testflow("categorical", "two categorical variables", x_nm, y_nm, data = df, descriptives = descriptives_categorical(df, c(x_nm, y_nm)), assumptions = assumption_checks(check_independence_note(), expected), recommended = list(test = recommendation), primary_test = add_null_hypothesis(safe_tidy_htest(primary, recommendation), h0), alternative_tests = list(chi_square = add_null_hypothesis(safe_tidy_htest(chi, "Chi-square test of independence"), h0), fisher = add_null_hypothesis(safe_tidy_htest(fisher, "Fisher exact test"), h0)), effect_size = effect, plot = plt, call = match.call(), subclass = "categorical")
+  out <- new_testflow("categorical", "two categorical variables", x_nm, y_nm, data = df, descriptives = descriptives_categorical(df, c(x_nm, y_nm)), assumptions = assumption_checks(check_independence_note(), expected), recommended = list(test = recommendation), primary_test = add_null_hypothesis(safe_tidy_htest(primary, recommendation), h0), alternative_tests = list(chi_square = add_null_hypothesis(safe_tidy_htest(chi, "Chi-square test of independence"), h0), fisher = add_null_hypothesis(safe_tidy_htest(fisher, fisher_label), h0)), effect_size = effect, plot = plt, call = match.call(), subclass = "categorical")
   out$interpretation <- make_report(out, alpha)
   out
 }

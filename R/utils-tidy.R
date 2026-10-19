@@ -48,12 +48,52 @@ new_testflow <- function(
 # (or index-map) .f over .x and row-bind the results, matching purrr's
 # silent drop of NULL results (basetable::rbindfill() already drops NULLs).
 .map_dfr <- function(.x, .f, ...) {
-  tibble::as_tibble(basetable::rbindfill(basetable::map(.x, .f, ...), fill = TRUE))
+  .rbind_rows(basetable::map(.x, .f, ...))
 }
 
 .imap_dfr <- function(.x, .f) {
   idx <- if (!is.null(names(.x))) names(.x) else seq_along(.x)
-  tibble::as_tibble(basetable::rbindfill(basetable::traverse(list(.x, idx), .f), fill = TRUE))
+  .rbind_rows(basetable::traverse(list(.x, idx), .f))
+}
+
+# Row-bind data frames like dplyr::bind_rows(). basetable::rbindfill() stops on
+# any column type mismatch; before binding, widen only the safe cases:
+# integer + double -> double (e.g. median() is integer for an odd-sized group
+# and double for an even-sized one), and all-NA logical columns -> the type of
+# the other inputs. Other mismatches (e.g. numeric vs character) still error.
+.rbind_rows <- function(...) {
+  dfs <- list(...)
+  if (length(dfs) == 1L && is.list(dfs[[1]]) && !is.data.frame(dfs[[1]])) dfs <- dfs[[1]]
+  dfs <- Filter(Negate(is.null), dfs)
+  if (length(dfs) == 0L) return(tibble::tibble())
+  cols <- unique(unlist(lapply(dfs, names)))
+  for (col in cols) {
+    has <- vapply(dfs, function(d) col %in% names(d), logical(1))
+    vals <- lapply(dfs[has], `[[`, col)
+    all_na_lgl <- vapply(vals, function(v) is.logical(v) && all(is.na(v)), logical(1))
+    types <- unique(vapply(vals[!all_na_lgl], typeof, character(1)))
+    target <- if (length(types) == 0L) {
+      NULL
+    } else if (all(types %in% c("integer", "double")) && length(types) == 2L) {
+      "double"
+    } else if (length(types) == 1L && any(all_na_lgl)) {
+      types
+    } else {
+      NULL
+    }
+    if (is.null(target)) next
+    idx <- which(has)
+    for (i in idx) {
+      v <- dfs[[i]][[col]]
+      if (is.factor(v) || inherits(v, c("Date", "POSIXt"))) next
+      if (target == "double" && is.integer(v)) {
+        dfs[[i]][[col]] <- as.double(v)
+      } else if (is.logical(v) && all(is.na(v)) && target != "logical") {
+        dfs[[i]][[col]] <- as.vector(v, mode = target)
+      }
+    }
+  }
+  tibble::as_tibble(basetable::rbindfill(dfs, fill = TRUE))
 }
 
 # tidyr::pivot_longer() replacement for the simple "melt these columns, keep
@@ -97,4 +137,41 @@ primary_ci <- function(x) {
 
 primary_h0 <- function(x) {
   if (is.null(x$primary_test$null_hypothesis)) NA_character_ else x$primary_test$null_hypothesis[[1]]
+}
+
+# Fisher's exact test that does not crash on large tables: when the exact
+# network algorithm runs out of workspace (FEXACT error), fall back to a
+# Monte Carlo p-value (B = 10000) and say so in the method label.
+.fisher_safe <- function(tab) {
+  res <- tryCatch(stats::fisher.test(tab), error = function(e) NULL)
+  if (!is.null(res)) return(res)
+  res <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 10000)
+  res$method <- "Fisher exact test (Monte Carlo p-value, B = 10000)"
+  res
+}
+
+# Shapiro-Wilk on model residuals with the same guards as check_normality():
+# "not enough data" below 3 observations, "not checked" above 5000
+# (stats::shapiro.test() errors outside 3..5000).
+.residual_normality <- function(resid, alpha, ok_text, bad_text) {
+  resid <- resid[!is.na(resid)]
+  n <- length(resid)
+  if (n < 3 || n > 5000) {
+    if (n > 5000) warning("Shapiro-Wilk is not recommended for n > 5000.", call. = FALSE)
+    return(assumption_check(
+      "Normality of residuals",
+      if (n < 3) "not enough data" else "not checked",
+      if (n < 3) "Too few observations for a useful normality check." else "Shapiro-Wilk is not recommended for n > 5000; inspect the residual plot instead.",
+      method = "Shapiro-Wilk", statistic = NA_real_, p_value = NA_real_
+    ))
+  }
+  test <- stats::shapiro.test(resid)
+  assumption_check(
+    "Normality of residuals",
+    ifelse(test$p.value >= alpha, "acceptable", "not acceptable"),
+    ifelse(test$p.value >= alpha, ok_text, bad_text),
+    method = "Shapiro-Wilk",
+    statistic = unname(test$statistic),
+    p_value = test$p.value
+  )
 }
