@@ -1,6 +1,6 @@
 test_that("workflows return non-empty assumptions and print Assumptions", {
   dat <- make_assumption_data(80)
-  dat$grp3 <- factor(dplyr::ntile(dat$age, 3))
+  dat$grp3 <- factor(ceiling(3 * rank(dat$age, ties.method = "first") / length(dat$age)))
   objs <- list(
     test_one_sample(dat, sbp_3m, mu = 140, plot = FALSE),
     test_two_groups(dat, sbp_3m, sex, plot = FALSE),
