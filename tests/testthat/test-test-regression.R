@@ -97,3 +97,34 @@ test_that("test_logistic_regression errors informatively for a non-binary outcom
   dat <- tibble::tibble(x1 = rnorm(30), y = sample(1:3, 30, replace = TRUE))
   expect_error(test_logistic_regression(y ~ x1, data = dat), "two non-missing levels")
 })
+
+test_that("linear and logistic regression accept factor and character predictors", {
+  set.seed(4)
+  n <- 120
+  df <- data.frame(
+    x = rnorm(n),
+    sex = sample(c("F", "M"), n, TRUE),
+    prof = factor(sample(c("nurse", "doctor", "other"), n, TRUE))
+  )
+  df$y <- 1 + 0.5 * df$x + (df$prof == "doctor") + rnorm(n)
+  df$b <- rbinom(n, 1, plogis(df$x))
+  lin <- test_linear_regression(y ~ x + sex + prof, df, plot = FALSE)
+  expect_s3_class(lin, "testflow")
+  expect_equal(unique(lin$descriptives$variable), c("y", "x"))
+  mc <- lin$assumptions[lin$assumptions$name == "Multicollinearity", ]
+  expect_true(grepl("Generalized", mc$method))
+  expect_true(mc$statistic < 5)
+  lg <- test_logistic_regression(b ~ x + sex + prof, df, plot = FALSE)
+  expect_s3_class(lg, "testflow")
+  one <- test_linear_regression(y ~ prof, df, plot = FALSE)
+  mc1 <- one$assumptions[one$assumptions$name == "Multicollinearity", ]
+  expect_equal(mc1$status, "not applicable")
+})
+
+test_that("long regression formulas are not split by deparse()", {
+  set.seed(5)
+  df <- as.data.frame(matrix(rnorm(100 * 8), 100))
+  names(df) <- c("outcome_variable", paste0("a_long_predictor_name_", 1:7))
+  f <- stats::as.formula(paste("outcome_variable ~", paste(names(df)[-1], collapse = " + ")))
+  expect_s3_class(test_linear_regression(f, df, plot = FALSE), "testflow")
+})
