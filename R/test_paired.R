@@ -14,8 +14,8 @@
 #' @export
 test_paired <- function(formula, data, after = NULL, alternative = c("two.sided", "less", "greater"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   alternative <- match.arg(alternative)
-  first_expr <- substitute(formula)
-  second_expr <- substitute(data)
+  first_expr <- tf_formula_arg(substitute(formula), parent.frame())
+  second_expr <- tf_formula_arg(substitute(data), parent.frame())
   is_formula_call <- inherits(first_expr, "formula") ||
     (is.call(first_expr) && identical(first_expr[[1]], as.name("~"))) ||
     inherits(second_expr, "formula") ||
