@@ -24,7 +24,7 @@
 #' Cramer, H. (1946). \emph{Mathematical Methods of Statistics}. Princeton.
 #' @export
 test_categorical <- function(formula, data, y = NULL, alpha = 0.05, fisher_threshold = 5, plot = TRUE, na.rm = TRUE) {
-  vars <- resolve_formula_pair(substitute(formula), substitute(data), substitute(y), missing(y), rhs_label = "y")
+  vars <- resolve_formula_pair(tf_formula_arg(substitute(formula), parent.frame()), tf_formula_arg(substitute(data), parent.frame()), substitute(y), missing(y), rhs_label = "y")
   x_nm <- vars$outcome
   y_nm <- vars$group
   data_obj <- resolve_data_first_or_formula(formula, data)
