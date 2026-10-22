@@ -61,7 +61,7 @@ test_that("sample_size_binomial_ci(exact) matches stats::binom.test()", {
 
 # ---- Minimum-n property -------------------------------------------------------
 
-test_that("Wilson/exact minimum-n search satisfies the precision target and is minimal", {
+test_that("Wilson/exact search returns a stable n: target met at n and beyond, not at n - 1", {
   scenarios <- list(
     list(p = 0.30, width = 0.05),
     list(p = 0.05, width = 0.02),
@@ -71,14 +71,42 @@ test_that("Wilson/exact minimum-n search satisfies the precision target and is m
   for (s in scenarios) {
     for (method in c("wilson", "exact")) {
       n <- testflow:::sample_size_binomial_required_n(s$p, s$width, 0.05, method, "expected", 1e7)
-      hw_n <- testflow:::sample_size_binomial_max_half_width(n, s$p, 0.05, method, "expected")
-      expect_true(hw_n <= s$width, info = paste(method, s$p, s$width))
+      after <- n:(n + max(50, ceiling(4 / s$p)))
+      hw_after <- vapply(after, testflow:::sample_size_binomial_max_half_width, numeric(1),
+                         p = s$p, alpha = 0.05, method = method, criterion = "expected")
+      expect_true(all(hw_after <= s$width), info = paste(method, s$p, s$width))
       if (n > 2) {
         hw_n1 <- testflow:::sample_size_binomial_max_half_width(n - 1, s$p, 0.05, method, "expected")
         expect_true(hw_n1 > s$width, info = paste(method, s$p, s$width))
       }
     }
   }
+})
+
+test_that("Wilson expected criterion is evaluated at p and matches the closed-form interval", {
+  wilson_gap <- function(p, n, z = stats::qnorm(0.975)) {
+    centre <- (p + z^2 / (2 * n)) / (1 + z^2 / n)
+    marge <- z / (1 + z^2 / n) * sqrt(p * (1 - p) / n + z^2 / (4 * n^2))
+    max(p - (centre - marge), centre + marge - p)
+  }
+  p <- 27 / 5418
+  n <- testflow:::sample_size_binomial_required_n(p, 0.0015, 0.05, "wilson", "expected", 1e7)
+  expect_equal(n, 10998L)
+  expect_true(wilson_gap(p, n) <= 0.0015)
+  expect_true(wilson_gap(p, n - 1) > 0.0015)
+  expect_equal(testflow:::sample_size_binomial_max_half_width(n, p, 0.05, "wilson", "expected"),
+               wilson_gap(p, n), tolerance = 1e-12)
+  expect_equal(testflow:::sample_size_binomial_required_n(55 / 5419, 0.0025, 0.05, "wilson", "expected", 1e7), 7677L)
+
+  # monotone in n: no rounding noise
+  hw <- vapply(10000:12000, testflow:::sample_size_binomial_max_half_width, numeric(1),
+               p = p, alpha = 0.05, method = "wilson", criterion = "expected")
+  expect_true(all(diff(hw) < 0))
+
+  x <- suppressWarnings(sample_size_precision(endpoint = "binary", design = "one_sample", p = p,
+                                              width = 0.0015, method = "wilson"))
+  expect_equal(x$diagnostics$complete_case_n, 10998)
+  expect_equal(x$diagnostics$achieved_maximum_half_width, wilson_gap(p, 10998), tolerance = 1e-12)
 })
 
 test_that("worst_case criterion is at least as large as expected criterion for the same n", {
@@ -88,33 +116,33 @@ test_that("worst_case criterion is at least as large as expected criterion for t
   expect_true(hw_worst >= hw_expected)
 })
 
-test_that("the search is robust to local non-monotonicity in max_half_width(n)", {
-  # max_half_width(n) is not strictly monotone in n: round(n * p) and (for
-  # criterion = "worst_case") the qbinom() quantile band jump discretely, so
-  # an isolated smaller n can pass even when nearby larger n fail. A search
-  # that only checks whether n - 1 also passes can converge to a boundary
-  # more than one step above the true minimum. Confirm the search matches an
-  # exhaustive brute-force scan at width values chosen to sit exactly at
-  # known local dips (found by scanning max_half_width(n) for n = 2:400 at
-  # p = 0.05, where up to ~7% of n -> n+1 steps are non-monotone).
-  brute_force_min_n <- function(p, width, alpha, method, criterion, n_max) {
-    for (n in 2:n_max) {
-      if (testflow:::sample_size_binomial_max_half_width(n, p, alpha, method, criterion) <= width) return(n)
-    }
-    NA_integer_
+test_that("the search matches a brute-force scan for the stable n under non-monotonicity", {
+  # With integer counts (exact, or worst_case), max_half_width(n) is not
+  # monotone: round(n * p) and the qbinom() band jump, so the target can be
+  # met at n and missed again at a larger n. The search must return the
+  # smallest n after which no failure occurs. Widths sit exactly at known
+  # local dips (p = 0.05, n = 2:400), where the first passing n is not stable.
+  brute_force_stable_n <- function(p, width, alpha, method, criterion, n_max) {
+    ok <- vapply(2:n_max, function(n) {
+      testflow:::sample_size_binomial_max_half_width(n, p, alpha, method, criterion) <= width
+    }, logical(1))
+    last_fail <- max(c(1L, (2:n_max)[!ok]))
+    last_fail + 1L
   }
 
   cases <- list(
-    list(p = 0.05, method = "wilson", criterion = "expected", n0 = 70),
+    list(p = 0.05, method = "exact", criterion = "expected", n0 = 70),
     list(p = 0.05, method = "wilson", criterion = "worst_case", n0 = 43),
     list(p = 0.05, method = "exact", criterion = "worst_case", n0 = 33),
-    list(p = 0.01, method = "wilson", criterion = "worst_case", n0 = 20)
+    list(p = 0.01, method = "wilson", criterion = "worst_case", n0 = 20),
+    list(p = 27 / 5418, method = "exact", criterion = "expected", n0 = 11000)
   )
   for (cfg in cases) {
     hw0 <- testflow:::sample_size_binomial_max_half_width(cfg$n0, cfg$p, 0.05, cfg$method, cfg$criterion)
     width <- hw0 + 1e-6
     n_search <- testflow:::sample_size_binomial_required_n(cfg$p, width, 0.05, cfg$method, cfg$criterion, 1e5)
-    n_brute <- brute_force_min_n(cfg$p, width, 0.05, cfg$method, cfg$criterion, n_search + 100)
+    n_brute <- brute_force_stable_n(cfg$p, width, 0.05, cfg$method, cfg$criterion,
+                                    n_search + 3 * max(50, ceiling(4 / cfg$p)))
     expect_equal(n_search, n_brute, info = paste(cfg$method, cfg$criterion, cfg$p, width))
   }
 })

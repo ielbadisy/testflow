@@ -1149,25 +1149,34 @@ sample_size_cluster_adjust <- function(n_ind, m, rho, cv_m = NULL) {
 #' (or \eqn{n = z_{1-\alpha/2}^2/(4w^2)} for the conservative \eqn{p=0.5} case)
 #'
 #' Binary, one proportion, `method = "wilson"` or `"exact"`: there is no
-#' closed form. Instead, the smallest integer \eqn{n} is found such that the
-#' relevant confidence interval, evaluated at (a) the anticipated event count
-#' \eqn{x=\mathrm{round}(np)} when `criterion = "expected"`, or (b) every
-#' event count in a prevalence-local band `qbinom(c(0.001, 0.999), n, p)`
-#' when `criterion = "worst_case"`, has maximum one-sided half-width
-#' \eqn{\max(\hat p - lower,\ upper - \hat p) \le w}. Because Wilson and
-#' Clopper-Pearson intervals are generally asymmetric around \eqn{\hat p},
-#' this maximum one-sided distance - not half of the total interval width -
-#' is the planning criterion. The search itself is a deterministic
-#' doubling-then-bisection integer search with a bounded backward repair scan
-#' (see `sample_size_binomial_search()`), not a closed-form calculation, and
-#' a Clopper-Pearson interval guarantees at-least-nominal coverage at the
-#' evaluated count(s) - this is not the same as guaranteeing the achieved
-#' width at every conceivable outcome. The achieved half-width is not
-#' perfectly monotone in \eqn{n} (integer event counts round differently as
-#' \eqn{n} changes), so a plain bisection search can converge on an integer
-#' more than one step above the true minimum; the backward repair scan
-#' guards against this (verified against an exhaustive brute-force scan in
-#' the package tests) without falling back to an unbounded linear search.
+#' closed form; \eqn{n} is found by a deterministic integer search. The
+#' planning criterion is the maximum one-sided half-width
+#' \eqn{\max(\hat p - lower,\ upper - \hat p) \le w}; because Wilson and
+#' Clopper-Pearson intervals are asymmetric around \eqn{\hat p}, this is not
+#' half of the total interval width. The interval is evaluated at:
+#' \itemize{
+#'   \item `method = "wilson"`, `criterion = "expected"`: the anticipated
+#'     proportion itself, \eqn{\hat p = p}, with no rounding of the event
+#'     count. The half-width then decreases steadily with \eqn{n}, and the
+#'     result is the smallest \eqn{n} with
+#'     \deqn{\frac{z}{1+z^2/n}\sqrt{\frac{p(1-p)}{n}+\frac{z^2}{4n^2}}
+#'       + \left|\frac{p+z^2/(2n)}{1+z^2/n} - p\right| \le w,}
+#'     which can be checked by hand.
+#'   \item `method = "exact"`, `criterion = "expected"`: the anticipated
+#'     integer count \eqn{x=\mathrm{round}(np)} (Clopper-Pearson limits are
+#'     defined for integer counts).
+#'   \item `criterion = "worst_case"`: every integer count in a
+#'     prevalence-local band `qbinom(c(0.001, 0.999), n, p)`.
+#' }
+#' With integer counts the half-width is not monotone in \eqn{n}: it can meet
+#' the target at some \eqn{n} and miss it again at a larger \eqn{n}. The
+#' function then returns the smallest \eqn{n} from which the target is met
+#' for every larger \eqn{n} (checked over a forward window of
+#' \eqn{\max(50, 4/p)} values, and verified against a brute-force scan in
+#' the package tests), so that recruiting a few more participants never
+#' breaks the planned precision. A Clopper-Pearson interval guarantees
+#' at-least-nominal coverage at the evaluated count(s); this is not a
+#' guarantee on the achieved width at every conceivable outcome.
 #'
 #' A precision-based sample size answers "how wide will my confidence
 #' interval be", not "how likely am I to observe any events at all"; for
@@ -1398,7 +1407,7 @@ sample_size_precision_binary_one_sample <- function(width, p, alpha, dropout, co
     assumptions = sample_size_assumptions(
       paste0("Confidence interval method: ", ci_display_name, "."),
       if (identical(criterion, "expected")) {
-        "Event counts are evaluated at the single anticipated event count round(n * p)."
+        "if (identical(method, \"wilson\")) \"The interval is evaluated at the anticipated proportion p itself (no rounding of the event count).\" else \"Event counts are evaluated at the single anticipated event count round(n * p).\""
       } else {
         "Event counts are evaluated over a prevalence-local band of plausible counts (binomial 0.001/0.999 quantiles around n * p), not the anticipated count alone."
       },
@@ -1434,7 +1443,7 @@ sample_size_precision_binary_one_sample <- function(width, p, alpha, dropout, co
 # preserves that; using round(n*p)/n instead would reintroduce integer
 # rounding noise the closed form was never meant to have.
 sample_size_binary_precision_diagnostics <- function(p, complete_case_n, n_adj, width, alpha, method, criterion, min_expected_events, dropout) {
-  if (identical(method, "wald")) {
+  if (identical(method, "wald") || sample_size_binomial_continuous(method, criterion)) {
     x_expected <- p * complete_case_n
     p_ref <- p
   } else {
@@ -1442,7 +1451,7 @@ sample_size_binary_precision_diagnostics <- function(p, complete_case_n, n_adj, 
     p_ref <- x_expected / complete_case_n
   }
   ci <- sample_size_binomial_half_width(x_expected, complete_case_n, alpha, method, p_ref)
-  achieved_maximum_half_width <- if (identical(criterion, "worst_case") && !identical(method, "wald")) {
+  achieved_maximum_half_width <- if (!identical(method, "wald")) {
     sample_size_binomial_max_half_width(complete_case_n, p, alpha, method, criterion)
   } else {
     ci$maximum_half_width
@@ -1539,8 +1548,9 @@ sample_size_binomial_half_width <- function(x, n, alpha, method, p_reference) {
 # the band exceeds 10,000 integers (only for very large n), a deterministic
 # grid (both endpoints, floor/ceiling/round of n*p, and an evenly spaced
 # 2,000-point subset) approximates it instead of enumerating every integer.
-sample_size_binomial_candidate_counts <- function(n, p, criterion) {
+sample_size_binomial_candidate_counts <- function(n, p, criterion, method = "exact") {
   if (identical(criterion, "expected")) {
+    if (sample_size_binomial_continuous(method, criterion)) return(n * p)
     return(round(n * p))
   }
   q <- stats::qbinom(c(0.001, 0.999), size = n, prob = p)
@@ -1554,79 +1564,78 @@ sample_size_binomial_candidate_counts <- function(n, p, criterion) {
   lo:hi
 }
 
+# Wilson (and Wald) intervals are defined for a non-integer count, so the
+# "expected" criterion evaluates them at the anticipated proportion p itself
+# (x = n * p). This removes the rounding noise of round(n * p) and makes the
+# criterion monotone in n. Clopper-Pearson limits need integer counts.
+sample_size_binomial_continuous <- function(method, criterion) {
+  identical(criterion, "expected") && method %in% c("wilson", "wald")
+}
+
 sample_size_binomial_max_half_width <- function(n, p, alpha, method, criterion) {
-  counts <- sample_size_binomial_candidate_counts(n, p, criterion)
+  counts <- sample_size_binomial_candidate_counts(n, p, criterion, method)
   hws <- vapply(counts, function(x) {
     sample_size_binomial_half_width(x, n, alpha, method, p_reference = x / n)$maximum_half_width
   }, numeric(1))
   max(hws)
 }
 
-# Deterministic minimum-n search for Wilson/exact planning (no simulation, no
-# random numbers): start from the Wald closed-form n as an initial scale,
-# double the upper bound until the precision criterion passes (or `max_n` is
-# exceeded), bisect for a boundary n, then run a bounded backward repair scan
-# (see below) to correct for local non-monotonicity in the (integer-valued,
-# rounding-driven) criterion.
+# Deterministic search for Wilson/exact planning (no simulation, no random
+# numbers). Returns the smallest n from which the precision target holds for
+# every larger n ("stable" n), not merely the first n that happens to pass.
 #
-# IMPORTANT: max_half_width(n) is not guaranteed strictly monotone
-# non-increasing in n. Because x = round(n * p) (and, for criterion =
-# "worst_case", the qbinom() quantile band) jump discretely as n changes,
-# max_half_width(n) can briefly *increase* at isolated n even though the
-# underlying interval width shrinks on average as n grows. Empirically this
-# affects up to ~5-7% of individual n -> n+1 steps (worse for moderate rare
-# p, e.g. p = 0.05), and can leave an isolated smaller passing n more than
-# one step below the point where plain bisection converges - a single
-# "does n - 1 also pass" check is not enough to catch it (verified by
-# brute-force comparison in tests). The backward scan below re-scans a
-# window immediately below the bisection result and slides further back
-# whenever it finds a smaller passing n, which empirically closes this gap
-# without falling back to an unbounded linear scan from n = 1.
+# Why: with integer event counts (method = "exact", or criterion =
+# "worst_case"), max_half_width(n) is not monotone in n. It can pass at n and
+# fail again at n + k when round(n * p) or the qbinom() band jumps, so the
+# first passing n would be a fragile plan: recruiting a few more
+# participants would break the target. For Wilson with criterion =
+# "expected" the count is continuous (n * p) and the criterion is monotone;
+# the same algorithm then returns the plain minimum.
+#
+# Steps: (1) doubling from the Wald closed form until some n passes, then
+# bisection to a passing boundary n; (2) forward check over a window of
+# max(50, 4 / p) values above n (spans several round(n * p) jumps); on any
+# failure, move n just past the last failure and check again, until a full
+# window is clean; (3) walk backward while n - 1 still passes, so the result
+# is the smallest n of the passing run. Verified against a brute-force scan
+# in the package tests.
 sample_size_binomial_search <- function(p, width, alpha, method, criterion, max_n) {
   passes <- function(n) sample_size_binomial_max_half_width(n, p, alpha, method, criterion) <= width
-
-  if (passes(2)) return(2L)
+  no_solution <- function() stop(
+    "No sample size up to max_n = ", max_n, " achieves the requested precision ",
+    "(method = \"", method, "\", criterion = \"", criterion, "\"). ",
+    "Increase `max_n` or relax `width`.",
+    call. = FALSE
+  )
 
   z <- stats::qnorm(1 - alpha / 2)
   hi <- min(max(2, ceiling(z^2 * p * (1 - p) / width^2)), max_n)
   while (!passes(hi)) {
-    if (hi >= max_n) {
-      if (passes(max_n)) {
-        hi <- max_n
-        break
-      }
-      stop(
-        "No sample size up to max_n = ", max_n, " achieves the requested precision ",
-        "(method = \"", method, "\", criterion = \"", criterion, "\"). ",
-        "Increase `max_n` or relax `width`.",
-        call. = FALSE
-      )
-    }
+    if (hi >= max_n) no_solution()
     hi <- min(hi * 2, max_n)
   }
-
-  lo <- 2L
+  lo <- 1L
   while (hi - lo > 1) {
     mid <- lo + (hi - lo) %/% 2L
     if (passes(mid)) hi <- mid else lo <- mid
   }
 
-  # Backward repair scan: local non-monotonicity can hide a smaller passing n
-  # within a window below `hi`. Re-scan windows immediately below the current
-  # candidate and adopt the smallest passing n found; repeat until a window
-  # yields no improvement. `window` scales with 1/p so it comfortably spans
-  # the spacing between consecutive round(n * p) jumps.
   window <- max(50L, as.integer(ceiling(4 / p)))
   repeat {
-    scan_lo <- max(2L, hi - window)
-    if (scan_lo >= hi) break
-    candidates <- scan_lo:(hi - 1L)
-    passing <- candidates[vapply(candidates, passes, logical(1))]
-    if (length(passing) == 0) break
-    new_hi <- min(passing)
-    if (new_hi >= hi) break
-    hi <- new_hi
+    upper <- min(max_n, hi + window)
+    if (upper <= hi) break
+    candidates <- (hi + 1L):upper
+    ok <- vapply(candidates, passes, logical(1))
+    if (all(ok)) break
+    hi <- max(candidates[!ok]) + 1L
+    if (hi > max_n) no_solution()
+    while (!passes(hi)) {
+      hi <- hi + 1L
+      if (hi > max_n) no_solution()
+    }
   }
+
+  while (hi > 2L && passes(hi - 1L)) hi <- hi - 1L
   as.integer(hi)
 }
 

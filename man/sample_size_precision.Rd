@@ -100,25 +100,34 @@ original, backward-compatible formula):
 (or \eqn{n = z_{1-\alpha/2}^2/(4w^2)} for the conservative \eqn{p=0.5} case)
 
 Binary, one proportion, \code{method = "wilson"} or \code{"exact"}: there is no
-closed form. Instead, the smallest integer \eqn{n} is found such that the
-relevant confidence interval, evaluated at (a) the anticipated event count
-\eqn{x=\mathrm{round}(np)} when \code{criterion = "expected"}, or (b) every
-event count in a prevalence-local band \code{qbinom(c(0.001, 0.999), n, p)}
-when \code{criterion = "worst_case"}, has maximum one-sided half-width
-\eqn{\max(\hat p - lower,\ upper - \hat p) \le w}. Because Wilson and
-Clopper-Pearson intervals are generally asymmetric around \eqn{\hat p},
-this maximum one-sided distance - not half of the total interval width -
-is the planning criterion. The search itself is a deterministic
-doubling-then-bisection integer search with a bounded backward repair scan
-(see \code{sample_size_binomial_search()}), not a closed-form calculation, and
-a Clopper-Pearson interval guarantees at-least-nominal coverage at the
-evaluated count(s) - this is not the same as guaranteeing the achieved
-width at every conceivable outcome. The achieved half-width is not
-perfectly monotone in \eqn{n} (integer event counts round differently as
-\eqn{n} changes), so a plain bisection search can converge on an integer
-more than one step above the true minimum; the backward repair scan
-guards against this (verified against an exhaustive brute-force scan in
-the package tests) without falling back to an unbounded linear search.
+closed form; \eqn{n} is found by a deterministic integer search. The
+planning criterion is the maximum one-sided half-width
+\eqn{\max(\hat p - lower,\ upper - \hat p) \le w}; because Wilson and
+Clopper-Pearson intervals are asymmetric around \eqn{\hat p}, this is not
+half of the total interval width. The interval is evaluated at:
+\itemize{
+\item \code{method = "wilson"}, \code{criterion = "expected"}: the anticipated
+proportion itself, \eqn{\hat p = p}, with no rounding of the event
+count. The half-width then decreases steadily with \eqn{n}, and the
+result is the smallest \eqn{n} with
+\deqn{\frac{z}{1+z^2/n}\sqrt{\frac{p(1-p)}{n}+\frac{z^2}{4n^2}}
+      + \left|\frac{p+z^2/(2n)}{1+z^2/n} - p\right| \le w,}
+which can be checked by hand.
+\item \code{method = "exact"}, \code{criterion = "expected"}: the anticipated
+integer count \eqn{x=\mathrm{round}(np)} (Clopper-Pearson limits are
+defined for integer counts).
+\item \code{criterion = "worst_case"}: every integer count in a
+prevalence-local band \code{qbinom(c(0.001, 0.999), n, p)}.
+}
+With integer counts the half-width is not monotone in \eqn{n}: it can meet
+the target at some \eqn{n} and miss it again at a larger \eqn{n}. The
+function then returns the smallest \eqn{n} from which the target is met
+for every larger \eqn{n} (checked over a forward window of
+\eqn{\max(50, 4/p)} values, and verified against a brute-force scan in
+the package tests), so that recruiting a few more participants never
+breaks the planned precision. A Clopper-Pearson interval guarantees
+at-least-nominal coverage at the evaluated count(s); this is not a
+guarantee on the achieved width at every conceivable outcome.
 
 A precision-based sample size answers "how wide will my confidence
 interval be", not "how likely am I to observe any events at all"; for

@@ -1,3 +1,18 @@
+# testflow 1.0.5
+
+* `sample_size_precision()` (binary, one sample, `method = "wilson"` or
+  `"exact"`): the returned n is now stable. With integer event counts the
+  achieved precision is not monotone in n: it could meet the target at the
+  returned n and miss it again a few participants later. The search now
+  returns the smallest n from which the target holds for every larger n.
+* With `method = "wilson"` and `criterion = "expected"`, the interval is now
+  evaluated at the anticipated proportion p itself rather than at the rounded
+  count `round(n * p)`. The result is monotone in n and can be checked by
+  hand with the Wilson formula. Returned n can change slightly (usually
+  upward) compared with 1.0.4.
+* The reported `achieved_maximum_half_width` now uses exactly the same rule
+  as the search.
+
 # testflow 1.0.4
 
 * `test_groups()` and other workflows no longer fail with "Column `median` has
