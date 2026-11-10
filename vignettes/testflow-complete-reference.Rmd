@@ -42,7 +42,7 @@ x <- test_two_groups(sbp_3m ~ sex, data = cardio)
 x                # print.testflow(): formatted console report
 summary(x)       # summary.testflow(): compact summary list
 report(x)        # report.testflow(): report-ready sentence
-as_tibble(x)     # as_tibble.testflow(): one-row tidy summary
+as.data.frame(x) # one-row tidy summary
 ```
 
 `plot(x)` produces the workflow's `ggplot`; every workflow's own plot is
@@ -514,7 +514,7 @@ package.
 ```{r}
 set.seed(1)
 n <- 100
-survival_dat <- tibble::tibble(
+survival_dat <- data.frame(
   time = rexp(n, 0.1),
   status = rbinom(n, 1, 0.7),
   arm = rep(c("control", "treatment"), each = n / 2),
@@ -591,7 +591,7 @@ reference-class proportion) as the primary result, matching
 
 ```{r}
 set.seed(1)
-diag_dat <- tibble::tibble(
+diag_dat <- data.frame(
   test = c(rep("positive", 55), rep("negative", 98)),
   reference = c(rep("positive", 45), rep("negative", 10), rep("positive", 8), rep("negative", 90))
 )
@@ -621,7 +621,7 @@ The optimal threshold maximizes Youden's J (1950),
 \(J=Sensitivity+Specificity-1\).
 
 ```{r}
-roc_dat <- tibble::tibble(
+roc_dat <- data.frame(
   marker = c(rnorm(60, 2, 1), rnorm(50, 0, 1)),
   disease = c(rep("yes", 60), rep("no", 50))
 )
@@ -649,7 +649,7 @@ agreement is materially above chance, inflating the z-statistic and
 anti-conservatively shrinking the p-value.
 
 ```{r}
-agree_dat <- tibble::tibble(
+agree_dat <- data.frame(
   rater1 = sample(c("mild", "moderate", "severe"), 100, replace = TRUE),
   rater2 = sample(c("mild", "moderate", "severe"), 100, replace = TRUE)
 )
@@ -684,7 +684,7 @@ intervals use the F-distribution formulas of McGraw & Wong (1996), with a
 Satterthwaite-approximated denominator degrees of freedom for ICC(2,1).
 
 ```{r}
-icc_dat <- tibble::tibble(
+icc_dat <- data.frame(
   rater1 = rnorm(30, 50, 10),
   rater2 = rnorm(30, 50, 10),
   rater3 = rnorm(30, 50, 10)
@@ -1017,7 +1017,7 @@ sample_size_adjust_dropout(100, dropout = 0.15)
 | Precision | one-sample, two-sample, log-OR | CI half-width (no power/objective) | continuous and binary CI-width formulas |
 
 Every `sample_size` object also has `print()`, `summary()`, `report()`,
-`as_tibble()`, and `plot(type = "summary"/"curve"/"both")` methods. See
+`as.data.frame()`, and `plot(type = "summary"/"curve"/"both")` methods. See
 `?sample_size_continuous`, `?sample_size_binary`, `?sample_size_survival`,
 `?sample_size_ordinal`, `?sample_size_bioequivalence`,
 `?sample_size_precision`, and `?sample_size_cluster_adjust` for the complete

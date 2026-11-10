@@ -530,7 +530,7 @@ one-row summary:
 
 ```{r}
 report(paired_ss)
-as_tibble(paired_ss)
+as.data.frame(paired_ss)
 ```
 
 ## Summary of supported settings

@@ -637,7 +637,7 @@ x <- sample_size_continuous(
 x                       # print.sample_size(): formatted console report
 summary(x)              # summary.sample_size(): compact summary list
 report(x)               # report.sample_size(): report-ready sentence
-as_tibble(x)            # as_tibble.sample_size(): one-row tidy summary
+as.data.frame(x)        # one-row tidy summary
 plot(x, type = "summary") # raw vs. dropout-adjusted n bar chart
 plot(x, type = "curve")   # power curve, when curve data is available
 plot(x, type = "both")    # both plots stacked (requires the patchwork package)

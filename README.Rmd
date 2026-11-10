@@ -67,7 +67,7 @@ res
 
 ```{r}
 report(res)
-as_tibble(res)
+as.data.frame(res)
 ```
 
 ```{r quick-start-plot, fig.width = 7, fig.height = 4.5}
@@ -94,7 +94,7 @@ paired <- test_paired(sbp_3m ~ sbp_baseline, data = cardio, plot = TRUE)
 
 paired
 report(paired)
-as_tibble(paired)
+as.data.frame(paired)
 ```
 
 ```{r complete-workflow-plot, fig.width = 7, fig.height = 4.5}

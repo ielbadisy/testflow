@@ -1,11 +1,11 @@
 testflow
 ================
 
-[![CRAN status](https://www.r-pkg.org/badges/version/testflow)](https://CRAN.R-project.org/package=testflow)
+[![CRAN
+status](https://www.r-pkg.org/badges/version/testflow)](https://CRAN.R-project.org/package=testflow)
 [![License:
 MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![R \>= 4.1.0](https://img.shields.io/badge/R-%3E%3D%204.1.0-blue.svg)
-
 
 `testflow` helps choose, run, and report common statistical tests from
 the study design. The package returns a consistent object with
@@ -84,14 +84,17 @@ res
 ``` r
 report(res)
 #> [1] "The two independent groups workflow for sbp_3m did not show a statistically significant result using Student independent t-test, statistic = -1.91, df = 178.00, p = 0.058. The 95% confidence interval was [-11.22, 0.18]. The effect size was small (Cohen's d = -0.29). H0: the population mean or location of sbp_3m is equal across levels of sex."
-as_tibble(res)
-#> # A tibble: 1 × 15
-#>   workflow design outcome group recommended_test null_hypothesis statistic    df
-#>   <chr>    <chr>  <chr>   <chr> <chr>            <chr>               <dbl> <dbl>
-#> 1 two_gro… two i… sbp_3m  sex   Student indepen… H0: the popula…     -1.91   178
-#> # ℹ 7 more variables: p <dbl>, conf.low <dbl>, conf.high <dbl>,
-#> #   effect_size <dbl>, effect_size_name <chr>, effect_size_magnitude <chr>,
-#> #   decision <chr>
+as.data.frame(res)
+#>     workflow                 design outcome group           recommended_test
+#> 1 two_groups two independent groups  sbp_3m   sex Student independent t-test
+#>                                                                null_hypothesis
+#> 1 H0: the population mean or location of sbp_3m is equal across levels of sex.
+#>   statistic  df          p  conf.low conf.high effect_size effect_size_name
+#> 1 -1.911712 178 0.05751948 -11.22248 0.1781359  -0.2856167        Cohen's d
+#>   effect_size_magnitude
+#> 1                 small
+#>                                                   decision
+#> 1 Not statistically significant at the chosen alpha level.
 ```
 
 ``` r
@@ -143,14 +146,15 @@ paired
 #> The paired measurements workflow for sbp_3m - sbp_baseline showed a statistically significant result using Paired t-test, statistic = -9.20, df = 179.00, p = <0.001. The 95% confidence interval was [-9.53, -6.16]. The effect size was moderate (Cohen's dz = -0.69). H0: the mean or median paired difference (sbp_3m - sbp_baseline) equals 0.
 report(paired)
 #> [1] "The paired measurements workflow for sbp_3m - sbp_baseline showed a statistically significant result using Paired t-test, statistic = -9.20, df = 179.00, p = <0.001. The 95% confidence interval was [-9.53, -6.16]. The effect size was moderate (Cohen's dz = -0.69). H0: the mean or median paired difference (sbp_3m - sbp_baseline) equals 0."
-as_tibble(paired)
-#> # A tibble: 1 × 15
-#>   workflow design outcome group recommended_test null_hypothesis statistic    df
-#>   <chr>    <chr>  <chr>   <chr> <chr>            <chr>               <dbl> <dbl>
-#> 1 paired   paire… sbp_3m… <NA>  Paired t-test    H0: the mean o…     -9.20   179
-#> # ℹ 7 more variables: p <dbl>, conf.low <dbl>, conf.high <dbl>,
-#> #   effect_size <dbl>, effect_size_name <chr>, effect_size_magnitude <chr>,
-#> #   decision <chr>
+as.data.frame(paired)
+#>   workflow              design               outcome group recommended_test
+#> 1   paired paired measurements sbp_3m - sbp_baseline  <NA>    Paired t-test
+#>                                                              null_hypothesis
+#> 1 H0: the mean or median paired difference (sbp_3m - sbp_baseline) equals 0.
+#>   statistic  df           p  conf.low conf.high effect_size effect_size_name
+#> 1 -9.203747 179 9.04155e-17 -9.526312 -6.162577  -0.6860068       Cohen's dz
+#>   effect_size_magnitude                                             decision
+#> 1              moderate Statistically significant at the chosen alpha level.
 ```
 
 ``` r
