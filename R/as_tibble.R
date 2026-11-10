@@ -1,20 +1,47 @@
-#' Convert a testflow object to a one-row tibble
-#' @param x A testflow object.
+#' Convert a testflow result to a one-row table
+#'
+#' `as.data.frame()` returns the one-row summary of a testflow or sample-size
+#' result as a plain data frame. `as_tibble()` is kept for existing code and
+#' returns the same row as a basetable; testflow no longer depends on
+#' 'tibble'.
+#'
+#' @param x A testflow object or a sample-size object.
+#' @param row.names,optional Unused; present for compatibility with
+#'   [base::as.data.frame()].
 #' @param ... Unused.
-#' @return A one-row tibble with the workflow name, design, variables,
+#' @return A one-row table with the workflow name, design, variables,
 #' recommended test, null hypothesis, statistic, degrees of freedom when
 #' available, p-value, confidence interval when available, effect-size fields,
-#' and decision text.
+#' and decision text. For a sample-size object: endpoint, design, objective,
+#' method, sample sizes, report and any diagnostics.
+#' @name as_tibble
 #' @export
 as_tibble <- function(x, ...) {
   UseMethod("as_tibble")
 }
 
+#' @rdname as_tibble
+#' @export
+as.data.frame.testflow <- function(x, row.names = NULL, optional = FALSE, ...) {
+  out <- as_tibble.testflow(x)
+  class(out) <- "data.frame"
+  out
+}
+
+#' @rdname as_tibble
+#' @export
+as.data.frame.sample_size <- function(x, row.names = NULL, optional = FALSE, ...) {
+  out <- as_tibble.sample_size(x)
+  class(out) <- "data.frame"
+  out
+}
+
+#' @rdname as_tibble
 #' @export
 as_tibble.testflow <- function(x, ...) {
   effect <- x$effect_size
   ci <- primary_ci(x)
-  tibble::tibble(
+  .bt(
     workflow = x$workflow,
     design = x$design,
     outcome = x$outcome %||% NA_character_,

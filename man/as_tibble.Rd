@@ -2,21 +2,37 @@
 % Please edit documentation in R/as_tibble.R
 \name{as_tibble}
 \alias{as_tibble}
-\title{Convert a testflow object to a one-row tibble}
+\alias{as.data.frame.testflow}
+\alias{as.data.frame.sample_size}
+\alias{as_tibble.testflow}
+\title{Convert a testflow result to a one-row table}
 \usage{
 as_tibble(x, ...)
+
+\method{as.data.frame}{testflow}(x, row.names = NULL, optional = FALSE, ...)
+
+\method{as.data.frame}{sample_size}(x, row.names = NULL, optional = FALSE, ...)
+
+\method{as_tibble}{testflow}(x, ...)
 }
 \arguments{
-\item{x}{A testflow object.}
+\item{x}{A testflow object or a sample-size object.}
 
 \item{...}{Unused.}
+
+\item{row.names, optional}{Unused; present for compatibility with
+\code{\link[base:as.data.frame]{base::as.data.frame()}}.}
 }
 \value{
-A one-row tibble with the workflow name, design, variables,
+A one-row table with the workflow name, design, variables,
 recommended test, null hypothesis, statistic, degrees of freedom when
 available, p-value, confidence interval when available, effect-size fields,
-and decision text.
+and decision text. For a sample-size object: endpoint, design, objective,
+method, sample sizes, report and any diagnostics.
 }
 \description{
-Convert a testflow object to a one-row tibble
+\code{as.data.frame()} returns the one-row summary of a testflow or sample-size
+result as a plain data frame. \code{as_tibble()} is kept for existing code and
+returns the same row as a basetable; testflow no longer depends on
+'tibble'.
 }
