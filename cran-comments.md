@@ -1,18 +1,9 @@
-## Update submission (1.0.0 -> 1.0.5)
+## Update submission (1.0.5 -> 1.1.0)
 
-Bug-fix releases; see NEWS.md for details. Main changes:
-
-* `sample_size_precision()` (binary, `method = "wilson"` or `"exact"`):
-  the returned n is now the smallest n from which the precision target
-  holds for every larger n (achieved precision is not monotone in n with
-  integer counts).
-* `test_groups()` and other workflows no longer fail when an integer
-  outcome has groups of odd and even size.
-* `test_linear_regression()`, `test_logistic_regression()` and
-  `test_factorial()` no longer fail for n > 5000 (Shapiro-Wilk limit).
-* Dropped the 'dplyr', 'tidyr' and 'purrr' dependencies.
-* `test_categorical()` falls back to a Monte Carlo p-value when Fisher's
-  exact test runs out of workspace.
+* Dropped the 'tibble' and 'tidyselect' dependencies; result tables are
+  built with 'basetable' (already imported).
+* New `as.data.frame()` methods for testflow and sample-size results;
+  `as_tibble()` keeps working.
 
 ## Test environments
 

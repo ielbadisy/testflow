@@ -1,3 +1,16 @@
+# testflow 1.1.0
+
+* testflow no longer depends on 'tibble' or 'tidyselect'. Result tables are
+  basetable objects (still data frames), built with 'basetable'.
+* New `as.data.frame()` methods for testflow and sample-size results return
+  the one-row summary as a plain data frame. `as_tibble()` still works and
+  returns the same row as a basetable.
+* Column selection arguments (`measures`, `vars`, `factors`) keep accepting
+  bare names, strings, `c()`, `a:b` ranges, `-x` exclusions, character
+  vectors and `starts_with()`, `ends_with()`, `contains()`, `matches()`,
+  `everything()`, `all_of()` and `any_of()`, now resolved without
+  'tidyselect'.
+
 # testflow 1.0.5
 
 * `sample_size_precision()` (binary, one sample, `method = "wilson"` or
