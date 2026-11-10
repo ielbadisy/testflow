@@ -131,3 +131,10 @@ test_that("test_icc's ICC(2,1) confidence interval uses the estimated ICC, not t
   expect_true(tbl$conf.high[2] > tbl$estimate[2])
   expect_true(tbl$conf.low[2] > 0.5)
 })
+
+test_that("kappa confidence interval stays within [-1, 1]", {
+  d <- data.frame(a = c("y", "y", "n", "y", "n"), b = c("y", "n", "n", "y", "n"))
+  r <- test_agreement(d, a, b, plot = FALSE)$primary_test
+  expect_lte(r$conf.high, 1)
+  expect_gte(r$conf.low, -1)
+})

@@ -88,7 +88,8 @@ test_agreement <- function(data, rater1, rater2, alpha = 0.05, plot = TRUE, na.r
   se0_kappa <- sqrt(pe + pe^2 - sum(pi_row * pi_col * (pi_row + pi_col))) / ((1 - pe) * sqrt(n))
 
   z <- stats::qnorm(1 - alpha / 2)
-  kappa_ci <- kappa + c(-1, 1) * z * se_kappa
+  # Wald interval clipped to the parameter range (kappa <= 1; floor at -1).
+  kappa_ci <- pmin(pmax(kappa + c(-1, 1) * z * se_kappa, -1), 1)
   z_stat <- kappa / se0_kappa
   p_value <- 2 * stats::pnorm(-abs(z_stat))
 

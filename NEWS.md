@@ -1,5 +1,8 @@
 # testflow 1.1.0
 
+* `test_agreement()` now keeps the kappa confidence interval within [-1, 1];
+  with small samples the Wald interval could exceed 1.
+
 * testflow no longer depends on 'tibble' or 'tidyselect'. Result tables are
   basetable objects (still data frames), built with 'basetable'.
 * New `as.data.frame()` methods for testflow and sample-size results return
