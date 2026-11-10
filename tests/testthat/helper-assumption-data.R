@@ -12,7 +12,7 @@ make_assumption_data <- function(n = 80) {
   controlled_3m <- sample(c("yes", "no"), n, replace = TRUE)
   controlled_6m <- sample(c("yes", "no"), n, replace = TRUE)
   age <- round(rnorm(n, 55, 10))
-  tibble::tibble(
+  .bt(
     id = id,
     age = age,
     sex = sex,

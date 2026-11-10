@@ -36,7 +36,7 @@ paired_posthoc_numeric <- function(wide, method = c("t", "wilcox"), p.adjust.met
     } else {
       stats::wilcox.test(y, x, paired = TRUE, exact = FALSE)
     }
-    tibble::tibble(
+    .bt(
       group1 = pair[1],
       group2 = pair[2],
       method = ifelse(method == "t", "paired t-test", "paired Wilcoxon signed-rank test"),
@@ -54,7 +54,7 @@ pairwise_mcnemar <- function(mat, measure_names, p.adjust.method = "BH") {
   out <- .map_dfr(pairs, function(pair) {
     tab <- table(mat[, pair[1]], mat[, pair[2]])
     test <- stats::mcnemar.test(tab)
-    tibble::tibble(
+    .bt(
       group1 = measure_names[pair[1]],
       group2 = measure_names[pair[2]],
       method = "McNemar test",

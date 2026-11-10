@@ -1,6 +1,6 @@
 test_that("test_paired computes differences and returns plot", {
   set.seed(3)
-  dat <- tibble::tibble(before = rnorm(50, 10, 2), after = before - rnorm(50, 1, 1))
+  dat <- .bt(before = rnorm(50, 10, 2), after = before - rnorm(50, 1, 1))
   x <- test_paired(dat, before, after)
   expect_s3_class(x, "testflow_paired")
   expect_equal(x$data$diff, x$data$after - x$data$before)
@@ -16,7 +16,7 @@ test_that("test_paired computes differences and returns plot", {
 
 test_that("test_paired's Wilcoxon branch reports a Hodges-Lehmann estimate and CI", {
   set.seed(4)
-  dat <- tibble::tibble(before = stats::rexp(30, 1), after = before + stats::rexp(30, 1) - 0.5)
+  dat <- .bt(before = stats::rexp(30, 1), after = before + stats::rexp(30, 1) - 0.5)
   x <- test_paired(dat, before, after)
 
   wilcox <- x$alternative_tests$wilcox

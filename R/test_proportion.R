@@ -29,10 +29,10 @@ test_proportion <- function(data, outcome, success, p = 0.5, alpha = 0.05, plot 
   expected_failure <- total_n * (1 - p)
   approx_ok <- expected_success >= 5 && expected_failure >= 5
   warn_if(!approx_ok && expected_success >= 3 && expected_failure >= 3, "Proportion test approximation is borderline; exact binomial results are safer.")
-  effect <- tibble::tibble(name = "Observed proportion", estimate = success_n / total_n, magnitude = NA_character_)
+  effect <- .bt(name = "Observed proportion", estimate = success_n / total_n, magnitude = NA_character_)
   plt <- if (plot) {
     counts <- c(success_n, total_n - success_n)
-    pd <- tibble::tibble(level = c("success", "other"), n = counts, prop = counts / total_n)
+    pd <- .bt(level = c("success", "other"), n = counts, prop = counts / total_n)
     ggplot2::ggplot(pd, ggplot2::aes(x = .data$level, y = .data$prop, fill = .data$level)) +
       ggplot2::geom_col() +
       ggplot2::geom_hline(yintercept = p, linetype = "dashed") +

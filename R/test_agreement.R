@@ -92,8 +92,8 @@ test_agreement <- function(data, rater1, rater2, alpha = 0.05, plot = TRUE, na.r
   z_stat <- kappa / se0_kappa
   p_value <- 2 * stats::pnorm(-abs(z_stat))
 
-  effect <- tibble::tibble(name = "Cohen's kappa", estimate = kappa, magnitude = magnitude_kappa(kappa))
-  primary <- tibble::tibble(
+  effect <- .bt(name = "Cohen's kappa", estimate = kappa, magnitude = magnitude_kappa(kappa))
+  primary <- .bt(
     method = "Cohen's kappa (vs. 0)",
     statistic = z_stat,
     p.value = p_value,
@@ -233,7 +233,7 @@ test_icc <- function(data, measures, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
     (n * (fu2 * bms2 - ems)) / (k * jms + (k * n - k - n) * ems + n * fu2 * bms2)
   )
 
-  icc_table <- tibble::tibble(
+  icc_table <- .bt(
     method = c("ICC(1,1) one-way random", "ICC(2,1) two-way random, absolute agreement", "ICC(3,1) two-way fixed, consistency"),
     estimate = c(icc1, icc2, icc3),
     conf.low = c(icc1_ci[1], icc2_ci[1], icc3_ci[1]),
@@ -242,8 +242,8 @@ test_icc <- function(data, measures, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
     p.value = c(icc1_p, icc2_p, icc3_p)
   )
 
-  effect <- tibble::tibble(name = "ICC(2,1)", estimate = icc2, magnitude = magnitude_icc(icc2))
-  primary <- tibble::tibble(method = "ICC(2,1) F-test (vs. 0)", statistic = f2, parameter = n - 1, p.value = icc2_p, conf.low = icc2_ci[1], conf.high = icc2_ci[2])
+  effect <- .bt(name = "ICC(2,1)", estimate = icc2, magnitude = magnitude_icc(icc2))
+  primary <- .bt(method = "ICC(2,1) F-test (vs. 0)", statistic = f2, parameter = n - 1, p.value = icc2_p, conf.low = icc2_ci[1], conf.high = icc2_ci[2])
   h0 <- "H0: ICC(2,1) = 0 (no reliability beyond chance)."
 
   plt <- if (plot) {

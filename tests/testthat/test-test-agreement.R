@@ -5,7 +5,7 @@ test_that("test_agreement matches the Fleiss-Cohen-Everitt (1969) kappa SE formu
   rater2 <- rater1
   flip <- sample(seq_len(n), 20)
   rater2[flip] <- sample(c("A", "B", "C"), 20, replace = TRUE)
-  dat <- tibble::tibble(rater1 = rater1, rater2 = rater2)
+  dat <- .bt(rater1 = rater1, rater2 = rater2)
 
   x <- test_agreement(dat, rater1, rater2)
   expect_s3_class(x, "testflow_agreement")
@@ -66,7 +66,7 @@ test_that("test_agreement's kappa hypothesis test matches irr::kappa2()'s null-h
 })
 
 test_that("test_agreement handles category sets that appear in only one rater's column", {
-  dat <- tibble::tibble(
+  dat <- .bt(
     rater1 = c("yes", "yes", "no", "no", "no"),
     rater2 = c("yes", "no", "no", "no", "maybe")
   )

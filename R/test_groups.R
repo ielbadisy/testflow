@@ -38,7 +38,7 @@ test_groups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRU
   ph <- if (posthoc) posthoc_groups(df, outcome_nm, group_nm, recommendation, alpha = alpha) else NULL
   effect <- if (recommendation == "Kruskal-Wallis test") {
     h <- unname(kruskal$statistic); n <- nrow(df); k <- length(unique(df[[group_nm]]))
-    tibble::tibble(name = "Kruskal epsilon squared", estimate = (h - k + 1) / (n - k), magnitude = magnitude_eta2((h - k + 1) / (n - k)))
+    .bt(name = "Kruskal epsilon squared", estimate = (h - k + 1) / (n - k), magnitude = magnitude_eta2((h - k + 1) / (n - k)))
   } else eta_squared_aov(aov_fit)[1, , drop = FALSE]
   plt <- if (plot) make_plot("groups", df, outcome_nm, group_nm, recommendation, if (inherits(primary, "htest")) primary else list(p.value = primary_tidy$p.value[1]), effect) else NULL
   out <- new_testflow("groups", "more than two independent groups", outcome_nm, group_nm, data = df, descriptives = descriptives_numeric(df, outcome_nm, group_nm), assumptions = assumption_checks(independence, normality, levene, bartlett, outliers), recommended = list(test = recommendation), primary_test = primary_tidy, alternative_tests = list(anova = add_null_hypothesis(aov_test, h0), welch = add_null_hypothesis(safe_tidy_htest(welch, "Welch ANOVA"), h0), kruskal = add_null_hypothesis(safe_tidy_htest(kruskal, "Kruskal-Wallis test"), h0)), posthoc = ph, effect_size = effect, plot = plt, call = match.call(), subclass = "groups")
@@ -47,5 +47,5 @@ test_groups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRU
 }
 
 list_obj_from_tidy <- function(x, method) {
-  tibble::tibble(method = method, statistic = x$statistic[1], parameter = x$df[1], p.value = x$p.value[1])
+  .bt(method = method, statistic = x$statistic[1], parameter = x$df[1], p.value = x$p.value[1])
 }

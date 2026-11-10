@@ -1,6 +1,6 @@
 test_that("test_repeated uses repeated-measures ANOVA when normality passes", {
   set.seed(10)
-  dat <- tibble::tibble(
+  dat <- .bt(
     id = seq_len(40),
     t1 = rnorm(40, 10, 2),
     t2 = t1 + rnorm(40, 1, 1),
@@ -18,7 +18,7 @@ test_that("test_repeated uses repeated-measures ANOVA when normality passes", {
 })
 
 test_that("test_repeated uses Friedman and paired Wilcoxon when normality fails", {
-  dat <- tibble::tibble(
+  dat <- .bt(
     id = seq_len(30),
     t1 = rexp(30, 1),
     t2 = rexp(30, 0.8),

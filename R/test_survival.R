@@ -48,7 +48,7 @@ test_survival <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE
   km_table <- broom::tidy(fit_km)
   km_table$strata <- sub(paste0("^", group_nm, "="), "", km_table$strata)
   summary_table <- summary(fit_km)$table
-  descriptives <- tibble::tibble(
+  descriptives <- .bt(
     group = sub(paste0("^", group_nm, "="), "", rownames(summary_table)),
     n = unname(summary_table[, "records"]),
     events = unname(summary_table[, "events"]),
@@ -61,9 +61,9 @@ test_survival <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE
 
   hr <- unname(exp(stats::coef(fit_cox))[1])
   hr_ci <- exp(stats::confint(fit_cox))[1, ]
-  effect <- tibble::tibble(name = "Hazard ratio", estimate = hr, magnitude = NA_character_)
+  effect <- .bt(name = "Hazard ratio", estimate = hr, magnitude = NA_character_)
 
-  primary <- tibble::tibble(
+  primary <- .bt(
     method = "Log-rank test",
     statistic = chisq,
     parameter = lr_df,
@@ -167,8 +167,8 @@ test_cox <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
     p_value = unname(zph_global["p"])
   )
 
-  effect <- tibble::tibble(name = "Concordance index", estimate = unname(g$concordance), magnitude = NA_character_)
-  primary <- tibble::tibble(
+  effect <- .bt(name = "Concordance index", estimate = unname(g$concordance), magnitude = NA_character_)
+  primary <- .bt(
     method = "Cox proportional hazards regression (likelihood-ratio test)",
     statistic = unname(logtest["test"]),
     parameter = unname(logtest["df"]),

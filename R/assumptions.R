@@ -183,7 +183,7 @@ check_variance_homogeneity <- function(data, outcome, group, alpha = 0.05) {
   lt <- car::leveneTest(formula, data = data)
   p <- lt[["Pr(>F)"]][1]
   stat <- lt[["F value"]][1]
-  tibble::tibble(
+  .bt(
     name = "Variance homogeneity",
     method = "Levene test",
     message = ifelse(p >= alpha, "Variance homogeneity looks reasonable.", "Variance homogeneity may be violated."),
@@ -200,7 +200,7 @@ check_variance_homogeneity <- function(data, outcome, group, alpha = 0.05) {
 check_variance_two_groups <- function(data, outcome, group, alpha = 0.05) {
   formula <- tf_formula(outcome, group)
   test <- stats::var.test(formula, data = data)
-  tibble::tibble(
+  .bt(
     name = "Variance ratio check",
     message = ifelse(test$p.value >= alpha, "Variance ratio looks reasonable.", "Variance ratio looks concerning."),
     statistic = unname(test$statistic),
@@ -217,7 +217,7 @@ check_variance_two_groups <- function(data, outcome, group, alpha = 0.05) {
 #' @noRd
 check_bartlett <- function(data, outcome, group, alpha = 0.05) {
   test <- stats::bartlett.test(tf_formula(outcome, group), data = data)
-  tibble::tibble(
+  .bt(
     name = "Bartlett test",
     method = "Bartlett test",
     message = ifelse(test$p.value >= alpha, "Variance homogeneity looks reasonable.", "Variance homogeneity may be violated."),
@@ -230,7 +230,7 @@ check_bartlett <- function(data, outcome, group, alpha = 0.05) {
 #' Build a standardized assumption check
 #' @noRd
 assumption_check <- function(name, status, message, method = NA_character_, statistic = NA_real_, p_value = NA_real_, details = NA_character_, ...) {
-  tibble::tibble(
+  .bt(
     name = name,
     status = status,
     message = message,
@@ -252,10 +252,10 @@ assumption_checks <- function(...) {
 #' @noRd
 format_assumptions <- function(assumptions) {
   if (is.null(assumptions)) {
-    return(tibble::tibble())
+    return(.bt())
   }
   if (is.data.frame(assumptions)) {
-    return(tibble::as_tibble(assumptions))
+    return(.as_bt(assumptions))
   }
   if (is.list(assumptions)) {
     out <- .imap_dfr(assumptions, function(x, nm) {
@@ -267,7 +267,7 @@ format_assumptions <- function(assumptions) {
     })
     return(out)
   }
-  tibble::tibble()
+  .bt()
 }
 
 #' Check independence note

@@ -6,7 +6,7 @@
 .descriptives_numeric_one <- function(data, vars, group_label) {
   .map_dfr(vars, function(v) {
     x <- data[[v]]
-    tibble::tibble(
+    .bt(
       variable = v,
       group = group_label,
       n = sum(!is.na(x)),
@@ -50,7 +50,7 @@ descriptives_categorical <- function(data, vars) {
   vars <- as.character(vars)
   .map_dfr(vars, function(v) {
     tab <- table(data[[v]], useNA = "ifany")
-    tibble::tibble(
+    .bt(
       variable = v,
       level = names(tab),
       n = as.integer(tab),

@@ -11,7 +11,7 @@
 #' @param alpha Significance level used by automatic test selection.
 #' @param fisher_threshold Expected-count threshold for Fisher's exact test.
 #' @param na.rm Logical; remove missing values before summaries and tests.
-#' @return A tibble with one row per numeric variable and one row per
+#' @return A basetable with one row per numeric variable and one row per
 #'   categorical level.
 #' @export
 sumtab <- function(
@@ -59,8 +59,8 @@ sumtab <- function(
 #'
 #' @description
 #' Prints a `sumtab()` result without column truncation, unlike the default
-#' tibble print method, which hides columns and truncates cell text (e.g.
-#' `"58.0 (10.4)…"`) once the table exceeds the console width.
+#' table print method, which can hide columns and truncate cell text once
+#' the table exceeds the console width.
 #'
 #' @param x A `testflow_sumtab` object, as returned by [sumtab()].
 #' @param ... Unused.
@@ -131,9 +131,9 @@ sumtab_numeric_rows <- function(data, variable, group, group_levels, group_label
     cells[[group_labels[[level]]]] <- sumtab_numeric_cell(data[[variable]][data[[group]] == level], digits, na.rm)
   }
 
-  tibble::as_tibble(cbind(
-    tibble::tibble(variable = variable, level = NA_character_),
-    tibble::as_tibble_row(cells)
+  .as_bt(cbind(
+    .bt(variable = variable, level = NA_character_),
+    .bt_row(cells)
   ))
 }
 
@@ -149,9 +149,9 @@ sumtab_categorical_rows <- function(data, variable, group, group_levels, group_l
       cells[[group_labels[[group_level]]]] <- sumtab_categorical_cell(data[[variable]][data[[group]] == group_level], level, digits, na.rm)
     }
 
-    tibble::as_tibble(cbind(
-      tibble::tibble(variable = variable, level = level),
-      tibble::as_tibble_row(cells)
+    .as_bt(cbind(
+      .bt(variable = variable, level = level),
+      .bt_row(cells)
     ))
   })
 }

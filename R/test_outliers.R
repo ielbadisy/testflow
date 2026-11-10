@@ -27,7 +27,7 @@ test_outliers <- function(formula, data, group = NULL, method = c("iqr", "mahala
     assumption_checks(assumption_check("Complete cases", "acceptable", "Mahalanobis distance uses complete cases only."), assumption_check("Approximate multivariate normality", "warning", "Mahalanobis screening is more stable when the variables are roughly multivariate normal."), assumption_check("Invertible covariance matrix", "acceptable", "The covariance matrix must be invertible."))
   }
   method_label <- ifelse(method == "iqr", "IQR outlier detection", title_case_method(paste(method, "outlier detection")))
-  primary <- tibble::tibble(method = method_label, statistic = sum((iqr$is_outlier %||% FALSE), na.rm = TRUE), parameter = NA_real_, p.value = NA_real_)
+  primary <- .bt(method = method_label, statistic = sum((iqr$is_outlier %||% FALSE), na.rm = TRUE), parameter = NA_real_, p.value = NA_real_)
   plt <- if (plot) {
     long <- .pivot_longer_simple(df, vars, "variable", "value")
     if (!is.null(iqr)) {
@@ -47,7 +47,7 @@ test_outliers <- function(formula, data, group = NULL, method = c("iqr", "mahala
       ggplot2::theme_minimal() +
       ggplot2::theme(axis.text.x = ggplot2::element_blank(), panel.grid.major.x = ggplot2::element_blank())
   } else NULL
-  out <- new_testflow("outliers", "outlier screening", paste(vars, collapse = ", "), group_nm, data = df, descriptives = descriptives_numeric(df, vars, group_nm), assumptions = assumptions, recommended = list(test = method_label), primary_test = primary, alternative_tests = list(iqr = iqr, mahalanobis = mahal), effect_size = tibble::tibble(name = "Outlier count", estimate = primary$statistic[1], magnitude = NA_character_), plot = plt, call = match.call(), subclass = "outliers")
+  out <- new_testflow("outliers", "outlier screening", paste(vars, collapse = ", "), group_nm, data = df, descriptives = descriptives_numeric(df, vars, group_nm), assumptions = assumptions, recommended = list(test = method_label), primary_test = primary, alternative_tests = list(iqr = iqr, mahalanobis = mahal), effect_size = .bt(name = "Outlier count", estimate = primary$statistic[1], magnitude = NA_character_), plot = plt, call = match.call(), subclass = "outliers")
   out$interpretation <- make_report(out)
   out
 }
@@ -57,7 +57,7 @@ iqr_fences <- function(data, vars) {
     q1 <- stats::quantile(data[[v]], 0.25, na.rm = TRUE, names = FALSE)
     q3 <- stats::quantile(data[[v]], 0.75, na.rm = TRUE, names = FALSE)
     i <- q3 - q1
-    tibble::tibble(variable = v, lower_fence = q1 - 1.5 * i, upper_fence = q3 + 1.5 * i)
+    .bt(variable = v, lower_fence = q1 - 1.5 * i, upper_fence = q3 + 1.5 * i)
   })
 }
 
@@ -67,7 +67,7 @@ iqr_outliers <- function(data, vars, group = NULL) {
       q1 <- stats::quantile(df[[v]], 0.25, na.rm = TRUE)
       q3 <- stats::quantile(df[[v]], 0.75, na.rm = TRUE)
       i <- q3 - q1
-      tibble::tibble(row = seq_len(nrow(df)), variable = v, value = df[[v]], is_outlier = df[[v]] < q1 - 1.5 * i | df[[v]] > q3 + 1.5 * i, is_extreme = df[[v]] < q1 - 3 * i | df[[v]] > q3 + 3 * i)
+      .bt(row = seq_len(nrow(df)), variable = v, value = df[[v]], is_outlier = df[[v]] < q1 - 1.5 * i | df[[v]] > q3 + 1.5 * i, is_extreme = df[[v]] < q1 - 3 * i | df[[v]] > q3 + 3 * i)
     })
   }
   if (is.null(group)) return(calc(data))
@@ -87,5 +87,5 @@ mahalanobis_outliers <- function(data, vars) {
   x <- stats::na.omit(as.matrix(data[, vars, drop = FALSE]))
   d <- stats::mahalanobis(x, colMeans(x), stats::cov(x))
   cutoff <- stats::qchisq(0.975, df = length(vars))
-  tibble::tibble(row = seq_along(d), distance = d, cutoff = cutoff, is_outlier = d > cutoff)
+  .bt(row = seq_along(d), distance = d, cutoff = cutoff, is_outlier = d > cutoff)
 }

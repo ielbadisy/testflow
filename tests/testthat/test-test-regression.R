@@ -1,7 +1,7 @@
 test_that("test_linear_regression matches summary(lm()) exactly", {
   set.seed(1)
   n <- 80
-  dat <- tibble::tibble(x1 = rnorm(n), x2 = rnorm(n))
+  dat <- .bt(x1 = rnorm(n), x2 = rnorm(n))
   dat$y <- 2 + 0.6 * dat$x1 - 0.3 * dat$x2 + rnorm(n, sd = 0.8)
 
   x <- test_linear_regression(y ~ x1 + x2, data = dat)
@@ -30,7 +30,7 @@ test_that("test_linear_regression matches summary(lm()) exactly", {
 
 test_that("test_linear_regression skips multicollinearity for a single predictor", {
   set.seed(2)
-  dat <- tibble::tibble(x1 = rnorm(50), y = rnorm(50))
+  dat <- .bt(x1 = rnorm(50), y = rnorm(50))
   x <- test_linear_regression(y ~ x1, data = dat)
   mc <- x$assumptions[x$assumptions$name == "Multicollinearity", ]
   expect_equal(mc$status, "not applicable")
@@ -40,7 +40,7 @@ test_that("test_linear_regression flags multicollinearity for highly correlated 
   set.seed(3)
   n <- 100
   x1 <- rnorm(n)
-  dat <- tibble::tibble(x1 = x1, x2 = x1 + rnorm(n, sd = 0.01), y = rnorm(n))
+  dat <- .bt(x1 = x1, x2 = x1 + rnorm(n, sd = 0.01), y = rnorm(n))
   x <- test_linear_regression(y ~ x1 + x2, data = dat)
   mc <- x$assumptions[x$assumptions$name == "Multicollinearity", ]
   expect_equal(mc$status, "not acceptable")
@@ -54,7 +54,7 @@ test_that("test_logistic_regression matches glm() likelihood-ratio test and odds
   x1 <- rnorm(n)
   x2 <- rnorm(n)
   p <- stats::plogis(0.5 + 0.9 * x1 - 0.6 * x2)
-  dat <- tibble::tibble(y = rbinom(n, 1, p), x1 = x1, x2 = x2)
+  dat <- .bt(y = rbinom(n, 1, p), x1 = x1, x2 = x2)
 
   x <- test_logistic_regression(y ~ x1 + x2, data = dat)
   ref <- glm(y ~ x1 + x2, data = dat, family = binomial)
@@ -83,7 +83,7 @@ test_that("test_logistic_regression matches glm() likelihood-ratio test and odds
 test_that("test_logistic_regression accepts a factor outcome and flags Cook's distance outliers", {
   set.seed(4)
   n <- 60
-  dat <- tibble::tibble(
+  dat <- .bt(
     x1 = rnorm(n),
     y = factor(rbinom(n, 1, stats::plogis(0.3 * rnorm(n))), labels = c("no", "yes"))
   )
@@ -94,7 +94,7 @@ test_that("test_logistic_regression accepts a factor outcome and flags Cook's di
 })
 
 test_that("test_logistic_regression errors informatively for a non-binary outcome", {
-  dat <- tibble::tibble(x1 = rnorm(30), y = sample(1:3, 30, replace = TRUE))
+  dat <- .bt(x1 = rnorm(30), y = sample(1:3, 30, replace = TRUE))
   expect_error(test_logistic_regression(y ~ x1, data = dat), "two non-missing levels")
 })
 

@@ -27,7 +27,7 @@ test_repeated_categorical <- function(data, measures, id = NULL, alpha = 0.05, p
   warn_if(!all(mat %in% c(0, 1)), "Repeated categorical measures should be binary after recoding.")
   test <- cochran_q_test(mat)
   col_sums <- colSums(mat)
-  counts <- tibble::tibble(time = names(col_sums), success = as.integer(col_sums))
+  counts <- .bt(time = names(col_sums), success = as.integer(col_sums))
   effect <- cochran_q_effect_size(test, n = nrow(mat), k = ncol(mat))
   plt <- if (plot) {
     counts$prop <- counts$success / nrow(mat)

@@ -1,6 +1,6 @@
 test_that("test_diagnostic matches hand-computed sensitivity/specificity/LR and CIs exactly", {
   tp <- 45; fp <- 10; fn <- 8; tn <- 90
-  dat <- tibble::tibble(
+  dat <- .bt(
     test = c(rep("positive", tp + fp), rep("negative", fn + tn)),
     reference = c(rep("positive", tp), rep("negative", fp), rep("positive", fn), rep("negative", tn))
   )
@@ -34,14 +34,14 @@ test_that("test_diagnostic matches hand-computed sensitivity/specificity/LR and 
 })
 
 test_that("test_diagnostic requires exactly two levels for test and reference", {
-  dat <- tibble::tibble(test = sample(c("a", "b", "c"), 30, replace = TRUE), reference = sample(c("pos", "neg"), 30, replace = TRUE))
+  dat <- .bt(test = sample(c("a", "b", "c"), 30, replace = TRUE), reference = sample(c("pos", "neg"), 30, replace = TRUE))
   expect_error(test_diagnostic(dat, test, reference), "exactly two")
 })
 
 test_that("test_roc matches wilcox.test-derived AUC, Hanley-McNeil CI, and a trapezoidal cross-check", {
   set.seed(1)
   n1 <- 50; n2 <- 60
-  dat <- tibble::tibble(
+  dat <- .bt(
     marker = c(rnorm(n2, 2, 1), rnorm(n1, 0, 1)),
     disease = c(rep("yes", n2), rep("no", n1))
   )
@@ -75,7 +75,7 @@ test_that("test_roc matches wilcox.test-derived AUC, Hanley-McNeil CI, and a tra
 test_that("test_roc's Youden's-J threshold is the ROC point maximizing sensitivity + specificity - 1", {
   set.seed(2)
   n1 <- 40; n2 <- 40
-  dat <- tibble::tibble(
+  dat <- .bt(
     marker = c(rnorm(n2, 1, 1), rnorm(n1, 0, 1)),
     disease = c(rep("yes", n2), rep("no", n1))
   )

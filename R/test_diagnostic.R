@@ -77,7 +77,7 @@ test_diagnostic <- function(data, test, reference, alpha = 0.05, plot = TRUE, na
   se_log_lrn <- sqrt(1 / fn - 1 / (tp + fn) + 1 / tn - 1 / (fp + tn))
   lrn_ci <- exp(log(lr_neg) + c(-1, 1) * z * se_log_lrn)
 
-  diagnostic_table <- tibble::tibble(
+  diagnostic_table <- .bt(
     metric = c("Sensitivity", "Specificity", "Positive predictive value", "Negative predictive value", "Accuracy", "Positive likelihood ratio", "Negative likelihood ratio"),
     estimate = c(sensitivity, specificity, ppv, npv, accuracy, lr_pos, lr_neg),
     conf.low = c(sens_ci[1], spec_ci[1], ppv_ci[1], npv_ci[1], acc_ci[1], lrp_ci[1], lrn_ci[1]),
@@ -88,7 +88,7 @@ test_diagnostic <- function(data, test, reference, alpha = 0.05, plot = TRUE, na
   acc_test <- stats::binom.test(tp + tn, n, p = nir, alternative = "greater")
   primary <- safe_tidy_htest(acc_test, "Accuracy vs. no-information rate")
   h0 <- paste0("H0: accuracy equals the no-information rate (", format_stat(nir), ").")
-  effect <- tibble::tibble(name = "Accuracy", estimate = accuracy, magnitude = NA_character_)
+  effect <- .bt(name = "Accuracy", estimate = accuracy, magnitude = NA_character_)
 
   plt <- if (plot) {
     pd <- diagnostic_table[diagnostic_table$metric %in% c("Sensitivity", "Specificity", "Positive predictive value", "Negative predictive value", "Accuracy"), ]
@@ -188,7 +188,7 @@ test_roc <- function(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm 
   cum_tp <- cumsum(y_sorted)
   cum_fp <- cumsum(!y_sorted)
   last_idx <- !duplicated(pred_sorted, fromLast = TRUE)
-  roc_curve <- tibble::tibble(
+  roc_curve <- .bt(
     threshold = c(Inf, pred_sorted[last_idx]),
     sensitivity = c(0, cum_tp[last_idx] / n_pos),
     specificity = c(1, 1 - cum_fp[last_idx] / n_neg)
@@ -197,8 +197,8 @@ test_roc <- function(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm 
   best <- which.max(youden)
   optimal <- roc_curve[best, ]
 
-  effect <- tibble::tibble(name = "AUC", estimate = auc, magnitude = magnitude_auc(auc))
-  primary <- tibble::tibble(
+  effect <- .bt(name = "AUC", estimate = auc, magnitude = magnitude_auc(auc))
+  primary <- .bt(
     method = "AUC vs. 0.5 (no discrimination)",
     statistic = z_stat,
     p.value = p_value,
@@ -233,7 +233,7 @@ test_roc <- function(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm 
     primary_test = add_null_hypothesis(primary, h0),
     alternative_tests = list(
       roc_curve = roc_curve,
-      optimal_threshold = tibble::tibble(threshold = optimal$threshold, sensitivity = optimal$sensitivity, specificity = optimal$specificity, youden_j = youden[best])
+      optimal_threshold = .bt(threshold = optimal$threshold, sensitivity = optimal$sensitivity, specificity = optimal$specificity, youden_j = youden[best])
     ),
     effect_size = effect,
     plot = plt,

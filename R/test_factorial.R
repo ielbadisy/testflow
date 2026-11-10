@@ -62,7 +62,7 @@ test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2
   }
   tab <- broom::tidy(ss_tab)
   tab <- tab[tab$term != "(Intercept)", , drop = FALSE]
-  residual_df <- tibble::tibble(.resid = stats::residuals(fit))
+  residual_df <- .bt(.resid = stats::residuals(fit))
   normality <- .residual_normality(residual_df$.resid, alpha, "Residuals appear approximately normal.", "Residuals deviate from normality.")
   levene_test <- check_variance_homogeneity(df, outcome_nm, factor_nms[1], alpha)
   levene <- assumption_check(
@@ -78,7 +78,7 @@ test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2
   balanced <- assumption_check("Balanced design", "not required", ifelse(length(unique(table(df[factor_nms]))) > 1, paste0("Cell sizes are unbalanced; ", type_label, " sums of squares are used so the terms are not order-dependent.", if (identical(type, 1)) " Type I sums of squares depend on the order factors are listed in the formula for unbalanced designs; consider `type = 2` or `type = 3`." else ""), "Cell sizes are balanced; Type I, II, and III sums of squares agree."))
   effect <- eta_squared_aov(fit, tab = ss_tab)
   keep_row <- tab[!is.na(tab$term) & tab$term != "Residuals", , drop = FALSE][1, , drop = FALSE]
-  primary <- tibble::tibble(
+  primary <- .bt(
     method = paste0("Factorial ANOVA (", type_label, ")"),
     statistic = keep_row$statistic,
     parameter = keep_row$df,

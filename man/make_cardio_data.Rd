@@ -12,7 +12,7 @@ make_cardio_data(n = 180, seed = 2026)
 \item{seed}{Random seed.}
 }
 \value{
-A tibble with example numeric and categorical variables.
+A basetable with example numeric and categorical variables.
 }
 \description{
 Simulate a small cardiovascular teaching dataset

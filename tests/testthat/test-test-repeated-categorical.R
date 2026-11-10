@@ -11,7 +11,7 @@ test_that("test_repeated_categorical computes true Cochran Q", {
     ncol = 3,
     byrow = TRUE
   )
-  dat <- tibble::tibble(t1 = mat[, 1], t2 = mat[, 2], t3 = mat[, 3])
+  dat <- .bt(t1 = mat[, 1], t2 = mat[, 2], t3 = mat[, 3])
   x <- test_repeated_categorical(dat, c(t1, t2, t3))
   col_totals <- colSums(mat)
   row_totals <- rowSums(mat)

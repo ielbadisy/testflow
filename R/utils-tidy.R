@@ -65,7 +65,7 @@ new_testflow <- function(
   dfs <- list(...)
   if (length(dfs) == 1L && is.list(dfs[[1]]) && !is.data.frame(dfs[[1]])) dfs <- dfs[[1]]
   dfs <- Filter(Negate(is.null), dfs)
-  if (length(dfs) == 0L) return(tibble::tibble())
+  if (length(dfs) == 0L) return(.bt())
   cols <- unique(unlist(lapply(dfs, names)))
   for (col in cols) {
     has <- vapply(dfs, function(d) col %in% names(d), logical(1))
@@ -93,7 +93,7 @@ new_testflow <- function(
       }
     }
   }
-  tibble::as_tibble(basetable::rbindfill(dfs, fill = TRUE))
+  .as_bt(basetable::rbindfill(dfs, fill = TRUE))
 }
 
 # tidyr::pivot_longer() replacement for the simple "melt these columns, keep
@@ -113,7 +113,7 @@ new_testflow <- function(
     c(names_to, values_to)
   ))
   rownames(out) <- NULL
-  tibble::as_tibble(out)
+  .as_bt(out)
 }
 
 primary_p <- function(x) {
@@ -174,4 +174,63 @@ primary_h0 <- function(x) {
     statistic = unname(test$statistic),
     p_value = test$p.value
   )
+}
+
+# .bt() replacement returning a basetable. Columns are evaluated in
+# order, so later columns can use earlier ones; NULL columns are dropped,
+# length-one values are recycled, list values become list-columns and names
+# are kept as given.
+.bt <- function(...) {
+  dots <- as.list(substitute(list(...)))[-1L]
+  nms <- names(dots) %||% rep("", length(dots))
+  env <- new.env(parent = parent.frame())
+  cols <- list()
+  for (i in seq_along(dots)) {
+    val <- eval(dots[[i]], env)
+    if (is.null(val)) next
+    if (!nzchar(nms[i])) {
+      if (!is.data.frame(val)) stop("All columns must be named.", call. = FALSE)
+      for (nm in names(val)) {
+        cols[[nm]] <- val[[nm]]
+        assign(nm, val[[nm]], envir = env)
+      }
+      next
+    }
+    cols[[nms[i]]] <- val
+    assign(nms[i], val, envir = env)
+  }
+  .bt_list(cols)
+}
+
+# .bt_row() replacement: one row from a named list of scalars.
+.bt_row <- function(x) {
+  .bt_list(lapply(x, function(v) if (length(v) == 1L) v else list(v)))
+}
+
+# Build a basetable from a named list of columns (tibble recycling rules).
+.bt_list <- function(cols) {
+  if (length(cols) == 0L) return(basetable::as_basetable(data.frame()))
+  lens <- vapply(cols, function(v) if (is.data.frame(v)) nrow(v) else length(v), integer(1))
+  n <- if (any(lens != 1L)) max(lens[lens != 1L]) else 1L
+  bad <- names(cols)[!lens %in% c(1L, n)]
+  if (length(bad)) {
+    stop("Columns must have compatible sizes: ", paste(bad, collapse = ", "), call. = FALSE)
+  }
+  cols <- lapply(cols, function(v) {
+    if (length(v) == 1L && n != 1L) v <- rep(v, n)
+    if (is.list(v) && !is.data.frame(v)) I(v) else v
+  })
+  out <- data.frame(cols, stringsAsFactors = FALSE, check.names = FALSE)
+  if (n == 0L) out <- out[0, , drop = FALSE]
+  .as_bt(out)
+}
+
+# .as_bt() replacement for data frames.
+.as_bt <- function(x) {
+  x <- as.data.frame(x, stringsAsFactors = FALSE, optional = TRUE)
+  for (nm in names(x)) {
+    if (inherits(x[[nm]], "AsIs")) class(x[[nm]]) <- setdiff(class(x[[nm]]), "AsIs")
+  }
+  rownames(x) <- NULL
+  basetable::as_basetable(x)
 }

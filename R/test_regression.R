@@ -49,7 +49,7 @@ test_linear_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.
   multicollinearity <- check_multicollinearity(fit)
 
   effect <- .rbind_rows(r_squared_lm(fit), adjusted_r_squared_lm(fit))
-  primary <- tibble::tibble(
+  primary <- .bt(
     method = "Linear regression (overall F-test)",
     statistic = unname(g$statistic),
     parameter = unname(g$df),
@@ -59,7 +59,7 @@ test_linear_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.
   h0 <- paste0("H0: none of ", paste(predictor_nms, collapse = ", "), " explain variation in ", outcome_nm, " (all slopes equal 0).")
 
   plt <- if (plot) {
-    plot_df <- tibble::tibble(.fitted = stats::fitted(fit), .resid = stats::residuals(fit))
+    plot_df <- .bt(.fitted = stats::fitted(fit), .resid = stats::residuals(fit))
     ggplot2::ggplot(plot_df, ggplot2::aes(x = .data$.fitted, y = .data$.resid)) +
       ggplot2::geom_point(alpha = 0.6, color = "#4C78A8") +
       ggplot2::geom_hline(yintercept = 0, linetype = "dashed", color = "#F58518") +
@@ -162,7 +162,7 @@ test_logistic_regression <- function(formula, data, alpha = 0.05, plot = TRUE, n
   lr_df <- fit$df.null - fit$df.residual
   lr_p <- stats::pchisq(lr_stat, lr_df, lower.tail = FALSE)
   effect <- mcfadden_r2_glm(fit, null_fit)
-  primary <- tibble::tibble(
+  primary <- .bt(
     method = "Logistic regression (likelihood-ratio test)",
     statistic = lr_stat,
     parameter = lr_df,

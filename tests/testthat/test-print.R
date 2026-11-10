@@ -75,7 +75,7 @@ test_that("screening workflows do not print fake test statistics", {
 test_that("print.testflow shows a workflow-specific title and relabeled fields", {
   set.seed(1)
   n <- 60
-  dat <- tibble::tibble(y = rnorm(n), x1 = rnorm(n), x2 = rnorm(n))
+  dat <- .bt(y = rnorm(n), x1 = rnorm(n), x2 = rnorm(n))
   dat$y <- 1 + 0.5 * dat$x1 + rnorm(n, sd = 0.5)
   reg <- test_linear_regression(y ~ x1 + x2, data = dat)
   reg_txt <- capture.output(print(reg))
@@ -83,7 +83,7 @@ test_that("print.testflow shows a workflow-specific title and relabeled fields",
   expect_true(any(grepl("Predictors: x1, x2", reg_txt, fixed = TRUE)))
   expect_false(any(grepl("^Group:", reg_txt)))
 
-  icc_dat <- tibble::tibble(r1 = rnorm(20, 50, 10), r2 = rnorm(20, 50, 10), r3 = rnorm(20, 50, 10))
+  icc_dat <- .bt(r1 = rnorm(20, 50, 10), r2 = rnorm(20, 50, 10), r3 = rnorm(20, 50, 10))
   icc <- test_icc(icc_dat, c(r1, r2, r3))
   icc_txt <- capture.output(print(icc))
   expect_true(any(grepl("^Intraclass Correlation$", icc_txt)))
@@ -97,7 +97,7 @@ test_that("print.testflow shows a workflow-specific title and relabeled fields",
 test_that("print.testflow surfaces per-term results tables", {
   set.seed(1)
   n <- 80
-  dat <- tibble::tibble(y = rnorm(n), x1 = rnorm(n), x2 = rnorm(n))
+  dat <- .bt(y = rnorm(n), x1 = rnorm(n), x2 = rnorm(n))
   dat$y <- 2 + 0.6 * dat$x1 - 0.3 * dat$x2 + rnorm(n, sd = 0.8)
   reg <- test_linear_regression(y ~ x1 + x2, data = dat)
   reg_txt <- capture.output(print(reg))
@@ -108,13 +108,13 @@ test_that("print.testflow surfaces per-term results tables", {
   expect_true(any(grepl("<0.001", reg_txt, fixed = TRUE)))
 
   ns <- 150
-  sd <- tibble::tibble(time = rexp(ns, 0.08), status = rbinom(ns, 1, 0.75), age = rnorm(ns, 60, 10))
+  sd <- .bt(time = rexp(ns, 0.08), status = rbinom(ns, 1, 0.75), age = rnorm(ns, 60, 10))
   cox <- test_cox(Surv(time, status) ~ age, data = sd)
   cox_txt <- capture.output(print(cox))
   expect_true(any(grepl("Hazard ratios", cox_txt, fixed = TRUE)))
 
   tp <- 45; fp <- 10; fn <- 8; tn <- 90
-  diag_dat <- tibble::tibble(
+  diag_dat <- .bt(
     test = c(rep("positive", tp + fp), rep("negative", fn + tn)),
     reference = c(rep("positive", tp), rep("negative", fp), rep("positive", fn), rep("negative", tn))
   )
@@ -125,14 +125,14 @@ test_that("print.testflow surfaces per-term results tables", {
 
   # A wide table (long text column + several numeric columns) must not wrap
   # onto a second block of misaligned rows.
-  icc_dat <- tibble::tibble(r1 = rnorm(20, 50, 10), r2 = rnorm(20, 50, 10), r3 = rnorm(20, 50, 10))
+  icc_dat <- .bt(r1 = rnorm(20, 50, 10), r2 = rnorm(20, 50, 10), r3 = rnorm(20, 50, 10))
   icc_txt <- capture.output(print(test_icc(icc_dat, c(r1, r2, r3))))
   icc_header_line <- icc_txt[which(grepl("method", icc_txt, fixed = TRUE))]
   expect_true(any(grepl("p.value", icc_header_line, fixed = TRUE)))
 
   # A matrix/table-sourced result gets meaningful column names, not the
   # generic Var1/Var2/Freq produced by as.data.frame(as.table(...)).
-  agree_dat <- tibble::tibble(rater1 = sample(c("A", "B"), 100, replace = TRUE), rater2 = sample(c("A", "B"), 100, replace = TRUE))
+  agree_dat <- .bt(rater1 = sample(c("A", "B"), 100, replace = TRUE), rater2 = sample(c("A", "B"), 100, replace = TRUE))
   agree_txt <- capture.output(print(test_agreement(agree_dat, rater1, rater2)))
   expect_true(any(grepl("Rater 1", agree_txt, fixed = TRUE)) && any(grepl("Rater 2", agree_txt, fixed = TRUE)))
   expect_false(any(grepl("Var1", agree_txt, fixed = TRUE)))
@@ -143,7 +143,7 @@ test_that("print.testflow surfaces per-term results tables", {
   grp_txt <- capture.output(print(test_groups(sbp_3m ~ treatment, data = cardio)))
   expect_false(any(grepl("Post-hoc comparisons", grp_txt, fixed = TRUE)))
 
-  # repeated's post-hoc IS a tidy tibble and should render.
+  # repeated's post-hoc IS a tidy table and should render.
   rep_txt <- capture.output(print(test_repeated(cardio, c(sbp_baseline, sbp_3m, sbp_6m), id = id)))
   expect_true(any(grepl("Post-hoc comparisons", rep_txt, fixed = TRUE)))
 })

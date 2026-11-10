@@ -2,7 +2,7 @@ test_that("Cohen's d formulas match their implementations", {
   one_sample <- cohens_d_one_sample(c(1, 2, 3), mu = 1)
   expect_equal(one_sample$estimate, 1)
 
-  dat <- tibble::tibble(
+  dat <- .bt(
     y = c(1, 2, 3, 2, 4, 6),
     g = rep(c("a", "b"), each = 3)
   )

@@ -1,7 +1,7 @@
 test_that("test_survival matches survdiff() and a companion coxph() exactly", {
   set.seed(1)
   n <- 100
-  dat <- tibble::tibble(
+  dat <- .bt(
     time = rexp(n, 0.1),
     status = rbinom(n, 1, 0.7),
     group = rep(c("A", "B"), each = n / 2)
@@ -29,7 +29,7 @@ test_that("test_survival matches survdiff() and a companion coxph() exactly", {
 test_that("test_survival requires exactly two groups", {
   set.seed(2)
   n <- 60
-  dat <- tibble::tibble(
+  dat <- .bt(
     time = rexp(n, 0.1),
     status = rbinom(n, 1, 0.7),
     group = sample(c("A", "B", "C"), n, replace = TRUE)
@@ -40,7 +40,7 @@ test_that("test_survival requires exactly two groups", {
 test_that("test_cox matches coxph()/cox.zph() exactly for a multi-predictor model", {
   set.seed(1)
   n <- 150
-  dat <- tibble::tibble(
+  dat <- .bt(
     time = rexp(n, 0.08),
     status = rbinom(n, 1, 0.75),
     age = rnorm(n, 60, 10),
@@ -73,7 +73,7 @@ test_that("test_cox matches coxph()/cox.zph() exactly for a multi-predictor mode
 test_that("test_cox works with a single predictor", {
   set.seed(3)
   n <- 80
-  dat <- tibble::tibble(
+  dat <- .bt(
     time = rexp(n, 0.1),
     status = rbinom(n, 1, 0.7),
     age = rnorm(n, 60, 10)
@@ -86,7 +86,7 @@ test_that("test_cox works with a single predictor", {
 test_that("effect sizes without a magnitude label still print and report the estimate", {
   set.seed(1)
   n <- 100
-  dat <- tibble::tibble(
+  dat <- .bt(
     time = rexp(n, 0.1),
     status = rbinom(n, 1, 0.7),
     group = rep(c("A", "B"), each = n / 2)

@@ -1,6 +1,6 @@
 test_that("categorical workflows choose chi-square or Fisher based on expected counts", {
-  big <- tibble::tibble(x = rep(c("a", "b"), each = 30), y = rep(c("yes", "no"), 30))
-  small <- tibble::tibble(x = c("a", "a", "a", "b"), y = c("yes", "yes", "no", "no"))
+  big <- .bt(x = rep(c("a", "b"), each = 30), y = rep(c("yes", "no"), 30))
+  small <- .bt(x = c("a", "a", "a", "b"), y = c("yes", "yes", "no", "no"))
 
   x1 <- test_categorical(big, x, y, plot = FALSE)
   expect_equal(x1$recommended$test, "Chi-square test of independence")

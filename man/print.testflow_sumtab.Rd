@@ -16,6 +16,6 @@ The input object, invisibly.
 }
 \description{
 Prints a \code{sumtab()} result without column truncation, unlike the default
-tibble print method, which hides columns and truncates cell text (e.g.
-\code{"58.0 (10.4)…"}) once the table exceeds the console width.
+table print method, which can hide columns and truncate cell text once
+the table exceeds the console width.
 }

@@ -36,7 +36,7 @@ supplied.}
 \item{na.rm}{Logical; remove missing values before summaries and tests.}
 }
 \value{
-A tibble with one row per numeric variable and one row per categorical level.
+A basetable with one row per numeric variable and one row per categorical level.
 }
 \description{
 Builds a compact table of descriptive summaries using a formula interface.

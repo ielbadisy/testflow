@@ -1,7 +1,7 @@
 #' Simulate a small cardiovascular teaching dataset
 #' @param n Number of rows.
 #' @param seed Random seed.
-#' @return A tibble with example numeric and categorical variables.
+#' @return A basetable with example numeric and categorical variables.
 #' @export
 make_cardio_data <- function(n = 180, seed = 2026) {
   set.seed(seed)
@@ -18,7 +18,7 @@ make_cardio_data <- function(n = 180, seed = 2026) {
   crp <- round(stats::rgamma(n, shape = 2, rate = 0.7), 2)
   adherence <- pmin(100, pmax(20, round(stats::rnorm(n, 78, 14))))
   response <- ifelse(sbp_3m < sbp_baseline - 10, "responder", "non-responder")
-  tibble::tibble(
+  .bt(
     id = seq_len(n),
     sex = sex,
     treatment = treatment,

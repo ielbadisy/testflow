@@ -17,8 +17,8 @@ test_paired_categorical <- function(data, before, after, alpha = 0.05, plot = TR
   warn_if(!all(dim(tab) == 2), "McNemar's test requires a 2x2 table; the current input is not a binary paired design.")
   test <- stats::mcnemar.test(tab)
   discordant <- if (all(dim(tab) == 2)) sum(tab[c(1, 2), c(2, 1)]) else NA_integer_
-  disc <- tibble::tibble(before_only = if (all(dim(tab) == 2)) tab[2, 1] else NA_integer_, after_only = if (all(dim(tab) == 2)) tab[1, 2] else NA_integer_)
-  effect <- tibble::tibble(name = "Discordant pairs", estimate = sum(disc, na.rm = TRUE), magnitude = NA_character_)
+  disc <- .bt(before_only = if (all(dim(tab) == 2)) tab[2, 1] else NA_integer_, after_only = if (all(dim(tab) == 2)) tab[1, 2] else NA_integer_)
+  effect <- .bt(name = "Discordant pairs", estimate = sum(disc, na.rm = TRUE), magnitude = NA_character_)
   plt <- if (plot) {
     long <- .pivot_longer_simple(df, c(before_nm, after_nm), "time", "value")
     ggplot2::ggplot(long, ggplot2::aes(x = .data$time, fill = .data$value)) +

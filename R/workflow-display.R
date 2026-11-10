@@ -84,9 +84,9 @@ workflow_display <- list(
 )
 
 # Resolves display metadata for a testflow object: title, outcome/group
-# field labels, and (when the registered field is already a data.frame/
-# tibble, or a base table/matrix that can be tidied into one) a results
-# table to print. Anything else the registered field could point at - most
+# field labels, and (when the registered field is already a data.frame,
+# or a base table/matrix that can be tidied into one) a results table to
+# print. Anything else the registered field could point at - most
 # notably groups/repeated's post-hoc, which posthoc_groups() (R/posthoc.R)
 # wraps as list(method=, result=, p.adjust.method=) around a raw TukeyHSD/
 # pairwise.htest object rather than a tidy data frame - resolves table_data

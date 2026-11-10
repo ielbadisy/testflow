@@ -42,7 +42,7 @@ test_correlation <- function(formula, data, y = NULL, method = c("auto", "pearso
   kendall <- suppressWarnings(stats::cor.test(df[[x_nm]], df[[y_nm]], method = "kendall", exact = FALSE))
   primary <- switch(chosen, pearson = pearson, spearman = spearman, kendall = kendall)
   chosen_label <- title_case_method(paste(chosen, "correlation"))
-  effect <- tibble::tibble(name = paste0(chosen_label, " r"), estimate = unname(primary$estimate), magnitude = magnitude_cramers_v(abs(unname(primary$estimate))))
+  effect <- .bt(name = paste0(chosen_label, " r"), estimate = unname(primary$estimate), magnitude = magnitude_cramers_v(abs(unname(primary$estimate))))
   plt <- if (plot) {
     ggplot2::ggplot(df, ggplot2::aes(x = .data[[x_nm]], y = .data[[y_nm]])) +
       ggplot2::geom_point(alpha = 0.75, color = "#4C78A8") +
@@ -52,7 +52,7 @@ test_correlation <- function(formula, data, y = NULL, method = c("auto", "pearso
   } else NULL
   h0 <- h0_no_correlation(x_nm, y_nm)
   corr_assumptions <- switch(chosen, pearson = assumption_checks(linearity, normality, outliers), spearman = assumption_checks(monotonicity, outliers, assumption_check("Normality", "not required", "Normality is not required for Spearman correlation.")), kendall = assumption_checks(monotonicity, outliers, assumption_check("Normality", "not required", "Normality is not required for Kendall correlation.")))
-  out <- new_testflow("correlation", "two numeric variables", y_nm, x_nm, data = df, descriptives = descriptives_numeric(df, c(x_nm, y_nm)), assumptions = corr_assumptions, recommended = list(test = chosen_label), primary_test = add_null_hypothesis(safe_tidy_htest(primary, chosen_label), h0), alternative_tests = list(correlation_table = tibble::tibble(method = c("Pearson", "Spearman", "Kendall"), statistic = c(unname(pearson$estimate), unname(spearman$estimate), unname(kendall$estimate)), p.value = c(pearson$p.value, spearman$p.value, kendall$p.value)), pearson = add_null_hypothesis(safe_tidy_htest(pearson, "Pearson correlation"), h0), spearman = add_null_hypothesis(safe_tidy_htest(spearman, "Spearman correlation"), h0), kendall = add_null_hypothesis(safe_tidy_htest(kendall, "Kendall correlation"), h0)), effect_size = effect, plot = plt, call = match.call(), subclass = "correlation")
+  out <- new_testflow("correlation", "two numeric variables", y_nm, x_nm, data = df, descriptives = descriptives_numeric(df, c(x_nm, y_nm)), assumptions = corr_assumptions, recommended = list(test = chosen_label), primary_test = add_null_hypothesis(safe_tidy_htest(primary, chosen_label), h0), alternative_tests = list(correlation_table = .bt(method = c("Pearson", "Spearman", "Kendall"), statistic = c(unname(pearson$estimate), unname(spearman$estimate), unname(kendall$estimate)), p.value = c(pearson$p.value, spearman$p.value, kendall$p.value)), pearson = add_null_hypothesis(safe_tidy_htest(pearson, "Pearson correlation"), h0), spearman = add_null_hypothesis(safe_tidy_htest(spearman, "Spearman correlation"), h0), kendall = add_null_hypothesis(safe_tidy_htest(kendall, "Kendall correlation"), h0)), effect_size = effect, plot = plt, call = match.call(), subclass = "correlation")
   out$interpretation <- make_report(out, alpha)
   out
 }
@@ -72,12 +72,12 @@ iqr_outlier_flags <- function(data, vars) {
     x <- data[[v]]
     x <- x[!is.na(x)]
     if (length(x) < 4) {
-      return(tibble::tibble(variable = v, is_outlier = NA))
+      return(.bt(variable = v, is_outlier = NA))
     }
     q1 <- stats::quantile(x, 0.25, names = FALSE)
     q3 <- stats::quantile(x, 0.75, names = FALSE)
     i <- q3 - q1
-    tibble::tibble(variable = v, is_outlier = x < q1 - 1.5 * i | x > q3 + 1.5 * i)
+    .bt(variable = v, is_outlier = x < q1 - 1.5 * i | x > q3 + 1.5 * i)
   })
 }
 
@@ -111,7 +111,7 @@ test_correlation_matrix <- function(data, vars, method = c("spearman", "pearson"
   pairs <- utils::combn(vars, 2, simplify = FALSE)
   long <- .map_dfr(pairs, function(z) {
     test <- suppressWarnings(stats::cor.test(full_vars[[z[1]]], full_vars[[z[2]]], method = method, exact = FALSE))
-    tibble::tibble(var1 = z[1], var2 = z[2], estimate = unname(test$estimate), p = test$p.value)
+    .bt(var1 = z[1], var2 = z[2], estimate = unname(test$estimate), p = test$p.value)
   })
   long$p.adj <- stats::p.adjust(long$p, method = "BH")
   n_sig_adj <- sum(long$p.adj < alpha, na.rm = TRUE)
@@ -138,8 +138,8 @@ test_correlation_matrix <- function(data, vars, method = c("spearman", "pearson"
       ggplot2::theme_minimal()
   } else NULL
   method_label <- title_case_method(paste(method, "correlation matrix"))
-  primary <- tibble::tibble(method = method_label, statistic = NA_real_, parameter = NA_real_, p.value = min(long$p, na.rm = TRUE))
-  out <- new_testflow("correlation_matrix", "correlation matrix", paste(vars, collapse = ", "), data = df, descriptives = descriptives_numeric(df, vars), assumptions = assumptions, recommended = list(test = method_label), primary_test = primary, alternative_tests = list(correlation_matrix = mat, correlation_table = long), effect_size = tibble::tibble(name = "Maximum absolute r", estimate = max(abs(long$estimate), na.rm = TRUE), magnitude = magnitude_cramers_v(max(abs(long$estimate), na.rm = TRUE))), plot = plt, call = match.call(), subclass = "correlation_matrix")
+  primary <- .bt(method = method_label, statistic = NA_real_, parameter = NA_real_, p.value = min(long$p, na.rm = TRUE))
+  out <- new_testflow("correlation_matrix", "correlation matrix", paste(vars, collapse = ", "), data = df, descriptives = descriptives_numeric(df, vars), assumptions = assumptions, recommended = list(test = method_label), primary_test = primary, alternative_tests = list(correlation_matrix = mat, correlation_table = long), effect_size = .bt(name = "Maximum absolute r", estimate = max(abs(long$estimate), na.rm = TRUE), magnitude = magnitude_cramers_v(max(abs(long$estimate), na.rm = TRUE))), plot = plt, call = match.call(), subclass = "correlation_matrix")
   out$interpretation <- make_report(out, alpha)
   out
 }
@@ -149,5 +149,51 @@ tidyselect_names <- function(data, expr) {
     nm <- rlang::as_name(rlang::ensym(expr))
     if (nm %in% names(data)) return(nm)
   }
-  tidyselect::eval_select(rlang::enquo(expr), data) |> names()
+  select_names(data, rlang::enquo(expr))
+}
+
+# Base-R column selection for the tidyselect forms used with testflow: bare
+# names, strings, c(), a:b ranges, -x exclusions, character vectors from the
+# calling environment, and starts_with(), ends_with(), contains(), matches(),
+# everything(), all_of() and any_of().
+select_names <- function(data, quo) {
+  nms <- names(data)
+  expr <- rlang::quo_get_expr(quo)
+  env <- rlang::quo_get_env(quo)
+  if (is.null(expr)) return(character())
+  mask <- new.env(parent = env)
+  for (i in seq_along(nms)) assign(nms[i], i, envir = mask)
+  pos <- function(x) which(x)
+  mask$starts_with <- function(match, ignore.case = TRUE) {
+    pos(startsWith(if (ignore.case) tolower(nms) else nms, if (ignore.case) tolower(match) else match))
+  }
+  mask$ends_with <- function(match, ignore.case = TRUE) {
+    pos(endsWith(if (ignore.case) tolower(nms) else nms, if (ignore.case) tolower(match) else match))
+  }
+  mask$contains <- function(match, ignore.case = TRUE) {
+    pos(grepl(match, nms, fixed = !ignore.case, ignore.case = ignore.case))
+  }
+  mask$matches <- function(match, ignore.case = TRUE, perl = FALSE) {
+    pos(grepl(match, nms, ignore.case = ignore.case, perl = perl))
+  }
+  mask$everything <- function() seq_along(nms)
+  mask$all_of <- function(x) {
+    miss <- setdiff(x, nms)
+    if (length(miss)) stop("Column(s) not found: ", paste(miss, collapse = ", "), call. = FALSE)
+    match(x, nms)
+  }
+  mask$any_of <- function(x) match(intersect(x, nms), nms)
+  val <- eval(expr, mask)
+  if (is.character(val)) {
+    miss <- setdiff(val, nms)
+    if (length(miss)) stop("Column(s) not found: ", paste(miss, collapse = ", "), call. = FALSE)
+    return(unique(val))
+  }
+  if (!is.numeric(val)) stop("Column selection must give column names or positions.", call. = FALSE)
+  val <- as.integer(val)
+  if (any(abs(val) > length(nms) | val == 0L)) stop("Column selection is out of range.", call. = FALSE)
+  keep <- unique(val[val > 0L])
+  drop <- -val[val < 0L]
+  if (!length(keep) && length(drop)) keep <- seq_along(nms)
+  nms[setdiff(keep, drop)]
 }

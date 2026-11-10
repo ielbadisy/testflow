@@ -31,14 +31,14 @@ test_multinomial <- function(data, outcome, p = NULL, alpha = 0.05, plot = TRUE,
   expected_ok <- all(expected >= 5)
   pairwise <- .map_dfr(seq_along(counts), function(i) {
     bt <- stats::binom.test(counts[i], sum(counts), p = p[i])
-    tibble::tibble(level = levels[i], observed = counts[i], expected = expected[i], p = bt$p.value)
+    .bt(level = levels[i], observed = counts[i], expected = expected[i], p = bt$p.value)
   })
   pairwise$p.adj <- stats::p.adjust(pairwise$p, method = "BH")
   pairwise$p.adjust.method <- "BH"
-  effect <- tibble::tibble(name = "Chi-square goodness-of-fit", estimate = unname(chisq$statistic), magnitude = NA_character_)
+  effect <- .bt(name = "Chi-square goodness-of-fit", estimate = unname(chisq$statistic), magnitude = NA_character_)
   plt <- if (plot) {
     pd <- .pivot_longer_simple(
-      tibble::tibble(level = levels, observed = counts, expected = expected),
+      .bt(level = levels, observed = counts, expected = expected),
       c("observed", "expected"), "type", "n"
     )
     ggplot2::ggplot(pd, ggplot2::aes(x = .data$level, y = .data$n, fill = .data$type)) +

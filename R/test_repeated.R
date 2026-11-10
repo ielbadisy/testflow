@@ -79,7 +79,7 @@ repeated_core <- function(data, outcome_nm, within_nm, id_nm, outcome_label = NU
   value_cols <- setdiff(names(wide), id_nm)
   names(wide)[match(value_cols, names(wide))] <- substring(value_cols, nchar(outcome_nm) + 2)
   rownames(wide) <- NULL
-  wide <- tibble::as_tibble(wide)
+  wide <- .as_bt(wide)
   measure_nms <- setdiff(names(wide), id_nm)
   complete <- stats::na.omit(wide[, measure_nms, drop = FALSE])
   sphericity <- check_sphericity(as.matrix(complete), alpha)

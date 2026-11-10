@@ -1675,7 +1675,7 @@ plot.sample_size <- function(x, type = c("both", "curve", "summary"), ...) {
     label_target_n <- x$curve_data$target_n[1]
     label_y <- max(x$curve_data$power, na.rm = TRUE) * 0.18
     label_text <- paste0("optimal sample size\nn = ", format_sample_count(label_target_n))
-    label_df <- tibble::tibble(x = label_target_n, y = label_y, label = label_text)
+    label_df <- .bt(x = label_target_n, y = label_y, label = label_text)
     curve_plot <- ggplot2::ggplot(x$curve_data, ggplot2::aes(x = .data$n, y = .data$power)) +
       ggplot2::geom_line(color = "#4C78A8", linewidth = 1.0) +
       ggplot2::geom_point(color = "#1f1f1f", size = 1.9) +
@@ -1820,14 +1820,10 @@ print.summary.sample_size <- function(x, ...) {
   })
 }
 
-#' Convert a sample size object to a tibble
-#'
-#' @param x A sample-size object.
-#' @param ... Unused.
-#' @return A one-row tibble summarizing the planning result.
+#' @noRd
 #' @export
 as_tibble.sample_size <- function(x, ...) {
-  out <- tibble::tibble(
+  out <- .bt(
     endpoint = x$endpoint,
     design = x$design,
     objective = x$objective,
@@ -1841,7 +1837,7 @@ as_tibble.sample_size <- function(x, ...) {
   )
   d <- x$diagnostics
   if (!is.null(d)) {
-    out <- tibble::as_tibble(cbind(out, tibble::tibble(
+    out <- .as_bt(cbind(out, .bt(
       anticipated_prevalence = d$anticipated_prevalence,
       confidence_level = d$confidence_level,
       ci_method = d$ci_method,
@@ -1895,13 +1891,13 @@ sample_size_plot_frame <- function(labels, raw_values, adjusted_values) {
   if (length(labels) != length(raw_values) || length(labels) != length(adjusted_values)) {
     stop("Plot labels and values must have the same length.", call. = FALSE)
   }
-  raw_df <- tibble::tibble(label = labels, type = "raw", value = as.numeric(raw_values), display = vapply(raw_values, format_sample_size_value, character(1)))
-  adj_df <- tibble::tibble(label = labels, type = "adjusted", value = as.numeric(adjusted_values), display = vapply(adjusted_values, format_sample_size_value, character(1)))
+  raw_df <- .bt(label = labels, type = "raw", value = as.numeric(raw_values), display = vapply(raw_values, format_sample_size_value, character(1)))
+  adj_df <- .bt(label = labels, type = "adjusted", value = as.numeric(adjusted_values), display = vapply(adjusted_values, format_sample_size_value, character(1)))
   .rbind_rows(raw_df, adj_df)
 }
 
 sample_size_curve_bundle <- function(n_target, power_target, n_grid, power_grid, unit_label, power_label) {
-  tibble::tibble(
+  .bt(
     n = as.numeric(n_grid),
     power = as.numeric(power_grid),
     target_n = as.numeric(n_target),

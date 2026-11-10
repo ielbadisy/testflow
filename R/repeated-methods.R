@@ -15,7 +15,7 @@ repeated_anova_test <- function(long, outcome, within, id) {
   statistic <- within_tab[["F value"]][row]
   df1 <- within_tab[["Df"]][row]
   df2 <- within_tab[["Df"]][row + 1]
-  tibble::tibble(
+  .bt(
     method = "Repeated-measures ANOVA",
     statistic = statistic,
     parameter = df1,
@@ -33,12 +33,12 @@ repeated_eta_squared <- function(long, outcome, within, id) {
   n_by_time <- as.numeric(table(long[[within]]))
   ss_time <- sum(n_by_time * (time_means$x - grand)^2, na.rm = TRUE)
   eta <- ss_time / ss_total
-  tibble::tibble(name = "eta squared", estimate = eta, magnitude = magnitude_eta2(eta))
+  .bt(name = "eta squared", estimate = eta, magnitude = magnitude_eta2(eta))
 }
 
 friedman_effect_size <- function(friedman, n, k) {
   w <- unname(friedman$statistic) / (n * (k - 1))
-  tibble::tibble(name = "Kendall's W", estimate = w, magnitude = magnitude_cramers_v(w))
+  .bt(name = "Kendall's W", estimate = w, magnitude = magnitude_cramers_v(w))
 }
 
 cochran_q_test <- function(mat) {
@@ -62,5 +62,5 @@ cochran_q_test <- function(mat) {
 
 cochran_q_effect_size <- function(test, n, k) {
   w <- unname(test$statistic) / (n * (k - 1))
-  tibble::tibble(name = "Cochran Q Kendall's W", estimate = w, magnitude = magnitude_cramers_v(w))
+  .bt(name = "Cochran Q Kendall's W", estimate = w, magnitude = magnitude_cramers_v(w))
 }

@@ -1,5 +1,5 @@
 test_that("sumtab builds grouped numeric and categorical summaries", {
-  dat <- tibble::tibble(
+  dat <- .bt(
     age = c(10, 12, 20, 22),
     sex = factor(c("female", "male", "female", "male")),
     treatment = rep(c("A", "B"), each = 2)
@@ -7,7 +7,7 @@ test_that("sumtab builds grouped numeric and categorical summaries", {
 
   out <- sumtab(~ age + sex | treatment, dat)
 
-  expect_s3_class(out, "tbl_df")
+  expect_s3_class(out, "basetable")
   expect_equal(out$variable, c("age", "sex", "sex"))
   expect_true(all(c("Overall (n = 4)", "A (n = 2)", "B (n = 2)") %in% names(out)))
   expect_match(out[["Overall (n = 4)"]][1], "16.0")
@@ -16,7 +16,7 @@ test_that("sumtab builds grouped numeric and categorical summaries", {
 
 test_that("sumtab adds one p-value and selected test per variable", {
   set.seed(1)
-  dat <- tibble::tibble(
+  dat <- .bt(
     y = c(stats::rnorm(40), stats::rnorm(40, 0.5)),
     x = rep(c("yes", "no"), 40),
     g = rep(c("A", "B"), each = 40)
@@ -32,7 +32,7 @@ test_that("sumtab adds one p-value and selected test per variable", {
 
 test_that("sumtab selects multi-group numeric tests", {
   set.seed(2)
-  dat <- tibble::tibble(
+  dat <- .bt(
     y = stats::rnorm(90),
     g = rep(c("A", "B", "C"), each = 30)
   )
@@ -44,7 +44,7 @@ test_that("sumtab selects multi-group numeric tests", {
 })
 
 test_that("sumtab selects Fisher exact test for sparse categorical tables", {
-  dat <- tibble::tibble(
+  dat <- .bt(
     x = c("yes", "yes", "yes", "no", "no", "yes"),
     g = c("A", "A", "B", "B", "B", "B")
   )
@@ -56,7 +56,7 @@ test_that("sumtab selects Fisher exact test for sparse categorical tables", {
 })
 
 test_that("sumtab handles non-syntactic column names", {
-  dat <- tibble::tibble(
+  dat <- .bt(
     `weird-name here` = c(stats::rnorm(20), stats::rnorm(20, 1)),
     grp = rep(c("A", "B"), each = 20)
   )
@@ -69,7 +69,7 @@ test_that("sumtab handles non-syntactic column names", {
 
 test_that("sumtab falls back to chi-square when Fisher's exact test overflows", {
   set.seed(3)
-  dat <- tibble::tibble(
+  dat <- .bt(
     cat = sample(paste0("cat", 1:40), 200, replace = TRUE),
     grp = sample(c("A", "B"), 200, replace = TRUE)
   )
@@ -84,7 +84,7 @@ test_that("sumtab falls back to chi-square when Fisher's exact test overflows", 
 })
 
 test_that("sumtab validates formula shape and selected columns", {
-  dat <- tibble::tibble(x = 1:3)
+  dat <- .bt(x = 1:3)
 
   expect_error(sumtab(x ~ 1, dat), "one-sided")
   expect_error(sumtab(~ missing, dat), "Missing required column")
