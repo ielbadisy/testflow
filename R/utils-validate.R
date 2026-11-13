@@ -38,11 +38,11 @@ assert_two_groups <- function(data, group) {
 }
 
 warn_if_two_groups_for_factorial <- function(factor_nms) {
-  warn_if(length(factor_nms) < 2, "Factorial ANOVA requires at least two factors; use `test_groups()` for a single-factor design.")
+  warn_if(length(factor_nms) < 2, "Factorial ANOVA requires at least two factors; use `testgroups()` for a single-factor design.")
 }
 
 warn_if_two_measures_repeated <- function(measure_nms) {
-  warn_if(length(measure_nms) == 2, "Two repeated measures are closer to a paired design; consider `test_paired()` if there are only two time points.")
+  warn_if(length(measure_nms) == 2, "Two repeated measures are closer to a paired design; consider `testpaired()` if there are only two time points.")
 }
 
 warn_if_screening_workflow <- function(workflow) {

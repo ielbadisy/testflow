@@ -3,27 +3,27 @@ za <- qnorm(0.975)
 # ---- Backward compatibility -------------------------------------------------
 
 test_that("Wald one-proportion precision matches the closed-form formula exactly", {
-  x <- suppressWarnings(sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.30))
+  x <- suppressWarnings(samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.30))
   expect_equal(x$n, za^2 * 0.3 * 0.7 / 0.05^2)
   expect_equal(x$diagnostics$ci_method, "wald")
   expect_equal(x$diagnostics$precision_criterion, "expected")
 })
 
 test_that("Conservative Wald one-proportion precision equals z^2 / (4w^2)", {
-  x <- suppressWarnings(sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, conservative = TRUE))
+  x <- suppressWarnings(samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.05, conservative = TRUE))
   expect_equal(x$n, za^2 / (4 * 0.05^2))
   expect_equal(x$diagnostics$anticipated_prevalence, 0.5)
 })
 
 test_that("Existing continuous precision results remain unchanged", {
-  x1 <- sample_size_precision(endpoint = "continuous", design = "one_sample", width = 2, sd = 10)
+  x1 <- samplesizeprecision(endpoint = "continuous", design = "one_sample", width = 2, sd = 10)
   expect_equal(x1$n, (za * 10 / 2)^2)
-  x2 <- sample_size_precision(endpoint = "continuous", design = "two_sample", width = 2, sd = 10, allocation = 1.5)
+  x2 <- samplesizeprecision(endpoint = "continuous", design = "two_sample", width = 2, sd = 10, allocation = 1.5)
   expect_equal(x2$n, (1.5 + 1) * 10^2 * za^2 / (1.5 * 2^2))
 })
 
 test_that("Existing odds-ratio precision results remain unchanged", {
-  x <- sample_size_precision(endpoint = "binary", design = "odds_ratio", width = 0.3, p1 = 0.4, p2 = 0.3, allocation = 2)
+  x <- samplesizeprecision(endpoint = "binary", design = "odds_ratio", width = 0.3, p1 = 0.4, p2 = 0.3, allocation = 2)
   expect_equal(x$n, za^2 / 0.3^2 * (1 / 0.4 + 1 / 0.6 + 1 / (2 * 0.3) + 1 / (2 * 0.7)))
 })
 
@@ -103,7 +103,7 @@ test_that("Wilson expected criterion is evaluated at p and matches the closed-fo
                p = p, alpha = 0.05, method = "wilson", criterion = "expected")
   expect_true(all(diff(hw) < 0))
 
-  x <- suppressWarnings(sample_size_precision(endpoint = "binary", design = "one_sample", p = p,
+  x <- suppressWarnings(samplesizeprecision(endpoint = "binary", design = "one_sample", p = p,
                                               width = 0.0015, method = "wilson"))
   expect_equal(x$diagnostics$complete_case_n, 10998)
   expect_equal(x$diagnostics$achieved_maximum_half_width, wilson_gap(p, 10998), tolerance = 1e-12)
@@ -150,7 +150,7 @@ test_that("the search matches a brute-force scan for the stable n under non-mono
 # ---- Rare-event diagnostics ---------------------------------------------------
 
 test_that("rare-event diagnostics are calculated correctly", {
-  x <- sample_size_precision(
+  x <- samplesizeprecision(
     endpoint = "binary", design = "one_sample", width = 0.02, p = 0.01, method = "wilson"
   )
   n <- x$diagnostics$adjusted_n
@@ -161,19 +161,19 @@ test_that("rare-event diagnostics are calculated correctly", {
 })
 
 test_that("no rare-event warning fires when both expected cells exceed the threshold", {
-  x <- suppressWarnings(sample_size_precision(
+  x <- suppressWarnings(samplesizeprecision(
     endpoint = "binary", design = "one_sample", width = 0.05, p = 0.30, method = "wilson"
   ))
   expect_null(x$diagnostics$approximation_warning)
   expect_warning(
-    sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.30, method = "wilson"),
+    samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.30, method = "wilson"),
     NA
   )
 })
 
 test_that("Wald method always attaches an approximation warning", {
   expect_warning(
-    sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.30),
+    samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.30),
     "Wald"
   )
 })
@@ -181,7 +181,7 @@ test_that("Wald method always attaches an approximation warning", {
 # ---- Dropout -------------------------------------------------------------------
 
 test_that("complete_case_n reflects the statistical criterion and adjusted_n applies dropout", {
-  x <- suppressWarnings(sample_size_precision(
+  x <- suppressWarnings(samplesizeprecision(
     endpoint = "binary", design = "one_sample", width = 0.02, p = 0.05, method = "wilson", dropout = 0.10
   ))
   n0 <- testflow:::sample_size_binomial_required_n(0.05, 0.02, 0.05, "wilson", "expected", 1e7)
@@ -193,32 +193,32 @@ test_that("complete_case_n reflects the statistical criterion and adjusted_n app
 # ---- Validation ------------------------------------------------------------
 
 test_that("binary one-sample precision validation errors are informative", {
-  expect_error(sample_size_precision(endpoint = "binary", design = "one_sample", width = -0.01, p = 0.3), "positive")
-  expect_error(sample_size_precision(endpoint = "binary", design = "one_sample", width = 1, p = 0.3), "\\(0, 1\\)")
-  expect_error(sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0), "\\(0, 1\\)")
-  expect_error(sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 1), "\\(0, 1\\)")
+  expect_error(samplesizeprecision(endpoint = "binary", design = "one_sample", width = -0.01, p = 0.3), "positive")
+  expect_error(samplesizeprecision(endpoint = "binary", design = "one_sample", width = 1, p = 0.3), "\\(0, 1\\)")
+  expect_error(samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0), "\\(0, 1\\)")
+  expect_error(samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.05, p = 1), "\\(0, 1\\)")
   expect_error(
-    sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3, conservative = TRUE, method = "wilson"),
+    samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3, conservative = TRUE, method = "wilson"),
     "conservative"
   )
   expect_error(
-    sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3, conservative = TRUE, method = "exact"),
+    samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3, conservative = TRUE, method = "exact"),
     "conservative"
   )
   expect_error(
-    sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3, method = "wilson", max_n = 1),
+    samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3, method = "wilson", max_n = 1),
     "max_n"
   )
   expect_error(
-    sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3, method = "wilson", max_n = Inf),
+    samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3, method = "wilson", max_n = Inf),
     "max_n"
   )
   expect_error(
-    sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.001, p = 0.001, method = "wilson", max_n = 50),
+    samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.001, p = 0.001, method = "wilson", max_n = 50),
     "No sample size"
   )
   expect_error(
-    sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3, min_expected_events = -1),
+    samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3, min_expected_events = -1),
     "non-negative"
   )
 })
@@ -228,7 +228,7 @@ test_that("binary one-sample precision validation errors are informative", {
 test_that("two-sample binary precision implements unequal allocation correctly", {
   width <- 0.08; p1 <- 0.4; p2 <- 0.3
   for (r in c(1, 1.5, 2)) {
-    x <- sample_size_precision(
+    x <- samplesizeprecision(
       endpoint = "binary", design = "two_sample", width = width, p1 = p1, p2 = p2, allocation = r
     )
     n_a_expected <- za^2 / width^2 * (p1 * (1 - p1) + p2 * (1 - p2) / r)
@@ -244,6 +244,6 @@ test_that("two-sample binary precision implements unequal allocation correctly",
 })
 
 test_that("two-sample binary allocation = 1 reproduces the original equal-allocation formula", {
-  x <- sample_size_precision(endpoint = "binary", design = "two_sample", width = 0.08, p1 = 0.4, p2 = 0.3)
+  x <- samplesizeprecision(endpoint = "binary", design = "two_sample", width = 0.08, p1 = 0.4, p2 = 0.3)
   expect_equal(x$n, za^2 * (0.4 * 0.6 + 0.3 * 0.7) / 0.08^2)
 })

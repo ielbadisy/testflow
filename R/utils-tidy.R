@@ -209,7 +209,7 @@ primary_h0 <- function(x) {
 
 # Build a basetable from a named list of columns (tibble recycling rules).
 .bt_list <- function(cols) {
-  if (length(cols) == 0L) return(basetable::as_basetable(data.frame()))
+  if (length(cols) == 0L) return(basetable::asbasetable(data.frame()))
   lens <- vapply(cols, function(v) if (is.data.frame(v)) nrow(v) else length(v), integer(1))
   n <- if (any(lens != 1L)) max(lens[lens != 1L]) else 1L
   bad <- names(cols)[!lens %in% c(1L, n)]
@@ -232,5 +232,5 @@ primary_h0 <- function(x) {
     if (inherits(x[[nm]], "AsIs")) class(x[[nm]]) <- setdiff(class(x[[nm]]), "AsIs")
   }
   rownames(x) <- NULL
-  basetable::as_basetable(x)
+  basetable::asbasetable(x)
 }

@@ -23,7 +23,7 @@
 #' Cohen, J. (1988). \emph{Statistical Power Analysis for the Behavioral
 #' Sciences} (2nd ed.). Lawrence Erlbaum.
 #' @export
-test_factorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2, plot = TRUE, na.rm = TRUE) {
+testfactorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2, plot = TRUE, na.rm = TRUE) {
   first_expr <- tf_formula_arg(substitute(formula), parent.frame())
   second_expr <- tf_formula_arg(substitute(data), parent.frame())
   data_obj <- resolve_data_first_or_formula(formula, data)

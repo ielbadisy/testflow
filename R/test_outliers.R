@@ -11,7 +11,7 @@
 #' Mahalanobis rows, outlier-count summary, optional `ggplot`, original call,
 #' and report text. This is a screening workflow, not a single hypothesis test.
 #' @export
-test_outliers <- function(formula, data, group = NULL, method = c("iqr", "mahalanobis", "both"), plot = TRUE, na.rm = TRUE) {
+testoutliers <- function(formula, data, group = NULL, method = c("iqr", "mahalanobis", "both"), plot = TRUE, na.rm = TRUE) {
   method <- match.arg(method)
   vars <- tidyselect_names(data, {{ formula }})
   group_nm <- if (missing(group) || is.null(substitute(group))) NULL else rlang::as_name(rlang::ensym(group))

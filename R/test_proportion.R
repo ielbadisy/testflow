@@ -17,7 +17,7 @@
 #' limits illustrated in the case of the binomial. \emph{Biometrika},
 #' 26(4), 404-413.
 #' @export
-test_proportion <- function(data, outcome, success, p = 0.5, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testproportion <- function(data, outcome, success, p = 0.5, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))
   df <- drop_missing(data, outcome_nm, na.rm = na.rm)
   warn_if(!success %in% unique(stats::na.omit(df[[outcome_nm]])), "The declared `success` level is not present in the data.")

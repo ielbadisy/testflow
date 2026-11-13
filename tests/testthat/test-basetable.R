@@ -1,6 +1,6 @@
 test_that("as.data.frame() gives a plain one-row data frame; as_tibble() a basetable", {
-  dat <- make_cardio_data(80)
-  x <- test_two_groups(dat, sbp_3m, sex)
+  dat <- makecardiodata(80)
+  x <- testtwogroups(dat, sbp_3m, sex)
   df <- as.data.frame(x)
   expect_identical(class(df), "data.frame")
   expect_equal(nrow(df), 1)
@@ -8,7 +8,7 @@ test_that("as.data.frame() gives a plain one-row data frame; as_tibble() a baset
   expect_s3_class(bt, "basetable")
   expect_equal(names(df), names(bt))
 
-  ss <- sample_size_continuous(delta = 5, sd = 10)
+  ss <- samplesizecontinuous(delta = 5, sd = 10)
   expect_identical(class(as.data.frame(ss)), "data.frame")
   expect_s3_class(as_tibble(ss), "basetable")
 })

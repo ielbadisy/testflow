@@ -25,7 +25,7 @@
 #'
 #' Girden, E. R. (1992). \emph{ANOVA: Repeated Measures}. Sage.
 #' @export
-test_repeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testrepeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   measure_nms <- tidyselect_names(data, {{ measures }})
   warn_if_two_measures_repeated(measure_nms)
   id_nm <- if (missing(id) || is.null(substitute(id))) ".testflow_id" else rlang::as_name(rlang::ensym(id))
@@ -51,7 +51,7 @@ test_repeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.0
 #' results, post-hoc paired comparisons, effect size, optional `ggplot`,
 #' original call, and report text.
 #' @export
-test_repeated_long <- function(data, outcome, within, id, between = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testrepeatedlong <- function(data, outcome, within, id, between = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))
   within_nm <- rlang::as_name(rlang::ensym(within))
   id_nm <- rlang::as_name(rlang::ensym(id))

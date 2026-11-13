@@ -39,7 +39,7 @@
 #' Altman DG, Bland JM. Diagnostic tests 1: sensitivity and specificity.
 #' *BMJ*. 1994;308(6943):1552.
 #' @export
-test_diagnostic <- function(data, test, reference, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testdiagnostic <- function(data, test, reference, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   test_nm <- rlang::as_name(rlang::ensym(test))
   reference_nm <- rlang::as_name(rlang::ensym(reference))
   df <- drop_missing(data, c(test_nm, reference_nm), na.rm = na.rm)
@@ -160,7 +160,7 @@ test_diagnostic <- function(data, test, reference, alpha = 0.05, plot = TRUE, na
 #' Hosmer DW, Lemeshow S, Sturdivant RX. *Applied Logistic Regression* (3rd
 #' ed.). Wiley; 2013. (AUC magnitude convention, p. 177.)
 #' @export
-test_roc <- function(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testroc <- function(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   predictor_nm <- rlang::as_name(rlang::ensym(predictor))
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))
   df <- drop_missing(data, c(predictor_nm, outcome_nm), na.rm = na.rm)

@@ -1,4 +1,4 @@
-test_that("test_repeated_categorical computes true Cochran Q", {
+test_that("testrepeatedcategorical computes true Cochran Q", {
   mat <- matrix(
     c(
       1, 0, 1,
@@ -12,7 +12,7 @@ test_that("test_repeated_categorical computes true Cochran Q", {
     byrow = TRUE
   )
   dat <- .bt(t1 = mat[, 1], t2 = mat[, 2], t3 = mat[, 3])
-  x <- test_repeated_categorical(dat, c(t1, t2, t3))
+  x <- testrepeatedcategorical(dat, c(t1, t2, t3))
   col_totals <- colSums(mat)
   row_totals <- rowSums(mat)
   k <- ncol(mat)

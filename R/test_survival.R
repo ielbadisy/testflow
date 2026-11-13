@@ -30,7 +30,7 @@
 #' arising in its consideration. *Cancer Chemotherapy Reports*.
 #' 1966;50(3):163-170.
 #' @export
-test_survival <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testsurvival <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   formula_obj <- stats::as.formula(paste(deparse(formula), collapse = " "))
   lhs <- formula_obj[[2]]
   time_nm <- deparse(lhs[[2]])
@@ -140,7 +140,7 @@ test_survival <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE
 #' Grambsch PM, Therneau TM. Proportional hazards tests and diagnostics
 #' based on weighted residuals. *Biometrika*. 1994;81(3):515-526.
 #' @export
-test_cox <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testcox <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   formula_obj <- stats::as.formula(paste(deparse(formula), collapse = " "))
   lhs <- formula_obj[[2]]
   time_nm <- deparse(lhs[[2]])

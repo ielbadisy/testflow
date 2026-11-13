@@ -1,14 +1,14 @@
 # Regression tests for testflow 1.0.4: integer outcomes with odd and even
 # group sizes, and large samples (n > 5000).
 
-test_that("test_groups() handles integer outcomes with odd and even group sizes", {
+test_that("testgroups() handles integer outcomes with odd and even group sizes", {
   set.seed(1)
   d <- data.frame(
     y = c(rpois(101, 3), rpois(100, 3), rpois(51, 3)),
     g = factor(rep(c("a", "b", "c"), c(101, 100, 51)))
   )
   expect_true(is.integer(d$y))
-  res <- suppressWarnings(test_groups(y ~ g, data = d, plot = FALSE))
+  res <- suppressWarnings(testgroups(y ~ g, data = d, plot = FALSE))
   expect_s3_class(res, "testflow")
   expect_type(res$descriptives$median, "double")
 })
@@ -33,21 +33,21 @@ test_that("regression and factorial workflows run with n > 5000", {
     g = factor(sample(c("a", "b", "c"), n, TRUE)),
     h = factor(sample(c("u", "v"), n, TRUE))
   )
-  lin <- suppressWarnings(test_linear_regression(y ~ x + g, data = d, plot = FALSE))
-  fac <- suppressWarnings(test_factorial(y ~ g * h, data = d, plot = FALSE))
+  lin <- suppressWarnings(testlinearregression(y ~ x + g, data = d, plot = FALSE))
+  fac <- suppressWarnings(testfactorial(y ~ g * h, data = d, plot = FALSE))
   expect_s3_class(lin, "testflow")
   expect_s3_class(fac, "testflow")
   expect_true(any(lin$assumptions$status == "not checked"))
 })
 
-test_that("test_categorical() falls back to a Monte Carlo Fisher p-value on large tables", {
+test_that("testcategorical() falls back to a Monte Carlo Fisher p-value on large tables", {
   set.seed(3)
   n <- 12500
   d <- data.frame(
     x = factor(sample(c("no", "yes"), n, TRUE)),
     g = factor(sample(c("a", "b", "c"), n, TRUE))
   )
-  res <- suppressWarnings(test_categorical(x ~ g, data = d, plot = FALSE))
+  res <- suppressWarnings(testcategorical(x ~ g, data = d, plot = FALSE))
   expect_s3_class(res, "testflow")
   expect_true(is.finite(res$alternative_tests$fisher$p.value))
 })

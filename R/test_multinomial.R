@@ -16,7 +16,7 @@
 #' can be reasonably supposed to have arisen from random sampling.
 #' \emph{Philosophical Magazine}, 50(302), 157-175.
 #' @export
-test_multinomial <- function(data, outcome, p = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testmultinomial <- function(data, outcome, p = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))
   df <- drop_missing(data, outcome_nm, na.rm = na.rm)
   counts <- as.numeric(table(df[[outcome_nm]]))
