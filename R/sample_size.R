@@ -1093,8 +1093,12 @@ samplesizeclusteradjust <- function(n_ind, m, rho, cv_m = NULL) {
 #'
 #' @param endpoint Endpoint family: `continuous` or `binary`.
 #' @param design `one_sample`, `two_sample`, or (binary only) `odds_ratio`.
-#' @param width Desired confidence-interval half-width, on the scale of the
-#'   estimate (or of the log odds ratio for `design = "odds_ratio"`).
+#' @param width Desired confidence-interval half-width (margin of error), on
+#'   the scale of the estimate (or of the log odds ratio for
+#'   `design = "odds_ratio"`). This is NOT the full interval length: the
+#'   planned interval is estimate +/- `width`, so its total length is
+#'   `2 * width`. To plan for a total interval length `L`, pass
+#'   `width = L / 2`.
 #' @param sd Standard deviation (continuous endpoint).
 #' @param p Anticipated proportion (binary, `one_sample`).
 #' @param p1 Anticipated proportion in arm A (binary, `two_sample` or

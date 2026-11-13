@@ -4,7 +4,15 @@
 \alias{testroc}
 \title{Receiver operating characteristic (ROC) curve workflow}
 \usage{
-testroc(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm = TRUE)
+testroc(
+  data,
+  predictor,
+  outcome,
+  alpha = 0.05,
+  plot = TRUE,
+  na.rm = TRUE,
+  method = c("hanley", "delong")
+)
 }
 \arguments{
 \item{data}{A data frame.}
@@ -20,6 +28,10 @@ second level is treated as the positive class).}
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{method}{Standard-error method for the AUC: \code{"hanley"} (default,
+Hanley & McNeil 1982 closed form) or \code{"delong"} (DeLong, DeLong &
+Clarke-Pearson 1988 nonparametric structural-components variance).}
 }
 \value{
 A \code{testflow} object with class \code{testflow_roc}. The object is a
@@ -38,11 +50,21 @@ randomly chosen negative-class observation, and is computed from the
 Mann-Whitney U statistic:
 \deqn{AUC = \frac{U}{n_1 n_0}}
 
-The standard error uses the closed-form Hanley & McNeil (1982) formula
-(an asymptotically equivalent, but not numerically identical, alternative
-to DeLong's method):
+By default (\code{method = "hanley"}) the standard error uses the closed-form
+Hanley & McNeil (1982) formula, which assumes exponential-type score
+distributions. It is NOT DeLong's method and gives numerically different
+(usually similar) intervals:
 \deqn{SE(AUC) = \sqrt{\frac{AUC(1-AUC)+(n_1-1)(Q_1-AUC^2)+(n_0-1)(Q_2-AUC^2)}{n_1 n_0}}}
 \deqn{Q_1 = \frac{AUC}{2-AUC}, \qquad Q_2 = \frac{2AUC^2}{1+AUC}}
+
+With \code{method = "delong"} the variance is the DeLong et al. (1988)
+nonparametric estimator \eqn{Var(AUC) = S_{10}/n_1 + S_{01}/n_0}, where
+\eqn{S_{10}} and \eqn{S_{01}} are the sample variances of the
+structural components \eqn{V_{10}(x_i) = n_0^{-1}\sum_j \psi(x_i, y_j)}
+and \eqn{V_{01}(y_j) = n_1^{-1}\sum_i \psi(x_i, y_j)}, with
+\eqn{\psi = 1} if \eqn{x > y}, \eqn{1/2} if tied, 0 otherwise. This
+matches the SE used by \code{pROC::ci.auc(method = "delong")}. In both cases
+the confidence interval is the Wald interval \eqn{AUC \pm z\,SE}.
 
 The Youden's J statistic identifies the threshold maximizing
 \eqn{J = Sensitivity + Specificity - 1}.
@@ -50,6 +72,10 @@ The Youden's J statistic identifies the threshold maximizing
 \references{
 Hanley JA, McNeil BJ. The meaning and use of the area under a receiver
 operating characteristic (ROC) curve. \emph{Radiology}. 1982;143(1):29-36.
+
+DeLong ER, DeLong DM, Clarke-Pearson DL. Comparing the areas under two or
+more correlated receiver operating characteristic curves: a
+nonparametric approach. \emph{Biometrics}. 1988;44(3):837-845.
 
 Youden WJ. Index for rating diagnostic tests. \emph{Cancer}.
 1950;3(1):32-35.

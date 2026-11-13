@@ -130,6 +130,9 @@ testdiagnostic <- function(data, test, reference, alpha = 0.05, plot = TRUE, na.
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param method Standard-error method for the AUC: `"hanley"` (default,
+#'   Hanley & McNeil 1982 closed form) or `"delong"` (DeLong, DeLong &
+#'   Clarke-Pearson 1988 nonparametric structural-components variance).
 #' @return A `testflow` object with class `testflow_roc`. The object is a
 #' list containing the cleaned data, descriptive statistics by outcome
 #' class, the test of AUC against 0.5 as the primary result with null
@@ -142,11 +145,21 @@ testdiagnostic <- function(data, test, reference, alpha = 0.05, plot = TRUE, na.
 #' Mann-Whitney U statistic:
 #' \deqn{AUC = \frac{U}{n_1 n_0}}
 #'
-#' The standard error uses the closed-form Hanley & McNeil (1982) formula
-#' (an asymptotically equivalent, but not numerically identical, alternative
-#' to DeLong's method):
+#' By default (`method = "hanley"`) the standard error uses the closed-form
+#' Hanley & McNeil (1982) formula, which assumes exponential-type score
+#' distributions. It is NOT DeLong's method and gives numerically different
+#' (usually similar) intervals:
 #' \deqn{SE(AUC) = \sqrt{\frac{AUC(1-AUC)+(n_1-1)(Q_1-AUC^2)+(n_0-1)(Q_2-AUC^2)}{n_1 n_0}}}
 #' \deqn{Q_1 = \frac{AUC}{2-AUC}, \qquad Q_2 = \frac{2AUC^2}{1+AUC}}
+#'
+#' With `method = "delong"` the variance is the DeLong et al. (1988)
+#' nonparametric estimator \eqn{Var(AUC) = S_{10}/n_1 + S_{01}/n_0}, where
+#' \eqn{S_{10}} and \eqn{S_{01}} are the sample variances of the
+#' structural components \eqn{V_{10}(x_i) = n_0^{-1}\sum_j \psi(x_i, y_j)}
+#' and \eqn{V_{01}(y_j) = n_1^{-1}\sum_i \psi(x_i, y_j)}, with
+#' \eqn{\psi = 1} if \eqn{x > y}, \eqn{1/2} if tied, 0 otherwise. This
+#' matches the SE used by `pROC::ci.auc(method = "delong")`. In both cases
+#' the confidence interval is the Wald interval \eqn{AUC \pm z\,SE}.
 #'
 #' The Youden's J statistic identifies the threshold maximizing
 #' \eqn{J = Sensitivity + Specificity - 1}.
@@ -154,13 +167,19 @@ testdiagnostic <- function(data, test, reference, alpha = 0.05, plot = TRUE, na.
 #' Hanley JA, McNeil BJ. The meaning and use of the area under a receiver
 #' operating characteristic (ROC) curve. *Radiology*. 1982;143(1):29-36.
 #'
+#' DeLong ER, DeLong DM, Clarke-Pearson DL. Comparing the areas under two or
+#' more correlated receiver operating characteristic curves: a
+#' nonparametric approach. *Biometrics*. 1988;44(3):837-845.
+#'
 #' Youden WJ. Index for rating diagnostic tests. *Cancer*.
 #' 1950;3(1):32-35.
 #'
 #' Hosmer DW, Lemeshow S, Sturdivant RX. *Applied Logistic Regression* (3rd
 #' ed.). Wiley; 2013. (AUC magnitude convention, p. 177.)
 #' @export
-testroc <- function(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testroc <- function(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm = TRUE,
+                    method = c("hanley", "delong")) {
+  method <- match.arg(method)
   predictor_nm <- rlang::as_name(rlang::ensym(predictor))
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))
   df <- drop_missing(data, c(predictor_nm, outcome_nm), na.rm = na.rm)
@@ -174,9 +193,19 @@ testroc <- function(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm =
   wt <- stats::wilcox.test(pos, neg, exact = FALSE)
   auc <- unname(wt$statistic) / (n_pos * n_neg)
 
-  q1 <- auc / (2 - auc)
-  q2 <- 2 * auc^2 / (1 + auc)
-  se_auc <- sqrt((auc * (1 - auc) + (n_pos - 1) * (q1 - auc^2) + (n_neg - 1) * (q2 - auc^2)) / (n_pos * n_neg))
+  if (method == "hanley") {
+    q1 <- auc / (2 - auc)
+    q2 <- 2 * auc^2 / (1 + auc)
+    se_auc <- sqrt((auc * (1 - auc) + (n_pos - 1) * (q1 - auc^2) + (n_neg - 1) * (q2 - auc^2)) / (n_pos * n_neg))
+  } else {
+    if (n_pos < 2 || n_neg < 2) {
+      stop("DeLong standard error needs at least two observations per outcome class.", call. = FALSE)
+    }
+    r_all <- rank(c(pos, neg))
+    v10 <- (r_all[seq_len(n_pos)] - rank(pos)) / n_neg
+    v01 <- 1 - (r_all[n_pos + seq_len(n_neg)] - rank(neg)) / n_pos
+    se_auc <- sqrt(stats::var(v10) / n_pos + stats::var(v01) / n_neg)
+  }
   z <- stats::qnorm(1 - alpha / 2)
   auc_ci <- auc + c(-1, 1) * z * se_auc
   z_stat <- (auc - 0.5) / se_auc
@@ -199,7 +228,8 @@ testroc <- function(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm =
 
   effect <- .bt(name = "AUC", estimate = auc, magnitude = magnitude_auc(auc))
   primary <- .bt(
-    method = "AUC vs. 0.5 (no discrimination)",
+    method = paste0("AUC vs. 0.5 (no discrimination), ",
+                    if (method == "hanley") "Hanley-McNeil SE" else "DeLong SE"),
     statistic = z_stat,
     p.value = p_value,
     conf.low = auc_ci[1],

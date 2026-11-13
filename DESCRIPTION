@@ -1,6 +1,6 @@
 Package: testflow
 Title: A Workflow for Statistical Testing and Interpretation
-Version: 1.1.1
+Version: 1.1.2
 Authors@R: c(
     person(
       given = "Imad",

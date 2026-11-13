@@ -27,8 +27,12 @@ samplesizeprecision(
 
 \item{design}{\code{one_sample}, \code{two_sample}, or (binary only) \code{odds_ratio}.}
 
-\item{width}{Desired confidence-interval half-width, on the scale of the
-estimate (or of the log odds ratio for \code{design = "odds_ratio"}).}
+\item{width}{Desired confidence-interval half-width (margin of error), on
+the scale of the estimate (or of the log odds ratio for
+\code{design = "odds_ratio"}). This is NOT the full interval length: the
+planned interval is estimate +/- \code{width}, so its total length is
+\code{2 * width}. To plan for a total interval length \code{L}, pass
+\code{width = L / 2}.}
 
 \item{sd}{Standard deviation (continuous endpoint).}
 

@@ -247,3 +247,11 @@ test_that("two-sample binary allocation = 1 reproduces the original equal-alloca
   x <- samplesizeprecision(endpoint = "binary", design = "two_sample", width = 0.08, p1 = 0.4, p2 = 0.3)
   expect_equal(x$n, za^2 * (0.4 * 0.6 + 0.3 * 0.7) / 0.08^2)
 })
+
+test_that("samplesizeprecision width is the half-width (margin of error)", {
+  x <- samplesizeprecision(endpoint = "continuous", design = "one_sample", width = 2, sd = 10)
+  n <- x$n_total
+  # achieved half-width z * sd / sqrt(n) is <= width; full length would be 2 * width
+  expect_lte(stats::qnorm(0.975) * 10 / sqrt(n), 2)
+  expect_gt(stats::qnorm(0.975) * 10 / sqrt(n - 1), 2)
+})
