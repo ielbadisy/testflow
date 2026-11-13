@@ -17,7 +17,7 @@ library(testflow)
 
 ## Purpose
 
-The "Sample size planning" vignette introduces the `sample_size()` API and
+The "Sample size planning" vignette introduces the `samplesize()` API and
 its main use cases. This vignette is a complete reference: every
 `design`/`objective`/`method` combination each planning function accepts,
 paired with the exact formula it evaluates, and a runnable example. Use it
@@ -37,10 +37,10 @@ use one-sided \(\alpha\) (pass `alpha = 0.025` for a one-sided-0.025 design,
 or keep `alpha = 0.05` for a one-sided-0.05 design). `testflow` does not
 rescale `alpha` for you.
 
-## `sample_size_continuous()`
+## `samplesizecontinuous()`
 
 ```{r, eval = FALSE}
-sample_size_continuous(
+samplesizecontinuous(
   design = c("parallel", "paired", "repeated"),
   objective = c("superiority", "noninferiority", "equivalence"),
   delta = NULL, sd = NULL, sd_diff = NULL, expected_difference = 0,
@@ -64,7 +64,7 @@ n_A = \frac{(r+1)\sigma^2(z_{1-\beta}+z_{1-\alpha/2})^2}{r\Delta^2},
 \]
 
 ```{r}
-sample_size_continuous(
+samplesizecontinuous(
   design = "parallel", objective = "superiority",
   delta = 5, sd = 10, allocation = 1, alpha = 0.05, power = 0.90
 )
@@ -80,7 +80,7 @@ n_A = \frac{(r+1)\sigma^2(z_{1-\beta}+z_{1-\alpha})^2}{rd_{NI}^2}
 \]
 
 ```{r}
-sample_size_continuous(
+samplesizecontinuous(
   design = "parallel", objective = "noninferiority",
   delta = 2, expected_difference = 0.5, sd = 10, alpha = 0.025, power = 0.90
 )
@@ -95,7 +95,7 @@ n_A \approx \frac{(r+1)\sigma^2(z_{1-\beta}+z_{1-\alpha})^2}{rd_{EQ}^2}
 \]
 
 ```{r}
-sample_size_continuous(
+samplesizecontinuous(
   design = "parallel", objective = "equivalence",
   delta = 4, expected_difference = 1, sd = 10, alpha = 0.05, power = 0.90
 )
@@ -108,7 +108,7 @@ n_A = \frac{(r+1)\sigma^2(z_{1-\beta/2}+z_{1-\alpha})^2}{r\delta^2}
 \]
 
 ```{r}
-sample_size_continuous(
+samplesizecontinuous(
   design = "parallel", objective = "equivalence",
   delta = 4, expected_difference = 0, sd = 10, alpha = 0.05, power = 0.90
 )
@@ -126,17 +126,17 @@ n_{pairs} = \frac{(z_{1-\alpha/2}+z_{1-\beta})^2\sigma_{diff}^2}{\Delta^2}
 \]
 
 ```{r}
-sample_size_continuous(
+samplesizecontinuous(
   design = "paired", objective = "superiority",
   delta = 5, sd_diff = 10, alpha = 0.05, power = 0.90
 )
 
-sample_size_continuous(
+samplesizecontinuous(
   design = "paired", objective = "noninferiority",
   delta = 2, expected_difference = 0.5, sd_diff = 10, alpha = 0.025, power = 0.90
 )
 
-sample_size_continuous(
+samplesizecontinuous(
   design = "paired", objective = "equivalence",
   delta = 4, expected_difference = 0, sd_diff = 10, alpha = 0.05, power = 0.90
 )
@@ -161,28 +161,28 @@ test across exchangeably correlated repeated measurements; it is not itself
 a closed-form textbook formula.
 
 ```{r}
-sample_size_continuous(
+samplesizecontinuous(
   design = "repeated", n_time = 4, correlation = 0.5,
   objective = "superiority", delta = 5, sd_diff = 10, alpha = 0.05, power = 0.90
 )
 
-sample_size_continuous(
+samplesizecontinuous(
   design = "repeated", n_time = 4, correlation = 0.3,
   objective = "noninferiority", delta = 2, expected_difference = 0.5,
   sd_diff = 10, alpha = 0.025, power = 0.90
 )
 
-sample_size_continuous(
+samplesizecontinuous(
   design = "repeated", n_time = 4, correlation = 0.3,
   objective = "equivalence", delta = 4, expected_difference = 0,
   sd_diff = 10, alpha = 0.05, power = 0.90
 )
 ```
 
-## `sample_size_binary()`
+## `samplesizebinary()`
 
 ```{r, eval = FALSE}
-sample_size_binary(
+samplesizebinary(
   design = c("parallel", "paired", "repeated"),
   objective = c("superiority", "noninferiority", "equivalence"),
   p1, p2, margin = NULL, method = c("pooled", "anticipated"),
@@ -203,7 +203,7 @@ n_A = \frac{\left[z_{1-\alpha/2}\sqrt{(1+1/r)\bar p(1-\bar p)}
 \]
 
 ```{r}
-sample_size_binary(
+samplesizebinary(
   design = "parallel", objective = "superiority",
   p1 = 0.4, p2 = 0.25, method = "pooled", alpha = 0.05, power = 0.90
 )
@@ -217,7 +217,7 @@ n_A \approx \frac{(z_{1-\alpha/2}+z_{1-\beta})^2
 \]
 
 ```{r}
-sample_size_binary(
+samplesizebinary(
   design = "parallel", objective = "superiority",
   p1 = 0.4, p2 = 0.25, method = "anticipated", alpha = 0.05, power = 0.90
 )
@@ -233,7 +233,7 @@ n_A \approx \frac{(z_{1-\alpha}+z_{1-\beta})^2
 \]
 
 ```{r}
-sample_size_binary(
+samplesizebinary(
   design = "parallel", objective = "noninferiority",
   p1 = 0.5, p2 = 0.45, margin = 0.1, alpha = 0.025, power = 0.90
 )
@@ -249,7 +249,7 @@ n_A \approx \frac{(z_{1-\alpha}+z_{1-\beta})^2
 \]
 
 ```{r}
-sample_size_binary(
+samplesizebinary(
   design = "parallel", objective = "equivalence",
   p1 = 0.42, p2 = 0.4, margin = 0.15, alpha = 0.05, power = 0.90
 )
@@ -263,7 +263,7 @@ n_A = \frac{(r+1)(z_{1-\beta/2}+z_{1-\alpha})^2p(1-p)}{r\delta^2}
 \]
 
 ```{r}
-sample_size_binary(
+samplesizebinary(
   design = "parallel", objective = "equivalence",
   p1 = 0.3, p2 = 0.3, margin = 0.15, allocation = 2, alpha = 0.05, power = 0.90
 )
@@ -283,17 +283,17 @@ n_{total} = \left\lceil
 \]
 
 ```{r}
-sample_size_binary(
+samplesizebinary(
   design = "paired", objective = "superiority",
   discordant_or = 2, discordance_rate = 0.3, alpha = 0.05, power = 0.90
 )
 
-sample_size_binary(
+samplesizebinary(
   design = "paired", objective = "superiority",
   p10 = 0.2, p01 = 0.1, alpha = 0.05, power = 0.90
 )
 
-sample_size_binary(
+samplesizebinary(
   design = "repeated", n_time = 2, objective = "superiority",
   p10 = 0.2, p01 = 0.1, alpha = 0.05, power = 0.90
 )
@@ -303,10 +303,10 @@ sample_size_binary(
 routed to the same discordant-pairs formula as `design = "paired"`);
 `n_time > 2` is not implemented for binary endpoints.
 
-## `sample_size_survival()`
+## `samplesizesurvival()`
 
 ```{r, eval = FALSE}
-sample_size_survival(
+samplesizesurvival(
   design = c("parallel"),
   objective = c("superiority", "noninferiority", "equivalence"),
   hr, margin_hr = NULL, lower = NULL, upper = NULL,
@@ -328,7 +328,7 @@ D_{total} = \frac{4(z_{1-\alpha/2}+z_{1-\beta})^2}{[\log(HR)]^2}
 \]
 
 ```{r}
-sample_size_survival(
+samplesizesurvival(
   hr = 0.7, method = "exponential", alpha = 0.05, power = 0.90
 )
 ```
@@ -342,7 +342,7 @@ D_{total} = \frac{2(HR+1)^2(z_{1-\alpha/2}+z_{1-\beta})^2}{(HR-1)^2}
 \]
 
 ```{r}
-sample_size_survival(
+samplesizesurvival(
   hr = 0.7, method = "ph_only", alpha = 0.05, power = 0.90
 )
 ```
@@ -362,7 +362,7 @@ which follows from setting expected events
 Without `survival_a`/`survival_b`, `n` is the required event count itself.
 
 ```{r}
-sample_size_survival(
+samplesizesurvival(
   hr = 0.7, survival_a = 0.8, survival_b = 0.7, alpha = 0.05, power = 0.90
 )
 ```
@@ -382,7 +382,7 @@ assumption; this always requires more subjects than instantaneous accrual
 for the same event target, and reduces to the flat conversion as \(R\to0\):
 
 ```{r}
-sample_size_survival(
+samplesizesurvival(
   hr = 0.7, survival_a = 0.8, survival_b = 0.7, alpha = 0.05, power = 0.90,
   accrual_duration = 12, follow_up = 24
 )
@@ -398,7 +398,7 @@ D_{total} \approx \frac{4(z_{1-\alpha}+z_{1-\beta})^2}{d_{NI}^2}
 \]
 
 ```{r}
-sample_size_survival(
+samplesizesurvival(
   hr = 0.85, objective = "noninferiority", margin_hr = 1.25,
   survival_a = 0.75, survival_b = 0.75, alpha = 0.025, power = 0.90
 )
@@ -415,16 +415,16 @@ D_{total} \approx \frac{4(z_{1-\alpha}+z_{1-\beta})^2}{d_{EQ}^2}
 \]
 
 ```{r}
-sample_size_survival(
+samplesizesurvival(
   hr = 1.0, objective = "equivalence", lower = 0.8, upper = 1.25,
   survival_a = 0.75, survival_b = 0.75, alpha = 0.05, power = 0.90
 )
 ```
 
-## `sample_size_ordinal()`
+## `samplesizeordinal()`
 
 ```{r, eval = FALSE}
-sample_size_ordinal(
+samplesizeordinal(
   design = c("parallel"), objective = c("superiority"),
   p_superiority = NULL,
   alpha = 0.05, power = 0.90, dropout = 0
@@ -441,13 +441,13 @@ n_{per\ group} = \frac{(z_{1-\alpha/2}+z_{1-\beta})^2}{6(P-0.5)^2}
 \]
 
 ```{r}
-sample_size_ordinal(p_superiority = 0.65, alpha = 0.05, power = 0.90)
+samplesizeordinal(p_superiority = 0.65, alpha = 0.05, power = 0.90)
 ```
 
-## `sample_size_bioequivalence()`
+## `samplesizebioequivalence()`
 
 ```{r, eval = FALSE}
-sample_size_bioequivalence(
+samplesizebioequivalence(
   design = c("crossover", "parallel"), gmr = 1,
   cv_within = NULL, cv_between = NULL,
   lower = 0.80, upper = 1.25, alpha = 0.05, power = 0.90,
@@ -484,12 +484,12 @@ to ~20% at small n - if you have results computed with `testflow` before
 this fix, re-run them.
 
 ```{r}
-sample_size_bioequivalence(
+samplesizebioequivalence(
   design = "crossover", gmr = 0.95, cv_within = 0.30,
   alpha = 0.05, power = 0.90
 )
 
-sample_size_bioequivalence(
+samplesizebioequivalence(
   design = "parallel", gmr = 0.95, cv_between = 0.35, allocation = 1.5,
   alpha = 0.05, power = 0.90
 )
@@ -499,14 +499,14 @@ sample_size_bioequivalence(
 
 Closed-form approximation, switching to \(z_{1-\beta/2}\) when \(GMR=1\)
 exactly (matching the analogous special case in
-`sample_size_continuous()`):
+`samplesizecontinuous()`):
 
 \[
 n_{total} \approx \frac{2\sigma_w^2(z_{1-\beta}+z_{1-\alpha})^2}{d_{BE}^2}
 \]
 
 ```{r}
-sample_size_bioequivalence(
+samplesizebioequivalence(
   design = "crossover", gmr = 0.95, cv_within = 0.30,
   alpha = 0.05, power = 0.90, method = "normal_approx"
 )
@@ -515,10 +515,10 @@ sample_size_bioequivalence(
 `iterative_tost` is preferred: the two methods agree closely near
 \(GMR=1\) but can diverge further away from it.
 
-## `sample_size_precision()`
+## `samplesizeprecision()`
 
 ```{r, eval = FALSE}
-sample_size_precision(
+samplesizeprecision(
   endpoint = c("continuous", "binary"),
   design = c("one_sample", "two_sample", "odds_ratio"),
   width, sd = NULL, p = NULL, p1 = NULL, p2 = NULL,
@@ -533,12 +533,12 @@ Driven by a target CI half-width `width` rather than power; there is no
 `power` argument. `design = "odds_ratio"` is binary-only.
 
 ```{r}
-sample_size_precision(endpoint = "continuous", design = "one_sample", width = 2, sd = 10)
-sample_size_precision(endpoint = "continuous", design = "two_sample", width = 2, sd = 10, allocation = 1.5)
-sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3)
-sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, conservative = TRUE)
-sample_size_precision(endpoint = "binary", design = "two_sample", width = 0.08, p1 = 0.4, p2 = 0.3, allocation = 2)
-sample_size_precision(endpoint = "binary", design = "odds_ratio", width = 0.3, p1 = 0.4, p2 = 0.3, allocation = 2)
+samplesizeprecision(endpoint = "continuous", design = "one_sample", width = 2, sd = 10)
+samplesizeprecision(endpoint = "continuous", design = "two_sample", width = 2, sd = 10, allocation = 1.5)
+samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.3)
+samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.05, conservative = TRUE)
+samplesizeprecision(endpoint = "binary", design = "two_sample", width = 0.08, p1 = 0.4, p2 = 0.3, allocation = 2)
+samplesizeprecision(endpoint = "binary", design = "odds_ratio", width = 0.3, p1 = 0.4, p2 = 0.3, allocation = 2)
 ```
 
 `allocation` is respected for every design here: `two_sample` (continuous),
@@ -556,15 +556,15 @@ unreliable:
 
 ```{r}
 # Wald (backward-compatible default)
-sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.02, p = 0.01)
+samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.02, p = 0.01)
 
 # Wilson score, iterative search - generally a smaller, better-calibrated n
 # for rare p than Wald
-sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.02, p = 0.01, method = "wilson")
+samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.02, p = 0.01, method = "wilson")
 
 # Exact Clopper-Pearson, requiring the precision target to hold over a
 # prevalence-local band of event counts rather than just the anticipated one
-x <- sample_size_precision(
+x <- samplesizeprecision(
   endpoint = "binary", design = "one_sample", width = 0.005,
   p = 0.001, method = "exact", criterion = "worst_case"
 )
@@ -578,12 +578,12 @@ alone does not guarantee: `expected_events`, `probability_zero_events`,
 (`achieved_lower`/`achieved_upper`/`achieved_maximum_half_width`) at the
 `complete_case_n` before dropout inflation, separately from `adjusted_n`
 after it. A narrow planned interval does not, by itself, ensure that any
-events will be observed - see `?sample_size_precision` for details.
+events will be observed - see `?samplesizeprecision` for details.
 
-## `sample_size_cluster_adjust()`
+## `samplesizeclusteradjust()`
 
 ```{r, eval = FALSE}
-sample_size_cluster_adjust(n_ind, m, rho, cv_m = NULL)
+samplesizeclusteradjust(n_ind, m, rho, cv_m = NULL)
 ```
 
 Inflates an individually randomized sample size `n_ind` by the design
@@ -592,26 +592,26 @@ correlation \(\rho\), or \(DE\approx1+((1+CV_m^2)m-1)\rho\) when cluster
 sizes vary (`cv_m`, their coefficient of variation):
 
 ```{r}
-sample_size_cluster_adjust(100, m = 20, rho = 0.02)
-sample_size_cluster_adjust(100, m = 20, rho = 0.02, cv_m = 0.3)
+samplesizeclusteradjust(100, m = 20, rho = 0.02)
+samplesizeclusteradjust(100, m = 20, rho = 0.02, cv_m = 0.3)
 ```
 
-Like `sample_size_adjust_dropout()`, this returns a plain integer, not a
+Like `samplesizeadjustdropout()`, this returns a plain integer, not a
 `sample_size` object — it is a post-processing adjustment, not a full
 planning calculation.
 
-## `sample_size()` dispatcher
+## `samplesize()` dispatcher
 
-`sample_size()` routes to the four functions above by `endpoint`:
+`samplesize()` routes to the four functions above by `endpoint`:
 
 ```{r}
-sample_size(
+samplesize(
   endpoint = "binary", design = "parallel", objective = "noninferiority",
   p1 = 0.5, p2 = 0.45, margin = 0.1, alpha = 0.025, power = 0.90
 )
 ```
 
-## `sample_size_adjust_dropout()`
+## `samplesizeadjustdropout()`
 
 Exposes the dropout adjustment directly, independent of the planning
 functions above:
@@ -621,7 +621,7 @@ n_{recruit} = \left\lceil \frac{n_{eval}}{1-d} \right\rceil
 \]
 
 ```{r}
-sample_size_adjust_dropout(100, dropout = 0.15)
+samplesizeadjustdropout(100, dropout = 0.15)
 ```
 
 ## Methods on `sample_size` objects
@@ -629,7 +629,7 @@ sample_size_adjust_dropout(100, dropout = 0.15)
 Every call above returns a `sample_size` object with the following methods:
 
 ```{r}
-x <- sample_size_continuous(
+x <- samplesizecontinuous(
   design = "paired", objective = "superiority",
   delta = 5, sd_diff = 10, alpha = 0.05, power = 0.90
 )
@@ -644,15 +644,15 @@ plot(x, type = "both")    # both plots stacked (requires the patchwork package)
 ```
 
 `curve_data` (and therefore `plot(x, type = "curve"/"both")`) is currently
-only populated for `sample_size_continuous(design = "paired"/"repeated",
+only populated for `samplesizecontinuous(design = "paired"/"repeated",
 objective = "superiority")`; other endpoint/design/objective combinations
 return a `NULL` curve and fall back to the summary bar chart.
 
 None of these objects carry a `formula` or `reference` field. The formula
 for each specific call is documented on its function's help page
-(`?sample_size_continuous`, `?sample_size_binary`, `?sample_size_survival`,
-`?sample_size_ordinal`, `?sample_size_bioequivalence`,
-`?sample_size_precision`, `?sample_size_cluster_adjust`) and reproduced
+(`?samplesizecontinuous`, `?samplesizebinary`, `?samplesizesurvival`,
+`?samplesizeordinal`, `?samplesizebioequivalence`,
+`?samplesizeprecision`, `?samplesizeclusteradjust`) and reproduced
 above.
 
 ## References

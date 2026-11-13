@@ -1,4 +1,4 @@
-test_that("test_agreement matches the Fleiss-Cohen-Everitt (1969) kappa SE formula exactly", {
+test_that("testagreement matches the Fleiss-Cohen-Everitt (1969) kappa SE formula exactly", {
   set.seed(1)
   n <- 100
   rater1 <- sample(c("A", "B", "C"), n, replace = TRUE, prob = c(0.5, 0.3, 0.2))
@@ -7,7 +7,7 @@ test_that("test_agreement matches the Fleiss-Cohen-Everitt (1969) kappa SE formu
   rater2[flip] <- sample(c("A", "B", "C"), 20, replace = TRUE)
   dat <- .bt(rater1 = rater1, rater2 = rater2)
 
-  x <- test_agreement(dat, rater1, rater2)
+  x <- testagreement(dat, rater1, rater2)
   expect_s3_class(x, "testflow_agreement")
 
   tab <- table(rater1, rater2)
@@ -48,7 +48,7 @@ test_that("test_agreement matches the Fleiss-Cohen-Everitt (1969) kappa SE formu
   expect_type(report(x), "character")
 })
 
-test_that("test_agreement's kappa hypothesis test matches irr::kappa2()'s null-hypothesis z-test", {
+test_that("testagreement's kappa hypothesis test matches irr::kappa2()'s null-hypothesis z-test", {
   skip_if_not_installed("irr")
   set.seed(2)
   n <- 200
@@ -57,7 +57,7 @@ test_that("test_agreement's kappa hypothesis test matches irr::kappa2()'s null-h
   rater2 <- ifelse(stats::runif(n) < 0.75, rater1, sample(cats, n, replace = TRUE))
   dat <- data.frame(r1 = factor(rater1, levels = cats), r2 = factor(rater2, levels = cats))
 
-  x <- test_agreement(dat, rater1 = r1, rater2 = r2)
+  x <- testagreement(dat, rater1 = r1, rater2 = r2)
   irr_res <- irr::kappa2(dat[, c("r1", "r2")])
 
   expect_equal(unname(x$effect_size$estimate[1]), unname(irr_res$value), tolerance = 1e-8)
@@ -65,17 +65,17 @@ test_that("test_agreement's kappa hypothesis test matches irr::kappa2()'s null-h
   expect_equal(unname(x$primary_test$p.value), unname(irr_res$p.value), tolerance = 1e-6)
 })
 
-test_that("test_agreement handles category sets that appear in only one rater's column", {
+test_that("testagreement handles category sets that appear in only one rater's column", {
   dat <- .bt(
     rater1 = c("yes", "yes", "no", "no", "no"),
     rater2 = c("yes", "no", "no", "no", "maybe")
   )
-  x <- test_agreement(dat, rater1, rater2)
+  x <- testagreement(dat, rater1, rater2)
   expect_s3_class(x, "testflow_agreement")
   expect_equal(nrow(x$alternative_tests$agreement_table), 3)
 })
 
-test_that("test_icc matches independently computed Shrout-Fleiss/McGraw-Wong ANOVA formulas exactly", {
+test_that("testicc matches independently computed Shrout-Fleiss/McGraw-Wong ANOVA formulas exactly", {
   set.seed(1)
   n <- 20; k <- 3
   true_score <- rnorm(n, 50, 10)
@@ -83,7 +83,7 @@ test_that("test_icc matches independently computed Shrout-Fleiss/McGraw-Wong ANO
   colnames(ratings) <- paste0("r", seq_len(k))
   dat <- as.data.frame(ratings)
 
-  x <- test_icc(dat, c(r1, r2, r3))
+  x <- testicc(dat, c(r1, r2, r3))
   expect_s3_class(x, "testflow_icc")
 
   long <- data.frame(subject = factor(rep(seq_len(n), k)), rater = factor(rep(seq_len(k), each = n)), value = as.vector(ratings))
@@ -116,14 +116,14 @@ test_that("test_icc matches independently computed Shrout-Fleiss/McGraw-Wong ANO
   expect_type(report(x), "character")
 })
 
-test_that("test_icc's ICC(2,1) confidence interval uses the estimated ICC, not the null value", {
+test_that("testicc's ICC(2,1) confidence interval uses the estimated ICC, not the null value", {
   set.seed(1)
   n <- 20; k <- 3
   true_score <- rnorm(n, 50, 10)
   ratings <- sapply(seq_len(k), function(j) true_score + rnorm(n, 0, 5))
   colnames(ratings) <- paste0("r", seq_len(k))
   dat <- as.data.frame(ratings)
-  x <- test_icc(dat, c(r1, r2, r3))
+  x <- testicc(dat, c(r1, r2, r3))
   tbl <- x$alternative_tests$icc_table
   # The CI must be centered near the point estimate, not near 0 (which would
   # indicate the null-hypothesis coefficients leaked into the CI computation).
@@ -134,7 +134,7 @@ test_that("test_icc's ICC(2,1) confidence interval uses the estimated ICC, not t
 
 test_that("kappa confidence interval stays within [-1, 1]", {
   d <- data.frame(a = c("y", "y", "n", "y", "n"), b = c("y", "n", "n", "y", "n"))
-  r <- test_agreement(d, a, b, plot = FALSE)$primary_test
+  r <- testagreement(d, a, b, plot = FALSE)$primary_test
   expect_lte(r$conf.high, 1)
   expect_gte(r$conf.low, -1)
 })

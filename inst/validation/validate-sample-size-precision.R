@@ -1,12 +1,12 @@
 # Developer-facing numerical validation for one-proportion precision planning
-# (sample_size_precision(endpoint = "binary", design = "one_sample")).
+# (samplesizeprecision(endpoint = "binary", design = "one_sample")).
 #
 # Not part of the package's automated test suite. Run interactively with:
 #   Rscript inst/validation/validate-sample-size-precision.R
 # (from a source checkout, with the package loaded via devtools::load_all()).
 #
 # For each (p, width, alpha, method) combination, this script:
-#   1. calls testflow::sample_size_precision() for the planned n;
+#   1. calls testflow::samplesizeprecision() for the planned n;
 #   2. independently recomputes the achieved confidence interval at the
 #      anticipated event count, using formulas written out here (not by
 #      calling the package's internal helpers) - an independent check, not a
@@ -74,7 +74,7 @@ results <- vector("list", nrow(grid))
 for (i in seq_len(nrow(grid))) {
   p <- grid$p[i]; width <- grid$width[i]; alpha <- grid$alpha[i]; method <- grid$method[i]
 
-  res <- suppressWarnings(testflow::sample_size_precision(
+  res <- suppressWarnings(testflow::samplesizeprecision(
     endpoint = "binary", design = "one_sample",
     width = width, p = p, alpha = alpha, method = method, criterion = "expected"
   ))

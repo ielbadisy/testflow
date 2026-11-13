@@ -18,7 +18,7 @@
 #' Wilcoxon, F. (1945). Individual comparisons by ranking methods.
 #' \emph{Biometrics Bulletin}, 1(6), 80-83.
 #' @export
-test_one_sample <- function(data, outcome, mu = 0, alternative = c("two.sided", "less", "greater"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testonesample <- function(data, outcome, mu = 0, alternative = c("two.sided", "less", "greater"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   alternative <- match.arg(alternative)
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))
   df <- drop_missing(data, outcome_nm, na.rm = na.rm)

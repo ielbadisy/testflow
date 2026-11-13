@@ -132,7 +132,7 @@ check_outliers <- function(x) {
 #' Check expected counts
 #'
 #' Uses the same "any expected cell below `threshold`" rule as the
-#' chi-square/Fisher recommendation in `test_categorical()` (see
+#' chi-square/Fisher recommendation in `testcategorical()` (see
 #' `fisher_threshold`), so this panel explains the recommendation actually
 #' made rather than applying a different (Cochran 80%-of-cells) convention
 #' that could disagree with it.

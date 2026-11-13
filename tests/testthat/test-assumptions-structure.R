@@ -2,20 +2,20 @@ test_that("workflows return non-empty assumptions and print Assumptions", {
   dat <- make_assumption_data(80)
   dat$grp3 <- factor(ceiling(3 * rank(dat$age, ties.method = "first") / length(dat$age)))
   objs <- list(
-    test_one_sample(dat, sbp_3m, mu = 140, plot = FALSE),
-    test_two_groups(dat, sbp_3m, sex, plot = FALSE),
-    test_paired(sbp_3m ~ sbp_baseline, data = dat, plot = FALSE),
-    test_groups(dat, sbp_3m, grp3, plot = FALSE),
-    test_factorial(dat, sbp_3m ~ sex * treatment, plot = FALSE),
-    test_repeated(dat, c(sbp_baseline, sbp_3m, sbp_6m), id = id, plot = FALSE),
-    test_categorical(dat, treatment, controlled_3m, plot = FALSE),
-    test_paired_categorical(dat, controlled_baseline, controlled_3m, plot = FALSE),
-    test_repeated_categorical(dat, c(controlled_baseline, controlled_3m, controlled_6m), plot = FALSE),
-    test_proportion(dat, controlled_3m, success = "yes", p = 0.5, plot = FALSE),
-    suppressWarnings(test_multinomial(dat, treatment, plot = FALSE)),
-    test_correlation(sbp_3m ~ age, data = dat, plot = FALSE),
-    suppressWarnings(test_correlation_matrix(dat, c(age, sbp_3m, ldl), plot = FALSE)),
-    suppressWarnings(test_outliers(c(sbp_3m, ldl, crp), data = dat, plot = FALSE))
+    testonesample(dat, sbp_3m, mu = 140, plot = FALSE),
+    testtwogroups(dat, sbp_3m, sex, plot = FALSE),
+    testpaired(sbp_3m ~ sbp_baseline, data = dat, plot = FALSE),
+    testgroups(dat, sbp_3m, grp3, plot = FALSE),
+    testfactorial(dat, sbp_3m ~ sex * treatment, plot = FALSE),
+    testrepeated(dat, c(sbp_baseline, sbp_3m, sbp_6m), id = id, plot = FALSE),
+    testcategorical(dat, treatment, controlled_3m, plot = FALSE),
+    testpairedcategorical(dat, controlled_baseline, controlled_3m, plot = FALSE),
+    testrepeatedcategorical(dat, c(controlled_baseline, controlled_3m, controlled_6m), plot = FALSE),
+    testproportion(dat, controlled_3m, success = "yes", p = 0.5, plot = FALSE),
+    suppressWarnings(testmultinomial(dat, treatment, plot = FALSE)),
+    testcorrelation(sbp_3m ~ age, data = dat, plot = FALSE),
+    suppressWarnings(testcorrelationmatrix(dat, c(age, sbp_3m, ldl), plot = FALSE)),
+    suppressWarnings(testoutliers(c(sbp_3m, ldl, crp), data = dat, plot = FALSE))
   )
 
   for (x in objs) {

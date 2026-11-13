@@ -1,10 +1,10 @@
-test_that("test_linear_regression matches summary(lm()) exactly", {
+test_that("testlinearregression matches summary(lm()) exactly", {
   set.seed(1)
   n <- 80
   dat <- .bt(x1 = rnorm(n), x2 = rnorm(n))
   dat$y <- 2 + 0.6 * dat$x1 - 0.3 * dat$x2 + rnorm(n, sd = 0.8)
 
-  x <- test_linear_regression(y ~ x1 + x2, data = dat)
+  x <- testlinearregression(y ~ x1 + x2, data = dat)
   ref <- lm(y ~ x1 + x2, data = dat)
   refsum <- summary(ref)
 
@@ -28,27 +28,27 @@ test_that("test_linear_regression matches summary(lm()) exactly", {
   expect_type(report(x), "character")
 })
 
-test_that("test_linear_regression skips multicollinearity for a single predictor", {
+test_that("testlinearregression skips multicollinearity for a single predictor", {
   set.seed(2)
   dat <- .bt(x1 = rnorm(50), y = rnorm(50))
-  x <- test_linear_regression(y ~ x1, data = dat)
+  x <- testlinearregression(y ~ x1, data = dat)
   mc <- x$assumptions[x$assumptions$name == "Multicollinearity", ]
   expect_equal(mc$status, "not applicable")
 })
 
-test_that("test_linear_regression flags multicollinearity for highly correlated predictors", {
+test_that("testlinearregression flags multicollinearity for highly correlated predictors", {
   set.seed(3)
   n <- 100
   x1 <- rnorm(n)
   dat <- .bt(x1 = x1, x2 = x1 + rnorm(n, sd = 0.01), y = rnorm(n))
-  x <- test_linear_regression(y ~ x1 + x2, data = dat)
+  x <- testlinearregression(y ~ x1 + x2, data = dat)
   mc <- x$assumptions[x$assumptions$name == "Multicollinearity", ]
   expect_equal(mc$status, "not acceptable")
   ref_vif <- car::vif(lm(y ~ x1 + x2, data = dat))
   expect_equal(mc$statistic, unname(max(ref_vif)))
 })
 
-test_that("test_logistic_regression matches glm() likelihood-ratio test and odds ratios exactly", {
+test_that("testlogisticregression matches glm() likelihood-ratio test and odds ratios exactly", {
   set.seed(1)
   n <- 150
   x1 <- rnorm(n)
@@ -56,7 +56,7 @@ test_that("test_logistic_regression matches glm() likelihood-ratio test and odds
   p <- stats::plogis(0.5 + 0.9 * x1 - 0.6 * x2)
   dat <- .bt(y = rbinom(n, 1, p), x1 = x1, x2 = x2)
 
-  x <- test_logistic_regression(y ~ x1 + x2, data = dat)
+  x <- testlogisticregression(y ~ x1 + x2, data = dat)
   ref <- glm(y ~ x1 + x2, data = dat, family = binomial)
   null_ref <- glm(y ~ 1, data = dat, family = binomial)
   lr_ref <- ref$null.deviance - ref$deviance
@@ -80,22 +80,22 @@ test_that("test_logistic_regression matches glm() likelihood-ratio test and odds
   expect_type(report(x), "character")
 })
 
-test_that("test_logistic_regression accepts a factor outcome and flags Cook's distance outliers", {
+test_that("testlogisticregression accepts a factor outcome and flags Cook's distance outliers", {
   set.seed(4)
   n <- 60
   dat <- .bt(
     x1 = rnorm(n),
     y = factor(rbinom(n, 1, stats::plogis(0.3 * rnorm(n))), labels = c("no", "yes"))
   )
-  x <- test_logistic_regression(y ~ x1, data = dat)
+  x <- testlogisticregression(y ~ x1, data = dat)
   expect_s3_class(x, "testflow_logistic_regression")
   inf <- x$assumptions[x$assumptions$name == "Influential observations", ]
   expect_true(inf$status %in% c("acceptable", "warning"))
 })
 
-test_that("test_logistic_regression errors informatively for a non-binary outcome", {
+test_that("testlogisticregression errors informatively for a non-binary outcome", {
   dat <- .bt(x1 = rnorm(30), y = sample(1:3, 30, replace = TRUE))
-  expect_error(test_logistic_regression(y ~ x1, data = dat), "two non-missing levels")
+  expect_error(testlogisticregression(y ~ x1, data = dat), "two non-missing levels")
 })
 
 test_that("linear and logistic regression accept factor and character predictors", {
@@ -108,15 +108,15 @@ test_that("linear and logistic regression accept factor and character predictors
   )
   df$y <- 1 + 0.5 * df$x + (df$prof == "doctor") + rnorm(n)
   df$b <- rbinom(n, 1, plogis(df$x))
-  lin <- test_linear_regression(y ~ x + sex + prof, df, plot = FALSE)
+  lin <- testlinearregression(y ~ x + sex + prof, df, plot = FALSE)
   expect_s3_class(lin, "testflow")
   expect_equal(unique(lin$descriptives$variable), c("y", "x"))
   mc <- lin$assumptions[lin$assumptions$name == "Multicollinearity", ]
   expect_true(grepl("Generalized", mc$method))
   expect_true(mc$statistic < 5)
-  lg <- test_logistic_regression(b ~ x + sex + prof, df, plot = FALSE)
+  lg <- testlogisticregression(b ~ x + sex + prof, df, plot = FALSE)
   expect_s3_class(lg, "testflow")
-  one <- test_linear_regression(y ~ prof, df, plot = FALSE)
+  one <- testlinearregression(y ~ prof, df, plot = FALSE)
   mc1 <- one$assumptions[one$assumptions$name == "Multicollinearity", ]
   expect_equal(mc1$status, "not applicable")
 })
@@ -126,5 +126,5 @@ test_that("long regression formulas are not split by deparse()", {
   df <- as.data.frame(matrix(rnorm(100 * 8), 100))
   names(df) <- c("outcome_variable", paste0("a_long_predictor_name_", 1:7))
   f <- stats::as.formula(paste("outcome_variable ~", paste(names(df)[-1], collapse = " + ")))
-  expect_s3_class(test_linear_regression(f, df, plot = FALSE), "testflow")
+  expect_s3_class(testlinearregression(f, df, plot = FALSE), "testflow")
 })

@@ -12,7 +12,7 @@
 #' hypothesis, alternative test results, effect size, optional `ggplot`,
 #' original call, and report text.
 #' @export
-test_two_groups <- function(
+testtwogroups <- function(
   formula,
   data,
   group = NULL,

@@ -17,7 +17,7 @@
 #' McNemar, Q. (1947). Note on the sampling error of the difference between
 #' correlated proportions or percentages. \emph{Psychometrika}, 12(2), 153-157.
 #' @export
-test_repeated_categorical <- function(data, measures, id = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testrepeatedcategorical <- function(data, measures, id = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   measure_nms <- tidyselect_names(data, {{ measures }})
   warn_if_two_measures_repeated(measure_nms)
   for (nm in measure_nms) warn_if_nonbinary(data[[nm]], paste0("`", nm, "`"))

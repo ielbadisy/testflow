@@ -1,7 +1,7 @@
 #' Sample size planning for common trial designs
 #'
 #' @description
-#' `sample_size()` dispatches to endpoint-specific planning helpers for
+#' `samplesize()` dispatches to endpoint-specific planning helpers for
 #' continuous, binary, survival, and ordinal planning problems.
 #'
 #' @param endpoint Endpoint family: `continuous`, `binary`, `survival`, or
@@ -14,16 +14,16 @@
 #' @references
 #' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
 #' @export
-sample_size <- function(endpoint = c("continuous", "binary", "survival", "ordinal"), design = c("parallel", "paired", "repeated"), objective = c("superiority", "noninferiority", "equivalence"), ...) {
+samplesize <- function(endpoint = c("continuous", "binary", "survival", "ordinal"), design = c("parallel", "paired", "repeated"), objective = c("superiority", "noninferiority", "equivalence"), ...) {
   endpoint <- match.arg(endpoint)
   design <- match.arg(design)
   objective <- match.arg(objective)
   switch(
     endpoint,
-    continuous = sample_size_continuous(design = design, objective = objective, ...),
-    binary = sample_size_binary(design = design, objective = objective, ...),
-    survival = sample_size_survival(design = design, objective = objective, ...),
-    ordinal = sample_size_ordinal(design = design, objective = objective, ...)
+    continuous = samplesizecontinuous(design = design, objective = objective, ...),
+    binary = samplesizebinary(design = design, objective = objective, ...),
+    survival = samplesizesurvival(design = design, objective = objective, ...),
+    ordinal = samplesizeordinal(design = design, objective = objective, ...)
   )
 }
 
@@ -66,7 +66,7 @@ sample_size <- function(endpoint = c("continuous", "binary", "survival", "ordina
 #' @references
 #' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
 #' @export
-sample_size_continuous <- function(
+samplesizecontinuous <- function(
   design = c("parallel", "paired", "repeated"),
   objective = c("superiority", "noninferiority", "equivalence"),
   delta = NULL,
@@ -386,7 +386,7 @@ sample_size_continuous <- function(
 #' @references
 #' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
 #' @export
-sample_size_binary <- function(
+samplesizebinary <- function(
   design = c("parallel", "paired", "repeated"),
   objective = c("superiority", "noninferiority", "equivalence"),
   p1,
@@ -628,7 +628,7 @@ sample_size_binary <- function(
 #' @references
 #' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
 #' @export
-sample_size_survival <- function(
+samplesizesurvival <- function(
   design = c("parallel"),
   objective = c("superiority", "noninferiority", "equivalence"),
   hr,
@@ -833,7 +833,7 @@ sample_size_survival <- function(
 #' \deqn{n_A \approx \frac{(r+1)\sigma_b^2(z_{1-\beta}+z_{1-\alpha})^2}{rd_{BE}^2}}
 #' (parallel), switching to \eqn{z_{1-\beta/2}} in place of \eqn{z_{1-\beta}}
 #' when \eqn{GMR=1} exactly, matching the analogous special case in
-#' [sample_size_continuous()]. `iterative_tost` is preferred because this
+#' [samplesizecontinuous()]. `iterative_tost` is preferred because this
 #' approximation - which treats \eqn{\sigma} as known and uses normal
 #' rather than noncentral-t quantiles - can under-size a study by a
 #' material margin (verified up to ~20% at small n) away from \eqn{GMR=1}
@@ -845,7 +845,7 @@ sample_size_survival <- function(
 #' bioequivalence. *Journal of Pharmacokinetics and Biopharmaceutics*.
 #' 1990;18(2):137-144.
 #' @export
-sample_size_bioequivalence <- function(
+samplesizebioequivalence <- function(
   design = c("crossover", "parallel"),
   gmr = 1,
   cv_within = NULL,
@@ -997,7 +997,7 @@ sample_size_bioequivalence <- function(
 #' @references
 #' Julious SA. *Sample Sizes for Clinical Trials*. Chapman & Hall/CRC; 2010.
 #' @export
-sample_size_ordinal <- function(
+samplesizeordinal <- function(
   design = c("parallel"),
   objective = c("superiority"),
   p_superiority = NULL,
@@ -1051,7 +1051,7 @@ sample_size_ordinal <- function(
 #' @param dropout Dropout proportion.
 #' @return The dropout-adjusted sample size.
 #' @export
-sample_size_adjust_dropout <- function(n, dropout = 0) {
+samplesizeadjustdropout <- function(n, dropout = 0) {
   sample_size_validate_dropout(dropout)
   sample_size_round(n / (1 - dropout))
 }
@@ -1059,7 +1059,7 @@ sample_size_adjust_dropout <- function(n, dropout = 0) {
 #' Adjust an individually randomized sample size for cluster randomization
 #'
 #' @param n_ind Individually randomized sample size (e.g. from
-#'   [sample_size_continuous()] or [sample_size_binary()]).
+#'   [samplesizecontinuous()] or [samplesizebinary()]).
 #' @param m Average cluster size.
 #' @param rho Intracluster correlation.
 #' @param cv_m Coefficient of variation of cluster sizes, for unequal
@@ -1076,7 +1076,7 @@ sample_size_adjust_dropout <- function(n, dropout = 0) {
 #' Donner A, Klar N. *Design and Analysis of Cluster Randomization Trials in
 #' Health Research*. Arnold; 2000.
 #' @export
-sample_size_cluster_adjust <- function(n_ind, m, rho, cv_m = NULL) {
+samplesizeclusteradjust <- function(n_ind, m, rho, cv_m = NULL) {
   sample_size_validate_positive(n_ind, "n_ind")
   sample_size_validate_positive(m, "m")
   sample_size_validate_probability(rho, "rho", allow_zero = TRUE)
@@ -1204,22 +1204,22 @@ sample_size_cluster_adjust <- function(n_ind, m, rho, cv_m = NULL) {
 #' illustrated in the case of the binomial. *Biometrika*. 1934;26(4):404-413.
 #' @examples
 #' # 1) Common prevalence, Wald (backward-compatible default)
-#' sample_size_precision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.30)
+#' samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.05, p = 0.30)
 #'
 #' # 2) Rare prevalence, Wilson score, iterative search
-#' sample_size_precision(
+#' samplesizeprecision(
 #'   endpoint = "binary", design = "one_sample", width = 0.02,
 #'   p = 0.01, method = "wilson"
 #' )
 #'
 #' # 3) Rare prevalence, exact Clopper-Pearson, worst-case criterion
-#' sample_size_precision(
+#' samplesizeprecision(
 #'   endpoint = "binary", design = "one_sample", width = 0.005,
 #'   p = 0.001, method = "exact", criterion = "worst_case"
 #' )
 #'
 #' # 4) Dropout inflation: complete_case_n vs. adjusted_n
-#' x <- sample_size_precision(
+#' x <- samplesizeprecision(
 #'   endpoint = "binary", design = "one_sample", width = 0.02,
 #'   p = 0.05, method = "wilson", dropout = 0.10
 #' )
@@ -1227,12 +1227,12 @@ sample_size_cluster_adjust <- function(n_ind, m, rho, cv_m = NULL) {
 #' x$diagnostics$adjusted_n
 #'
 #' # 5) Two independent proportions, unequal allocation
-#' sample_size_precision(
+#' samplesizeprecision(
 #'   endpoint = "binary", design = "two_sample", width = 0.08,
 #'   p1 = 0.4, p2 = 0.3, allocation = 2
 #' )
 #' @export
-sample_size_precision <- function(
+samplesizeprecision <- function(
   endpoint = c("continuous", "binary"),
   design = c("one_sample", "two_sample", "odds_ratio"),
   width,
@@ -1336,7 +1336,7 @@ sample_size_precision <- function(
 #
 # Dispatches across method = wald/wilson/exact and criterion =
 # expected/worst_case, builds rare-event and achieved-precision diagnostics,
-# and assembles the sample_size_result(). Kept out of sample_size_precision()
+# and assembles the sample_size_result(). Kept out of samplesizeprecision()
 # itself to keep that dispatcher flat.
 sample_size_precision_binary_one_sample <- function(width, p, alpha, dropout, conservative, method, criterion, min_expected_events, max_n, z_alpha) {
   if (width >= 1) {
@@ -1645,7 +1645,7 @@ sample_size_binomial_required_n <- function(p, width, alpha, method, criterion, 
 
 #' Plot a sample size object
 #'
-#' @param x A sample-size object returned by `sample_size()`.
+#' @param x A sample-size object returned by `samplesize()`.
 #' @param type Plot style: `both`, `curve`, or `summary`.
 #' @param ... Unused.
 #' @return A `ggplot2` object, or a combined patchwork object when `type =

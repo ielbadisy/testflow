@@ -19,7 +19,7 @@ report.testflow <- function(x, ...) {
 #' @return A length-one character vector containing the same report text as
 #' [report()] for a `testflow` object.
 #' @export
-report_test <- function(x) {
+reporttest <- function(x) {
   report(x)
 }
 

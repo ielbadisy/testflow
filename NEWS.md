@@ -1,3 +1,44 @@
+# testflow 1.1.1
+
+* Exported functions were renamed to glued lowercase names (no underscores). The old names still work but are deprecated and will be removed in a future release.
+
+| Old | New |
+|---|---|
+| `make_cardio_data()` | `makecardiodata()` |
+| `report_test()` | `reporttest()` |
+| `sample_size()` | `samplesize()` |
+| `sample_size_adjust_dropout()` | `samplesizeadjustdropout()` |
+| `sample_size_binary()` | `samplesizebinary()` |
+| `sample_size_bioequivalence()` | `samplesizebioequivalence()` |
+| `sample_size_cluster_adjust()` | `samplesizeclusteradjust()` |
+| `sample_size_continuous()` | `samplesizecontinuous()` |
+| `sample_size_ordinal()` | `samplesizeordinal()` |
+| `sample_size_precision()` | `samplesizeprecision()` |
+| `sample_size_survival()` | `samplesizesurvival()` |
+| `test_agreement()` | `testagreement()` |
+| `test_categorical()` | `testcategorical()` |
+| `test_correlation()` | `testcorrelation()` |
+| `test_correlation_matrix()` | `testcorrelationmatrix()` |
+| `test_cox()` | `testcox()` |
+| `test_diagnostic()` | `testdiagnostic()` |
+| `test_factorial()` | `testfactorial()` |
+| `test_groups()` | `testgroups()` |
+| `test_icc()` | `testicc()` |
+| `test_linear_regression()` | `testlinearregression()` |
+| `test_logistic_regression()` | `testlogisticregression()` |
+| `test_multinomial()` | `testmultinomial()` |
+| `test_one_sample()` | `testonesample()` |
+| `test_outliers()` | `testoutliers()` |
+| `test_paired()` | `testpaired()` |
+| `test_paired_categorical()` | `testpairedcategorical()` |
+| `test_proportion()` | `testproportion()` |
+| `test_repeated()` | `testrepeated()` |
+| `test_repeated_categorical()` | `testrepeatedcategorical()` |
+| `test_repeated_long()` | `testrepeatedlong()` |
+| `test_roc()` | `testroc()` |
+| `test_survival()` | `testsurvival()` |
+| `test_two_groups()` | `testtwogroups()` |
+
 # testflow 1.1.0
 
 * `test_agreement()` now keeps the kappa confidence interval within [-1, 1];

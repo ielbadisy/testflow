@@ -21,7 +21,7 @@
 #' Kendall, M. G. (1938). A new measure of rank correlation. \emph{Biometrika},
 #' 30(1/2), 81-93.
 #' @export
-test_correlation <- function(formula, data, y = NULL, method = c("auto", "pearson", "spearman", "kendall"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testcorrelation <- function(formula, data, y = NULL, method = c("auto", "pearson", "spearman", "kendall"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   method <- match.arg(method)
   vars <- resolve_formula_pair(tf_formula_arg(substitute(formula), parent.frame()), tf_formula_arg(substitute(data), parent.frame()), substitute(y), missing(y), rhs_label = "x")
   y_nm <- vars$outcome
@@ -95,7 +95,7 @@ iqr_outlier_flags <- function(data, vars) {
 #' an effect-size summary, optional heatmap `ggplot`, original call, and report
 #' text.
 #' @export
-test_correlation_matrix <- function(data, vars, method = c("spearman", "pearson", "kendall"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testcorrelationmatrix <- function(data, vars, method = c("spearman", "pearson", "kendall"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   method <- match.arg(method)
   vars <- tidyselect_names(data, {{ vars }})
   warn_if_screening_workflow("correlation_matrix")

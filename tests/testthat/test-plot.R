@@ -1,13 +1,13 @@
 test_that("plot.testflow returns stored plot", {
-  dat <- make_cardio_data(80)
-  x <- test_groups(dat, sbp_3m, treatment)
+  dat <- makecardiodata(80)
+  x <- testgroups(dat, sbp_3m, treatment)
   expect_s3_class(plot(x), "ggplot")
   expect_equal(plot(x)$labels$title, x$plot$labels$title)
 })
 
 test_that("plot.testflow allows label overrides", {
-  dat <- make_cardio_data(80)
-  x <- test_two_groups(sbp_3m ~ sex, data = dat)
+  dat <- makecardiodata(80)
+  x <- testtwogroups(sbp_3m ~ sex, data = dat)
   p <- plot(x, title = "Custom title", subtitle = "Custom subtitle", caption = "Custom caption")
 
   expect_s3_class(p, "ggplot")
@@ -18,8 +18,8 @@ test_that("plot.testflow allows label overrides", {
 })
 
 test_that("correlation matrix plot shows cell labels", {
-  dat <- make_cardio_data(80)
-  x <- suppressWarnings(test_correlation_matrix(dat, c(age, sbp_3m, ldl), plot = TRUE))
+  dat <- makecardiodata(80)
+  x <- suppressWarnings(testcorrelationmatrix(dat, c(age, sbp_3m, ldl), plot = TRUE))
   p <- plot(x)
 
   expect_s3_class(p, "ggplot")
@@ -28,8 +28,8 @@ test_that("correlation matrix plot shows cell labels", {
 })
 
 test_that("outlier plot shows IQR fences and highlighted points", {
-  dat <- make_cardio_data(80)
-  x <- suppressWarnings(test_outliers(c(sbp_3m, ldl, crp), data = dat, plot = TRUE))
+  dat <- makecardiodata(80)
+  x <- suppressWarnings(testoutliers(c(sbp_3m, ldl, crp), data = dat, plot = TRUE))
   p <- plot(x)
 
   expect_s3_class(p, "ggplot")

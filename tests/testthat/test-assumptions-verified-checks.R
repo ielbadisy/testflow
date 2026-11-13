@@ -61,10 +61,10 @@ test_that("check_sphericity reports not applicable for exactly two conditions", 
   expect_equal(out$status, "not applicable")
 })
 
-test_that("test_correlation_matrix applies BH correction and reports it", {
+test_that("testcorrelationmatrix applies BH correction and reports it", {
   set.seed(16)
   df <- data.frame(a = rnorm(30), b = rnorm(30), c = rnorm(30))
-  x <- test_correlation_matrix(df, c(a, b, c), method = "pearson", plot = FALSE)
+  x <- testcorrelationmatrix(df, c(a, b, c), method = "pearson", plot = FALSE)
   tab <- x$alternative_tests$correlation_table
   expect_true("p.adj" %in% names(tab))
   expect_equal(tab$p.adj, p.adjust(tab$p, method = "BH"))

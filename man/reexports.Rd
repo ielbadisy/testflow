@@ -5,7 +5,7 @@
 \title{Create a survival object}
 \description{
 Re-exported from \pkg{survival} so \code{Surv()} is available after
-\code{library(testflow)} alone, for use in \code{\link[=test_survival]{test_survival()}} and \code{\link[=test_cox]{test_cox()}}
+\code{library(testflow)} alone, for use in \code{\link[=testsurvival]{testsurvival()}} and \code{\link[=testcox]{testcox()}}
 formulas such as \code{Surv(time, status) ~ group}. See
 \code{\link[survival]{Surv}} for full documentation.
 }

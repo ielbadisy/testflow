@@ -12,7 +12,7 @@
 #' alternative omnibus results, post-hoc comparisons when requested, effect
 #' size, optional `ggplot`, original call, and report text.
 #' @export
-test_groups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRUE, plot = TRUE, na.rm = TRUE) {
+testgroups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRUE, plot = TRUE, na.rm = TRUE) {
   vars <- resolve_formula_pair(tf_formula_arg(substitute(formula), parent.frame()), tf_formula_arg(substitute(data), parent.frame()), substitute(group), missing(group))
   outcome_nm <- vars$outcome
   group_nm <- vars$group

@@ -25,7 +25,7 @@
 #' @references
 #' Draper NR, Smith H. *Applied Regression Analysis* (3rd ed.). Wiley; 1998.
 #' @export
-test_linear_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testlinearregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   formula_obj <- stats::as.formula(paste(deparse(formula), collapse = " "))
   outcome_nm <- all.vars(formula_obj[[2]])[1]
   predictor_nms <- all.vars(formula_obj[[3]])
@@ -125,7 +125,7 @@ test_linear_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.
 #' Hosmer DW, Lemeshow S, Sturdivant RX. *Applied Logistic Regression* (3rd
 #' ed.). Wiley; 2013.
 #' @export
-test_logistic_regression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testlogisticregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   formula_obj <- stats::as.formula(paste(deparse(formula), collapse = " "))
   outcome_nm <- all.vars(formula_obj[[2]])[1]
   predictor_nms <- all.vars(formula_obj[[3]])

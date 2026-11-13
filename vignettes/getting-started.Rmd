@@ -17,8 +17,8 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = TRUE)
 
 ```{r}
 library(testflow)
-cardio <- make_cardio_data()
-x <- test_two_groups(sbp_3m ~ sex, data = cardio)
+cardio <- makecardiodata()
+x <- testtwogroups(sbp_3m ~ sex, data = cardio)
 x
 report(x)
 plot(x)

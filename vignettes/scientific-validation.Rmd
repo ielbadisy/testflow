@@ -59,7 +59,7 @@ standard that let both defects below ship undetected.
 
 ### Bioequivalence sample size: `iterative_tost` was not exact
 
-`sample_size_bioequivalence(method = "iterative_tost")` searches for the
+`samplesizebioequivalence(method = "iterative_tost")` searches for the
 smallest sample size achieving a target two-one-sided-test (TOST) power for
 average bioequivalence. Until this validation pass, the power calculation
 used a **normal approximation** (`stats::pnorm()`/`qnorm()`), even though
@@ -75,7 +75,7 @@ calculation requires `n = 16` - an under-sized study by about 23%.
 # Current (fixed) implementation: testflow treats n as one continuous total
 # and rounds up to the nearest even number, since a 2x2 crossover has two
 # equal-sized sequences
-x <- sample_size_bioequivalence(
+x <- samplesizebioequivalence(
   design = "crossover", gmr = 0.95, cv_within = 0.15,
   alpha = 0.05, power = 0.90, method = "iterative_tost"
 )
@@ -90,12 +90,12 @@ PowerTOST::sampleN.TOST(
 )$`Sample size`
 ```
 
-The two match exactly. See `?sample_size_bioequivalence` for the full
+The two match exactly. See `?samplesizebioequivalence` for the full
 noncentral-t formula.
 
 ### Cohen's kappa: the hypothesis test used the wrong standard error
 
-`test_agreement()` reports Cohen's kappa with a confidence interval and a
+`testagreement()` reports Cohen's kappa with a confidence interval and a
 test of \(H_0: \kappa = 0\). Two *different* standard errors are needed for
 these two purposes, because the sampling variance of \(\hat\kappa\) depends
 on \(\kappa\) itself:
@@ -118,7 +118,7 @@ rater1 <- sample(cats, n, replace = TRUE, prob = c(0.5, 0.3, 0.2))
 rater2 <- ifelse(runif(n) < 0.75, rater1, sample(cats, n, replace = TRUE))
 dat <- data.frame(r1 = factor(rater1, levels = cats), r2 = factor(rater2, levels = cats))
 
-x <- test_agreement(dat, rater1 = r1, rater2 = r2)
+x <- testagreement(dat, rater1 = r1, rater2 = r2)
 x$primary_test[, c("statistic", "p.value")]
 
 irr::kappa2(dat[, c("r1", "r2")])[c("statistic", "p.value")]

@@ -1,4 +1,4 @@
-test_that("test_survival matches survdiff() and a companion coxph() exactly", {
+test_that("testsurvival matches survdiff() and a companion coxph() exactly", {
   set.seed(1)
   n <- 100
   dat <- .bt(
@@ -7,7 +7,7 @@ test_that("test_survival matches survdiff() and a companion coxph() exactly", {
     group = rep(c("A", "B"), each = n / 2)
   )
 
-  x <- test_survival(survival::Surv(time, status) ~ group, data = dat)
+  x <- testsurvival(survival::Surv(time, status) ~ group, data = dat)
   ref_sd <- survival::survdiff(survival::Surv(time, status) ~ group, data = dat)
   ref_cox <- survival::coxph(survival::Surv(time, status) ~ group, data = dat)
   ref_hr <- unname(exp(coef(ref_cox)))
@@ -26,7 +26,7 @@ test_that("test_survival matches survdiff() and a companion coxph() exactly", {
   expect_true(grepl("Hazard ratio", report(x), fixed = TRUE))
 })
 
-test_that("test_survival requires exactly two groups", {
+test_that("testsurvival requires exactly two groups", {
   set.seed(2)
   n <- 60
   dat <- .bt(
@@ -34,10 +34,10 @@ test_that("test_survival requires exactly two groups", {
     status = rbinom(n, 1, 0.7),
     group = sample(c("A", "B", "C"), n, replace = TRUE)
   )
-  expect_error(test_survival(survival::Surv(time, status) ~ group, data = dat), "exactly two")
+  expect_error(testsurvival(survival::Surv(time, status) ~ group, data = dat), "exactly two")
 })
 
-test_that("test_cox matches coxph()/cox.zph() exactly for a multi-predictor model", {
+test_that("testcox matches coxph()/cox.zph() exactly for a multi-predictor model", {
   set.seed(1)
   n <- 150
   dat <- .bt(
@@ -47,7 +47,7 @@ test_that("test_cox matches coxph()/cox.zph() exactly for a multi-predictor mode
     group = rep(c("A", "B"), each = n / 2)
   )
 
-  x <- test_cox(survival::Surv(time, status) ~ age + group, data = dat)
+  x <- testcox(survival::Surv(time, status) ~ age + group, data = dat)
   ref <- survival::coxph(survival::Surv(time, status) ~ age + group, data = dat)
   refsum <- summary(ref)
   ref_zph <- survival::cox.zph(ref)
@@ -70,7 +70,7 @@ test_that("test_cox matches coxph()/cox.zph() exactly for a multi-predictor mode
   expect_type(report(x), "character")
 })
 
-test_that("test_cox works with a single predictor", {
+test_that("testcox works with a single predictor", {
   set.seed(3)
   n <- 80
   dat <- .bt(
@@ -78,7 +78,7 @@ test_that("test_cox works with a single predictor", {
     status = rbinom(n, 1, 0.7),
     age = rnorm(n, 60, 10)
   )
-  x <- test_cox(survival::Surv(time, status) ~ age, data = dat)
+  x <- testcox(survival::Surv(time, status) ~ age, data = dat)
   expect_s3_class(x, "testflow_cox")
   expect_equal(nrow(x$alternative_tests$hazard_ratios), 1)
 })
@@ -91,7 +91,7 @@ test_that("effect sizes without a magnitude label still print and report the est
     status = rbinom(n, 1, 0.7),
     group = rep(c("A", "B"), each = n / 2)
   )
-  x <- test_survival(survival::Surv(time, status) ~ group, data = dat)
+  x <- testsurvival(survival::Surv(time, status) ~ group, data = dat)
   expect_true(is.na(x$effect_size$magnitude[1]))
   expect_false(is.na(x$effect_size$estimate[1]))
   printed <- capture.output(print(x))

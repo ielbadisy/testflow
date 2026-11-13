@@ -10,7 +10,7 @@
 #' descriptives, assumption checks, McNemar test result, discordant-pair table,
 #' optional `ggplot`, original call, and report text.
 #' @export
-test_paired_categorical <- function(data, before, after, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testpairedcategorical <- function(data, before, after, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   before_nm <- rlang::as_name(rlang::ensym(before)); after_nm <- rlang::as_name(rlang::ensym(after))
   df <- drop_missing(data, c(before_nm, after_nm), na.rm = na.rm)
   tab <- table(df[[before_nm]], df[[after_nm]])

@@ -50,7 +50,7 @@
 #' categorical data. *Biometrics*. 1977;33(1):159-174. (Magnitude
 #' convention.)
 #' @export
-test_agreement <- function(data, rater1, rater2, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testagreement <- function(data, rater1, rater2, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   rater1_nm <- rlang::as_name(rlang::ensym(rater1))
   rater2_nm <- rlang::as_name(rlang::ensym(rater2))
   df <- drop_missing(data, c(rater1_nm, rater2_nm), na.rm = na.rm)
@@ -178,7 +178,7 @@ test_agreement <- function(data, rater1, rater2, alpha = 0.05, plot = TRUE, na.r
 #' correlation coefficients for reliability research. *Journal of
 #' Chiropractic Medicine*. 2016;15(2):155-163.
 #' @export
-test_icc <- function(data, measures, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testicc <- function(data, measures, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   measure_nms <- tidyselect_names(data, {{ measures }})
   df <- drop_missing(data, measure_nms, na.rm = na.rm)
   df$.subject <- factor(seq_len(nrow(df)))

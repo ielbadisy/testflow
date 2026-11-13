@@ -12,7 +12,7 @@
 #' with null hypothesis, alternative test results, effect size, optional
 #' `ggplot`, original call, and report text.
 #' @export
-test_paired <- function(formula, data, after = NULL, alternative = c("two.sided", "less", "greater"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testpaired <- function(formula, data, after = NULL, alternative = c("two.sided", "less", "greater"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   alternative <- match.arg(alternative)
   first_expr <- tf_formula_arg(substitute(formula), parent.frame())
   second_expr <- tf_formula_arg(substitute(data), parent.frame())

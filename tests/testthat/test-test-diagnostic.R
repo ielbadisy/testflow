@@ -1,10 +1,10 @@
-test_that("test_diagnostic matches hand-computed sensitivity/specificity/LR and CIs exactly", {
+test_that("testdiagnostic matches hand-computed sensitivity/specificity/LR and CIs exactly", {
   tp <- 45; fp <- 10; fn <- 8; tn <- 90
   dat <- .bt(
     test = c(rep("positive", tp + fp), rep("negative", fn + tn)),
     reference = c(rep("positive", tp), rep("negative", fp), rep("positive", fn), rep("negative", tn))
   )
-  x <- test_diagnostic(dat, test, reference)
+  x <- testdiagnostic(dat, test, reference)
   expect_s3_class(x, "testflow_diagnostic")
 
   tbl <- x$alternative_tests$diagnostic_table
@@ -33,19 +33,19 @@ test_that("test_diagnostic matches hand-computed sensitivity/specificity/LR and 
   expect_type(report(x), "character")
 })
 
-test_that("test_diagnostic requires exactly two levels for test and reference", {
+test_that("testdiagnostic requires exactly two levels for test and reference", {
   dat <- .bt(test = sample(c("a", "b", "c"), 30, replace = TRUE), reference = sample(c("pos", "neg"), 30, replace = TRUE))
-  expect_error(test_diagnostic(dat, test, reference), "exactly two")
+  expect_error(testdiagnostic(dat, test, reference), "exactly two")
 })
 
-test_that("test_roc matches wilcox.test-derived AUC, Hanley-McNeil CI, and a trapezoidal cross-check", {
+test_that("testroc matches wilcox.test-derived AUC, Hanley-McNeil CI, and a trapezoidal cross-check", {
   set.seed(1)
   n1 <- 50; n2 <- 60
   dat <- .bt(
     marker = c(rnorm(n2, 2, 1), rnorm(n1, 0, 1)),
     disease = c(rep("yes", n2), rep("no", n1))
   )
-  x <- test_roc(dat, marker, disease)
+  x <- testroc(dat, marker, disease)
   expect_s3_class(x, "testflow_roc")
 
   wt <- stats::wilcox.test(dat$marker[dat$disease == "yes"], dat$marker[dat$disease == "no"])
@@ -72,14 +72,14 @@ test_that("test_roc matches wilcox.test-derived AUC, Hanley-McNeil CI, and a tra
   expect_type(report(x), "character")
 })
 
-test_that("test_roc's Youden's-J threshold is the ROC point maximizing sensitivity + specificity - 1", {
+test_that("testroc's Youden's-J threshold is the ROC point maximizing sensitivity + specificity - 1", {
   set.seed(2)
   n1 <- 40; n2 <- 40
   dat <- .bt(
     marker = c(rnorm(n2, 1, 1), rnorm(n1, 0, 1)),
     disease = c(rep("yes", n2), rep("no", n1))
   )
-  x <- test_roc(dat, marker, disease)
+  x <- testroc(dat, marker, disease)
   rc <- x$alternative_tests$roc_curve
   j <- rc$sensitivity + rc$specificity - 1
   opt <- x$alternative_tests$optimal_threshold

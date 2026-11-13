@@ -3,7 +3,7 @@
 #' @param seed Random seed.
 #' @return A basetable with example numeric and categorical variables.
 #' @export
-make_cardio_data <- function(n = 180, seed = 2026) {
+makecardiodata <- function(n = 180, seed = 2026) {
   set.seed(seed)
   sex <- sample(c("female", "male"), n, replace = TRUE)
   treatment <- sample(c("usual care", "lifestyle", "medication"), n, replace = TRUE)
