@@ -1,5 +1,16 @@
 #' Build a compact descriptive summary table
 #'
+#' Builds a compact table of descriptive summaries using a formula interface.
+#' Numeric variables are summarized as mean (SD); median [Q1, Q3]; n.
+#' Categorical variables are summarized as n (percent).
+#'
+#' When `p_value = TRUE` and a grouping variable is supplied, `sumtab()`
+#' chooses the p-value test automatically. Numeric variables use Student
+#' t-test, Welch t-test, or Wilcoxon rank-sum test for two groups, and one-way
+#' ANOVA, Welch ANOVA, or Kruskal-Wallis test for more than two groups.
+#' Categorical variables use a chi-square test unless expected counts fall
+#' below `fisher_threshold`, in which case Fisher's exact test is used.
+#'
 #' @param formula A one-sided formula such as `~ age + sex` or
 #'   `~ age + sex | treatment`.
 #' @param data A data frame.
@@ -13,6 +24,9 @@
 #' @param na.rm Logical; remove missing values before summaries and tests.
 #' @return A basetable with one row per numeric variable and one row per
 #'   categorical level.
+#' @examples
+#' dat <- makecardiodata(80, seed = 1)
+#' sumtab(~ age + sex | treatment, dat, p_value = TRUE)
 #' @export
 sumtab <- function(
   formula,
