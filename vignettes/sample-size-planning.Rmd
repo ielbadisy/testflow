@@ -384,6 +384,10 @@ available via `method = "normal_approx"`; the two agree closely near
 half-width \(w\) instead of power against an effect size — there is no
 `power` argument because there is no alternative hypothesis being tested.
 
+Note that `width` is the **half-width** (margin of error), not the full
+interval length: the planned interval is estimate \(\pm w\), with total
+length \(2w\). To target a total length \(L\), pass `width = L / 2`.
+
 ```{r}
 samplesizeprecision(
   endpoint = "continuous",

@@ -617,6 +617,19 @@ SE(AUC)=\sqrt{\frac{AUC(1-AUC)+(n_1-1)(Q_1-AUC^2)+(n_0-1)(Q_2-AUC^2)}{n_1n_0}},
 \quad Q_1=\frac{AUC}{2-AUC}, \ Q_2=\frac{2AUC^2}{1+AUC}
 \]
 
+This is the default (`method = "hanley"`) and is not DeLong's method. For
+the DeLong, DeLong & Clarke-Pearson (1988) nonparametric variance (the one
+used by `pROC`), pass `method = "delong"`:
+
+```{r}
+set.seed(1)
+roc_dl <- data.frame(
+  marker = c(rnorm(60, 2, 1), rnorm(50, 0, 1)),
+  disease = c(rep("yes", 60), rep("no", 50))
+)
+testroc(roc_dl, marker, disease, plot = FALSE, method = "delong")$primary_test
+```
+
 The optimal threshold maximizes Youden's J (1950),
 \(J=Sensitivity+Specificity-1\).
 

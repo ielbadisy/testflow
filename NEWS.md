@@ -1,3 +1,8 @@
+# testflow 1.1.2
+
+* `samplesizeprecision()`: the help page and vignettes now state explicitly that `width` is the confidence-interval half-width (margin of error), not the full interval length (total length is `2 * width`). Semantics unchanged.
+* `testroc()` gains `method = c("hanley", "delong")`. The default stays Hanley-McNeil (now documented as not being DeLong); `method = "delong"` gives the DeLong et al. (1988) nonparametric SE, matching `pROC`. The method used is shown in the primary-test label.
+
 # testflow 1.1.1
 
 * Exported functions were renamed to glued lowercase names (no underscores). The old names still work but are deprecated and will be removed in a future release.

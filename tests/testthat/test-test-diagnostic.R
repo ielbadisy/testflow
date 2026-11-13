@@ -85,3 +85,29 @@ test_that("testroc's Youden's-J threshold is the ROC point maximizing sensitivit
   opt <- x$alternative_tests$optimal_threshold
   expect_equal(opt$youden_j, max(j))
 })
+
+test_that("testroc method = 'delong' gives the DeLong (1988) SE, default stays Hanley-McNeil", {
+  set.seed(11)
+  pos <- c(round(rnorm(40, 1), 1), 0.5, 0.5)
+  neg <- c(round(rnorm(60, 0), 1), 0.5)
+  dat <- data.frame(marker = c(pos, neg), disease = rep(c("yes", "no"), c(length(pos), length(neg))))
+
+  # DeLong structural components by brute force (ties count 1/2)
+  psi <- outer(pos, neg, function(a, b) (a > b) + 0.5 * (a == b))
+  v10 <- rowMeans(psi); v01 <- colMeans(psi)
+  se_delong <- sqrt(stats::var(v10) / length(pos) + stats::var(v01) / length(neg))
+  z <- stats::qnorm(0.975)
+
+  xd <- testroc(dat, marker, disease, plot = FALSE, method = "delong")
+  auc <- mean(psi)
+  expect_equal(xd$effect_size$estimate, auc, tolerance = 1e-12)
+  expect_equal(xd$primary_test$conf.low, auc - z * se_delong, tolerance = 1e-10)
+  expect_equal(xd$primary_test$conf.high, auc + z * se_delong, tolerance = 1e-10)
+  expect_match(xd$primary_test$method, "DeLong")
+
+  xh <- testroc(dat, marker, disease, plot = FALSE)
+  xh2 <- testroc(dat, marker, disease, plot = FALSE, method = "hanley")
+  expect_equal(xh$primary_test$conf.low, xh2$primary_test$conf.low)
+  expect_false(isTRUE(all.equal(xh$primary_test$conf.low, xd$primary_test$conf.low)))
+  expect_error(testroc(dat, marker, disease, plot = FALSE, method = "bogus"))
+})

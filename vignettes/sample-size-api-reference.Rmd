@@ -530,7 +530,9 @@ samplesizeprecision(
 ```
 
 Driven by a target CI half-width `width` rather than power; there is no
-`power` argument. `design = "odds_ratio"` is binary-only.
+`power` argument. `width` is the half-width (margin of error), not the
+full interval length: the planned interval is estimate +/- `width`, so a
+total length `L` corresponds to `width = L / 2`. `design = "odds_ratio"` is binary-only.
 
 ```{r}
 samplesizeprecision(endpoint = "continuous", design = "one_sample", width = 2, sd = 10)
