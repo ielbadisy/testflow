@@ -43,7 +43,7 @@ categorical level.
 }
 \description{
 Builds a compact table of descriptive summaries using a formula interface.
-Numeric variables are summarized as mean (SD); median \link{Q1, Q3}; n.
+Numeric variables are summarized as mean (SD); median [Q1, Q3]; n.
 Categorical variables are summarized as n (percent).
 }
 \details{

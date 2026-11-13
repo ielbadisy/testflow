@@ -1,3 +1,7 @@
+# testflow 1.1.3
+
+- Fixed a broken Rd link in `sumtab()` docs (`[Q1, Q3]` was parsed as a link).
+
 # testflow 1.1.2
 
 * `samplesizeprecision()`: the help page and vignettes now state explicitly that `width` is the confidence-interval half-width (margin of error), not the full interval length (total length is `2 * width`). Semantics unchanged.
