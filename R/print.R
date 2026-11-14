@@ -33,8 +33,8 @@ print.testflow <- function(x, ...) {
     tf_blank()
 
     tf_section("Result")
-    h0 <- primary_h0(x)
-    if (!is.na(h0)) tf_line(h0)
+    h0 <- if (identical(x$workflow, "factorial")) x$primary_test$null_hypothesis else primary_h0(x)
+    for (h in h0[!is.na(h0)]) tf_line(h)
     tf_line(format_primary_result(x))
     tf_blank()
 
@@ -103,6 +103,9 @@ format_primary_result <- function(x) {
 
   test <- x$primary_test
   if (is.null(test)) return("No primary test available.")
+  if (identical(x$workflow, "factorial") && "term" %in% names(test)) {
+    return(paste(factorial_terms_text(x), collapse = "; "))
+  }
   stat <- primary_statistic(x)
   df <- primary_df(x)
   ci <- primary_ci(x)

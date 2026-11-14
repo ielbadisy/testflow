@@ -46,9 +46,9 @@ test_that("categorical workflow matches chi-square and Fisher references", {
 
 test_that("factorial workflow matches base aov output for a main effect", {
   dat <- .bt(
-    y = c(10, 11, 12, 13, 14, 15, 16, 17),
-    a = factor(rep(c("low", "high"), each = 4)),
-    b = factor(rep(c("x", "y"), times = 4))
+    y = c(10, 11.3, 12.1, 13.8, 14.2, 15, 16.9, 17.4, 12.6, 15.1, 13.3, 16.2),
+    a = factor(rep(c("low", "high"), each = 6)),
+    b = factor(rep(c("x", "y"), times = 6))
   )
   x <- testfactorial(y ~ a * b, data = dat)
   ref <- broom::tidy(stats::aov(y ~ a * b, data = dat))

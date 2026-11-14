@@ -40,3 +40,24 @@ test_that("testfactorial's type parameter actually selects Type I/II/III sums of
   eta_a <- function(x) x$effect_size$estimate[x$effect_size$term == "A"]
   expect_false(isTRUE(all.equal(eta_a(x1), eta_a(x2))))
 })
+
+test_that("testfactorial reports every term and checks variance across all cells", {
+  skip_if_not_installed("car")
+  dat <- data.frame(mpg = mtcars$mpg, cyl = factor(mtcars$cyl), am = factor(mtcars$am))
+  x <- testfactorial(mpg ~ cyl * am, data = dat, plot = FALSE)
+  ref <- car::Anova(lm(mpg ~ cyl * am, data = dat), type = 2)
+  terms <- c("cyl", "am", "cyl:am")
+  expect_equal(x$primary_test$term, terms)
+  expect_equal(x$primary_test$statistic, unname(ref[terms, "F value"]))
+  expect_equal(x$primary_test$p.value, unname(ref[terms, "Pr(>F)"]))
+  expect_equal(x$primary_test$parameter, unname(ref[terms, "Df"]))
+  expect_equal(x$primary_test$den.df, rep(ref["Residuals", "Df"], 3))
+  expect_equal(x$primary_test$effect_size, x$effect_size$estimate)
+  expect_match(x$primary_test$null_hypothesis[3], "interaction", fixed = TRUE)
+  out <- paste(capture.output(print(x)), collapse = "\n")
+  for (tm in terms) expect_match(out, paste0(tm, ": "), fixed = TRUE)
+  expect_match(report(x), "cyl:am", fixed = TRUE)
+  lev <- car::leveneTest(mpg ~ interaction(cyl, am), data = dat)
+  a <- x$assumptions[x$assumptions$name == "Variance homogeneity", ]
+  expect_equal(a$statistic, lev[["F value"]][1])
+})

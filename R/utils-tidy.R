@@ -117,7 +117,7 @@ new_testflow <- function(
 }
 
 primary_p <- function(x) {
-  if (is.null(x$primary_test$p.value)) NA_real_ else x$primary_test$p.value
+  if (is.null(x$primary_test$p.value)) NA_real_ else unname(x$primary_test$p.value[[1]])
 }
 
 primary_statistic <- function(x) {

@@ -37,9 +37,13 @@ this function sets automatically.}
 \value{
 A \code{testflow} object with class \code{testflow_factorial}. The object is a
 list containing the cleaned data, descriptive statistics, residual and
-variance assumption checks, recommended factorial ANOVA, primary ANOVA term
-result with null hypothesis, ANOVA table, effect size, optional \code{ggplot},
-original call, and report text.
+variance assumption checks, recommended factorial ANOVA, primary results,
+ANOVA table, effect size, optional \code{ggplot}, original call, and report text.
+\code{primary_test} has one row per model term (main effects and interactions)
+with columns \code{term}, \code{statistic} (F), \code{parameter} and \code{num.df} (term df),
+\code{den.df} (residual df), \code{p.value}, the term's eta squared, and its null
+hypothesis. Levene's test for variance homogeneity is computed across all
+design cells (every combination of factor levels).
 }
 \description{
 Run a factorial ANOVA workflow
