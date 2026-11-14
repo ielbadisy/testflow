@@ -5,18 +5,22 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param correct Logical; apply the continuity correction in McNemar's test,
+#'   \eqn{\chi^2 = (|b - c| - 1)^2 / (b + c)}, where `b` and `c` are the
+#'   discordant counts. Defaults to `TRUE` (as in [stats::mcnemar.test()]);
+#'   `FALSE` gives the uncorrected \eqn{(b - c)^2 / (b + c)}.
 #' @return A `testflow` object with class `testflow_paired_categorical`. The
 #' object is a list containing the cleaned paired categorical data, categorical
 #' descriptives, assumption checks, McNemar test result, discordant-pair table,
 #' optional `ggplot`, original call, and report text.
 #' @export
-testpairedcategorical <- function(data, before, after, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testpairedcategorical <- function(data, before, after, alpha = 0.05, plot = TRUE, na.rm = TRUE, correct = TRUE) {
   before_nm <- rlang::as_name(rlang::ensym(before)); after_nm <- rlang::as_name(rlang::ensym(after))
   df <- drop_missing(data, c(before_nm, after_nm), na.rm = na.rm)
   tab <- table(df[[before_nm]], df[[after_nm]])
   warn_if(!all(dim(tab) == 2), "McNemar's test requires a 2x2 table; the current input is not a binary paired design.")
-  test <- stats::mcnemar.test(tab)
-  discordant <- if (all(dim(tab) == 2)) sum(tab[c(1, 2), c(2, 1)]) else NA_integer_
+  test <- stats::mcnemar.test(tab, correct = correct)
+  discordant <- if (all(dim(tab) == 2)) tab[1, 2] + tab[2, 1] else NA_integer_
   disc <- .bt(before_only = if (all(dim(tab) == 2)) tab[2, 1] else NA_integer_, after_only = if (all(dim(tab) == 2)) tab[1, 2] else NA_integer_)
   effect <- .bt(name = "Discordant pairs", estimate = sum(disc, na.rm = TRUE), magnitude = NA_character_)
   plt <- if (plot) {
