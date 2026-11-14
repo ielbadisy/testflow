@@ -161,8 +161,7 @@ This validation targeted correctness of the implemented formulas against
 their stated methodology - not every possible methodological choice. A
 formula can be correctly implemented and still not be the specific
 convention you expect (for example, `testflow`'s Cramer's V is the raw,
-non-bias-corrected statistic, and its rank-biserial correlation uses the
-opposite sign convention to some other packages) - these are documented
+non-bias-corrected statistic) - these are documented
 choices, not defects, and worth checking against your own convention if it
 matters for your use case.
 

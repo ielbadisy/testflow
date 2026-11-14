@@ -170,7 +170,7 @@ Welch's t-test (1947) instead uses \(s_1^2/n_1+s_2^2/n_2\) as the variance
 estimate with a Satterthwaite-approximated denominator degrees of freedom -
 appropriate when variances are unequal. The Wilcoxon rank-sum (Mann-Whitney)
 test compares rank sums rather than means. Effect size is Cohen's \(d\)
-(t-test branches) or the rank-biserial correlation \(r_{rb}=1-2W/(n_1n_2)\)
+(t-test branches) or the rank-biserial correlation \(r_{rb}=2W/(n_1n_2)-1\)
 (Wilcoxon branch), both with the sign following "first group minus second
 group."
 
@@ -741,7 +741,7 @@ observed proportion) are only summarized inline elsewhere.
 |---|---|---|
 | One sample | Cohen's d | \(d=(\bar x-\mu_0)/s_x\) |
 | Two groups (t-test) | Cohen's d | \(d=(\bar x_1-\bar x_2)/s_p\) |
-| Two groups (Wilcoxon) | Rank-biserial r | \(r_{rb}=1-2W/(n_1n_2)\) |
+| Two groups (Wilcoxon) | Rank-biserial r | \(r_{rb}=2W/(n_1n_2)-1\) |
 | Paired | Cohen's dz | \(d_z=\bar d/s_d\) |
 | ANOVA (one-way, factorial) | Eta squared | \(\eta_j^2=SS_j/\sum SS\) |
 | Kruskal-Wallis | Epsilon squared | \(\epsilon^2=(H-k+1)/(n-k)\) |

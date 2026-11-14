@@ -47,7 +47,9 @@ rank_biserial_two_groups <- function(data, outcome, group) {
   y <- data[[outcome]][data[[group]] == groups[2]]
   wt <- stats::wilcox.test(x, y, exact = FALSE)
   n1 <- sum(!is.na(x)); n2 <- sum(!is.na(y))
-  r <- 1 - (2 * unname(wt$statistic)) / (n1 * n2)
+  # Positive when the first group tends to have larger values, the same
+  # direction as Cohen's d (mean of first group minus mean of second).
+  r <- (2 * unname(wt$statistic)) / (n1 * n2) - 1
   .bt(name = "Rank-biserial correlation", estimate = r, magnitude = magnitude_cramers_v(abs(r)))
 }
 
