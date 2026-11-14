@@ -30,11 +30,23 @@ testmultinomial(
 A \code{testflow} object with class \code{testflow_multinomial}. The object is
 a list containing the cleaned data, categorical descriptives, assumption
 checks, recommended goodness-of-fit test, primary chi-square result with null
-hypothesis, BH-adjusted pairwise binomial checks, effect-size summary, optional
+hypothesis, BH-adjusted per-category binomial checks, effect-size summary, optional
 \code{ggplot}, original call, and report text.
 }
 \description{
-Test multinomial goodness of fit
+Tests whether the observed category proportions of one categorical
+variable match a set of expected proportions (Pearson chi-square
+goodness-of-fit test). This is not multinomial (polytomous) logistic
+regression: there are no predictors and no coefficients. For a
+multinomial regression model use, for example, \code{nnet::multinom()}.
+}
+\details{
+Results follow the usual testflow layout; there is no \verb{$result} element.
+The chi-square test is in \verb{$primary_test} (\code{statistic}, \code{parameter} (df),
+\code{p.value}). \verb{$posthoc} has one row per category with the observed and
+expected counts and an exact binomial test of that category's proportion
+against its expected proportion (\code{p}), with Benjamini-Hochberg adjusted
+p-values (\code{p.adj}).
 }
 \references{
 Pearson, K. (1900). On the criterion that a given system of deviations from
