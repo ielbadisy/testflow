@@ -121,7 +121,7 @@ repeated_core <- function(data, outcome_nm, within_nm, id_nm, outcome_label = NU
   } else NULL
   alt <- list(anova = add_null_hypothesis(anova, h0), friedman = add_null_hypothesis(safe_tidy_htest(friedman, "Friedman test"), h0))
   if (!is.null(between_nm)) alt$mixed_anova <- mixed_anova_test(df, outcome_nm, within_nm, id_nm, between_nm)
-  out <- new_testflow("repeated", "repeated numeric measurements", outcome_label, within_nm, id_nm, df, descriptives_numeric(df, outcome_nm, within_nm), assumption_checks(check_independence_note("Repeated measurements from the same subjects are assumed by design."), normality, sphericity), list(test = recommendation), primary, alt, posthoc = posthoc_tests, effect_size = effect, plot = plt, call = call, subclass = "repeated")
+  out <- new_testflow("repeated", "repeated numeric measurements", outcome_label, within_nm, id_nm, df, descriptives_numeric(df, outcome_nm, within_nm), assumption_checks(check_independence_note("Repeated measurements from the same subjects are assumed by design."), normality, sphericity), list(test = recommendation, rationale = recommend_rationale(recommendation, normality, alpha = alpha)), primary, alt, posthoc = posthoc_tests, effect_size = effect, plot = plt, call = call, subclass = "repeated")
   out$interpretation <- make_report(out, alpha)
   if (!is.null(alt$mixed_anova)) {
     m <- alt$mixed_anova

@@ -30,6 +30,7 @@ print.testflow <- function(x, ...) {
 
     tf_section("Recommended test")
     tf_line(tf_value(x$recommended$test %||% x$recommended))
+    if (is.list(x$recommended) && is.character(x$recommended$rationale)) tf_line(x$recommended$rationale)
     tf_blank()
 
     tf_section("Result")

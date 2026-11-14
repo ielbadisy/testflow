@@ -59,7 +59,7 @@ testtwogroups <- function(
     data = df,
     descriptives = descriptives_numeric(df, outcome_nm, group_nm),
     assumptions = assumption_checks(independence, normality, levene, outliers, f_test),
-    recommended = list(test = recommendation, rationale = "Selected from normality and variance assumptions."),
+    recommended = list(test = recommendation, rationale = recommend_rationale(recommendation, normality, levene, alpha)),
     primary_test = primary_tidy,
     alternative_tests = list(
       student_t_test = add_null_hypothesis(safe_tidy_htest(student, "Student independent t-test"), h0_mean_equal(outcome_nm, group_nm)),
