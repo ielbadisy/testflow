@@ -1,4 +1,19 @@
 #' Test multinomial goodness of fit
+#'
+#' @description
+#' Tests whether the observed category proportions of one categorical
+#' variable match a set of expected proportions (Pearson chi-square
+#' goodness-of-fit test). This is not multinomial (polytomous) logistic
+#' regression: there are no predictors and no coefficients. For a
+#' multinomial regression model use, for example, `nnet::multinom()`.
+#'
+#' @details
+#' Results follow the usual testflow layout; there is no `$result` element.
+#' The chi-square test is in `$primary_test` (`statistic`, `parameter` (df),
+#' `p.value`). `$posthoc` has one row per category with the observed and
+#' expected counts and an exact binomial test of that category's proportion
+#' against its expected proportion (`p`), with Benjamini-Hochberg adjusted
+#' p-values (`p.adj`).
 #' @param data A data frame.
 #' @param outcome Categorical outcome column.
 #' @param p Expected probabilities, or `NULL` for equal probabilities.
@@ -8,7 +23,7 @@
 #' @return A `testflow` object with class `testflow_multinomial`. The object is
 #' a list containing the cleaned data, categorical descriptives, assumption
 #' checks, recommended goodness-of-fit test, primary chi-square result with null
-#' hypothesis, BH-adjusted pairwise binomial checks, effect-size summary, optional
+#' hypothesis, BH-adjusted per-category binomial checks, effect-size summary, optional
 #' `ggplot`, original call, and report text.
 #' @references
 #' Pearson, K. (1900). On the criterion that a given system of deviations from
