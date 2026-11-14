@@ -1,3 +1,19 @@
+# testflow 1.1.4
+
+* Rank-biserial correlation (`testtwogroups()` Wilcoxon branch) now has the right sign, `r = 2W/(n1 n2) - 1`, agreeing with Cohen's d and `effectsize` (#59).
+* `testcategorical()` gains `biascorrect = FALSE`; `TRUE` gives Bergsma's (2013) bias-corrected Cramer's V (#60).
+* Welch ANOVA (and one-way ANOVA) results now print and report both df, e.g. `df = 2.00, 28.81` (#61).
+* Vignette and assumption labels now say that the two-group variance decision uses Levene's test; the F-test is labelled `F-test (var.test)` (#62).
+* `testfactorial()`: `primary_test` has one row per term (main effects and interactions) with F, df, p, eta squared and its own H0; print and report list every term. Levene's test now uses all design cells, not only the first factor (#63).
+* `samplesizeprecision()`: the binary one-sample planning note no longer prints unevaluated R code (#64).
+* `samplesizebioequivalence()`: the crossover target (`n_adjusted`, `n_total`) is the smallest even total reaching the target exact TOST power (38 for CV 0.25, GMR 0.95, power 0.9, as PowerTOST), rounded to even after dropout. The parallel design also returns `n_total` (#65).
+* `testsurvival()`: the hazard ratio is named with its comparison (e.g. `Hazard ratio (F vs M)`) and carries its CI in `$effect_size`; the Cox CI is no longer shown on the log-rank line (#66).
+* `testmultinomial()`: docs state it is a goodness-of-fit test of proportions (not multinomial regression) and where results live (#67).
+* `testrepeated()` and `testrepeatedlong()`: `between` is now used. It adds a mixed (split-plot) ANOVA as `$alternative_tests$mixed_anova` (#68).
+* `testpairedcategorical()` gains `correct = TRUE` for McNemar's continuity correction; the discordant-pair count is fixed (#69).
+* Automatic test choices now store a specific `$recommended$rationale` with the Shapiro-Wilk and Levene p-values; `print()` shows it (#70).
+* `testcorrelationmatrix()`: the pairwise table (with pairwise `n` and BH `p.adj`) is now also in `$posthoc`, and the docs explain the summary-only primary result.
+
 # testflow 1.1.3
 
 - Fixed a broken Rd link in `sumtab()` docs (`[Q1, Q3]` was parsed as a link).
