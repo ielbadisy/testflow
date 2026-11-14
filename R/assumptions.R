@@ -202,6 +202,7 @@ check_variance_two_groups <- function(data, outcome, group, alpha = 0.05) {
   test <- stats::var.test(formula, data = data)
   .bt(
     name = "Variance ratio check",
+    method = "F-test (var.test)",
     message = ifelse(test$p.value >= alpha, "Variance ratio looks reasonable.", "Variance ratio looks concerning."),
     statistic = unname(test$statistic),
     df1 = unname(test$parameter[1]),

@@ -77,7 +77,8 @@ transparent:
 | 3+ groups | One-way ANOVA | Welch ANOVA | Kruskal-Wallis |
 
 Normality is checked with Shapiro-Wilk (per group, where applicable);
-variance homogeneity with Levene's test. `testcategorical()` instead
+variance homogeneity with Levene's test (for two groups the variance-ratio
+F-test is also reported, but it does not drive the choice). `testcategorical()` instead
 compares chi-square vs. Fisher's exact test based on expected cell counts
 (`fisher_threshold`, default 5); `testcorrelation(method = "auto")`
 compares Pearson vs. Spearman based on normality and outlier screens; the
@@ -113,8 +114,8 @@ checked`) driving the recommended-test logic above.
 |---|---|---|
 | Normality | Shapiro-Wilk (`n <= 5000`) | \(W\) |
 | Symmetry (one-sample/paired) | Cabilio-Masaro | \(z=\sqrt n(\bar x-\text{median})/(s_x\sqrt{\pi/2-1})\) |
-| Variance homogeneity (2 groups) | `var.test()` (F-test) | \(F=s_1^2/s_2^2\) |
-| Variance homogeneity (3+ groups) | Levene's test | \(F\) on absolute deviations from group medians |
+| Variance homogeneity (2 or more groups; drives the test choice) | Levene's test | \(F\) on absolute deviations from group medians |
+| Variance ratio (2 groups; reported only) | `var.test()` (F-test) | \(F=s_1^2/s_2^2\) |
 | Variance homogeneity (3+ groups) | Bartlett's test | \(\chi^2\) on group variances |
 | Sphericity (3+ repeated measures) | Mauchly's test | \(W\) |
 | Linearity (correlation) | Quadratic-term F-test (RESET, power 2) | \(F\) comparing `y ~ x` to `y ~ x + I(x^2)` |
