@@ -6,6 +6,10 @@
 #' @param fisher_threshold Expected-count threshold for Fisher's exact test.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param biascorrect Logical. If `FALSE` (default), the effect size is the
+#'   usual Cramer's V, \eqn{V = \sqrt{\chi^2 / (n(\min(r, c) - 1))}}, which is
+#'   biased upwards in small samples and sparse tables. If `TRUE`, the
+#'   Bergsma (2013) bias-corrected V is reported instead.
 #' @return A `testflow` object with class `testflow_categorical`. The object is
 #' a list containing the cleaned data, categorical descriptives, assumption
 #' checks, recommended association test, primary test result with null
@@ -22,8 +26,11 @@
 #' Society}, 85(1), 87-94.
 #'
 #' Cramer, H. (1946). \emph{Mathematical Methods of Statistics}. Princeton.
+#'
+#' Bergsma, W. (2013). A bias-correction for Cramer's V and Tschuprow's T.
+#' \emph{Journal of the Korean Statistical Society}, 42(3), 323-328.
 #' @export
-testcategorical <- function(formula, data, y = NULL, alpha = 0.05, fisher_threshold = 5, plot = TRUE, na.rm = TRUE) {
+testcategorical <- function(formula, data, y = NULL, alpha = 0.05, fisher_threshold = 5, plot = TRUE, na.rm = TRUE, biascorrect = FALSE) {
   vars <- resolve_formula_pair(tf_formula_arg(substitute(formula), parent.frame()), tf_formula_arg(substitute(data), parent.frame()), substitute(y), missing(y), rhs_label = "y")
   x_nm <- vars$outcome
   y_nm <- vars$group
@@ -36,7 +43,7 @@ testcategorical <- function(formula, data, y = NULL, alpha = 0.05, fisher_thresh
   fisher_label <- if (grepl("Monte Carlo", fisher$method, fixed = TRUE)) fisher$method else "Fisher exact test"
   recommendation <- if (use_fisher) fisher_label else "Chi-square test of independence"
   primary <- if (use_fisher) fisher else chi
-  effect <- cramers_v(tab)
+  effect <- cramers_v(tab, biascorrect = biascorrect)
   expected <- check_expected_counts(tab, fisher_threshold)
   plt <- if (plot) {
     ggplot2::ggplot(df, ggplot2::aes(x = .data[[x_nm]], fill = .data[[y_nm]])) +

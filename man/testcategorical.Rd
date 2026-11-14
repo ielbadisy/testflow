@@ -11,7 +11,8 @@ testcategorical(
   alpha = 0.05,
   fisher_threshold = 5,
   plot = TRUE,
-  na.rm = TRUE
+  na.rm = TRUE,
+  biascorrect = FALSE
 )
 }
 \arguments{
@@ -28,6 +29,11 @@ testcategorical(
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{biascorrect}{Logical. If \code{FALSE} (default), the effect size is the
+usual Cramer's V, \eqn{V = \sqrt{\chi^2 / (n(\min(r, c) - 1))}}, which is
+biased upwards in small samples and sparse tables. If \code{TRUE}, the
+Bergsma (2013) bias-corrected V is reported instead.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_categorical}. The object is
@@ -50,4 +56,7 @@ tables, and the calculation of P. \emph{Journal of the Royal Statistical
 Society}, 85(1), 87-94.
 
 Cramer, H. (1946). \emph{Mathematical Methods of Statistics}. Princeton.
+
+Bergsma, W. (2013). A bias-correction for Cramer's V and Tschuprow's T.
+\emph{Journal of the Korean Statistical Society}, 42(3), 323-328.
 }

@@ -33,9 +33,19 @@ eta_squared_aov <- function(aov_fit, tab = NULL) {
   .bt(term = rownames(tab)[seq_along(eta)], name = "eta squared", estimate = eta, magnitude = magnitude_eta2(eta))
 }
 
-cramers_v <- function(tab) {
+cramers_v <- function(tab, biascorrect = FALSE) {
   chi <- suppressWarnings(stats::chisq.test(tab, correct = FALSE))
   n <- sum(tab)
+  if (isTRUE(biascorrect)) {
+    # Bergsma (2013): shrink phi^2 by its expected value under independence
+    # and use bias-corrected row and column counts.
+    r <- nrow(tab); k <- ncol(tab)
+    phi2c <- max(0, unname(chi$statistic) / n - (k - 1) * (r - 1) / (n - 1))
+    rc <- r - (r - 1)^2 / (n - 1)
+    kc <- k - (k - 1)^2 / (n - 1)
+    v <- sqrt(phi2c / min(kc - 1, rc - 1))
+    return(.bt(name = "Cramer's V (bias-corrected)", estimate = v, magnitude = magnitude_cramers_v(v)))
+  }
   k <- min(nrow(tab), ncol(tab))
   v <- sqrt(unname(chi$statistic) / (n * (k - 1)))
   .bt(name = "Cramer's V", estimate = v, magnitude = magnitude_cramers_v(v))

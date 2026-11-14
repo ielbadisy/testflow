@@ -322,6 +322,9 @@ falls below `fisher_threshold` (default 5). Effect size is Cramer's V:
 V = \sqrt{\frac{\chi^2}{n(\min(r,c)-1)}}
 \]
 
+This V is biased upwards in small samples and sparse tables.
+`biascorrect = TRUE` reports the Bergsma (2013) bias-corrected V instead.
+
 ```{r}
 x_categorical <- testcategorical(treatment ~ controlled_3m, data = cardio)
 x_categorical
