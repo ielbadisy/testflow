@@ -288,3 +288,26 @@ test_that("samplesizebioequivalence's iterative TOST matches PowerTOST::power.TO
     expect_true(power_below < 0.90)
   }
 })
+
+test_that("samplesizebioequivalence() crossover target is the smallest even total with enough power", {
+  x <- samplesizebioequivalence(design = "crossover", gmr = 0.95, cv_within = 0.25, power = 0.90)
+  expect_equal(x$n_adjusted, 38L)
+  expect_equal(x$n_total, 38L)
+  expect_true(x$n < 38)
+  xd <- samplesizebioequivalence(design = "crossover", gmr = 0.95, cv_within = 0.25, power = 0.90, dropout = 0.1)
+  expect_equal(xd$n_total %% 2, 0)
+  expect_equal(xd$n_total, 2L * ceiling(38 / 0.9 / 2))
+  xn <- samplesizebioequivalence(design = "crossover", gmr = 0.95, cv_within = 0.25, method = "normal_approx")
+  expect_equal(xn$n_total %% 2, 0)
+  skip_if_not_installed("PowerTOST")
+  for (cfg in list(c(gmr = 0.95, cv = 0.25), c(gmr = 0.9, cv = 0.3), c(gmr = 1, cv = 0.2))) {
+    x <- samplesizebioequivalence(design = "crossover", gmr = cfg[["gmr"]], cv_within = cfg[["cv"]], power = 0.9)
+    ref <- PowerTOST::sampleN.TOST(CV = cfg[["cv"]], theta0 = cfg[["gmr"]], targetpower = 0.9, print = FALSE)
+    expect_equal(x$n_total, as.integer(ref[["Sample size"]]))
+  }
+})
+
+test_that("samplesizebioequivalence() parallel design reports n_total", {
+  x <- samplesizebioequivalence(design = "parallel", gmr = 0.95, cv_between = 0.25, allocation = 1.5)
+  expect_equal(x$n_total, sum(x$n_per_group))
+})

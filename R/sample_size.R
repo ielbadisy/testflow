@@ -800,7 +800,13 @@ samplesizesurvival <- function(
 #'   target two-one-sided-test power, computed exactly via the noncentral t
 #'   distribution; the preferred method) or `normal_approx` (closed-form
 #'   approximation treating the variance as known).
-#' @return A `sample_size` object.
+#' @return A `sample_size` object. `n` is the raw (continuous) solution, as in
+#'   the other `samplesize*()` functions. For the crossover design,
+#'   `n_adjusted` and `n_total` are the recruitment target: the smallest even
+#'   total (balanced sequences) that reaches the target power (checked with
+#'   the exact TOST power for `iterative_tost`), inflated for dropout and
+#'   rounded up again to an even number. For the parallel design,
+#'   `n_adjusted`/`n_per_group` give the per-arm sizes and `n_total` their sum.
 #' @details
 #' On the log scale, with \eqn{\theta_0=\log(GMR)}, \eqn{\theta_L=\log(L)},
 #' \eqn{\theta_U=\log(U)}, and \eqn{d_{BE}=\min(\theta_0-\theta_L,\
@@ -940,8 +946,15 @@ samplesizebioequivalence <- function(
   }
 
   if (identical(design, "crossover")) {
-    n_main <- sample_size_round(n_raw)
-    n_adj <- sample_size_apply_dropout(n_main, dropout)
+    # A 2x2 crossover needs balanced sequences, so the total is even. With the
+    # exact TOST power, step up from the rounded raw solution until the power
+    # target is met (power is not perfectly continuous in n at small df).
+    round_even <- function(n) as.integer(2 * ceiling(n / 2 - 1e-9))
+    n_main <- round_even(n_raw)
+    if (identical(method, "iterative_tost")) {
+      while (tost_power(n_main) < power) n_main <- n_main + 2L
+    }
+    n_adj <- round_even(n_main / (1 - dropout))
     sample_size_result(
       endpoint = "bioequivalence", design = design, objective = "equivalence", method = method_label,
       n = n_raw, n_adjusted = n_adj, n_total = n_adj,
@@ -964,6 +977,7 @@ samplesizebioequivalence <- function(
     sample_size_result(
       endpoint = "bioequivalence", design = design, objective = "equivalence", method = method_label,
       n = n_raw, n_adjusted = c(A = n_a_adj, B = n_b_adj), n_per_group = c(A = n_a_adj, B = n_b_adj),
+      n_total = n_a_adj + n_b_adj,
       assumptions = sample_size_assumptions(
         "Two independent groups with log-normal between-subject variation are assumed.",
         cv_note,

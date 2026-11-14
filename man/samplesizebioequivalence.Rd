@@ -49,7 +49,13 @@ distribution; the preferred method) or \code{normal_approx} (closed-form
 approximation treating the variance as known).}
 }
 \value{
-A \code{sample_size} object.
+A \code{sample_size} object. \code{n} is the raw (continuous) solution, as in
+the other \verb{samplesize*()} functions. For the crossover design,
+\code{n_adjusted} and \code{n_total} are the recruitment target: the smallest even
+total (balanced sequences) that reaches the target power (checked with
+the exact TOST power for \code{iterative_tost}), inflated for dropout and
+rounded up again to an even number. For the parallel design,
+\code{n_adjusted}/\code{n_per_group} give the per-arm sizes and \code{n_total} their sum.
 }
 \description{
 Sample size for average bioequivalence
