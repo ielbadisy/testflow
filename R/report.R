@@ -63,7 +63,7 @@ make_report <- function(x, alpha = 0.05) {
   paste0(
     "The ", x$design, " workflow for ", x$outcome %||% "the outcome",
     " ", result, " using ", method, ", statistic = ", format_stat(stat),
-    ifelse(is.na(df), "", paste0(", df = ", format_stat(df))),
+    if (nzchar(primary_df_text(x))) paste0(", ", primary_df_text(x)) else "",
     ", p = ", format_p(p), ".", ci_text, effect_text, h0_text
   )
 }
