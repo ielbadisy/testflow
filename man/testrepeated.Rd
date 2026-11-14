@@ -21,7 +21,12 @@ testrepeated(
 
 \item{id}{Optional subject identifier.}
 
-\item{between}{Optional between-subject factor.}
+\item{between}{Optional between-subject factor (constant within each
+subject). When supplied, a mixed (split-plot) ANOVA,
+\code{outcome ~ within * between + Error(id / within)}, is added as
+\verb{$alternative_tests$mixed_anova} (one row per term: between, within, and
+their interaction) and summarized in the report. The primary result stays
+the within-subject test (repeated-measures ANOVA or Friedman).}
 
 \item{alpha}{Significance level.}
 
