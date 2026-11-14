@@ -10,7 +10,8 @@ testpairedcategorical(
   after,
   alpha = 0.05,
   plot = TRUE,
-  na.rm = TRUE
+  na.rm = TRUE,
+  correct = TRUE
 )
 }
 \arguments{
@@ -25,6 +26,11 @@ testpairedcategorical(
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{correct}{Logical; apply the continuity correction in McNemar's test,
+\eqn{\chi^2 = (|b - c| - 1)^2 / (b + c)}, where \code{b} and \code{c} are the
+discordant counts. Defaults to \code{TRUE} (as in \code{\link[stats:mcnemar.test]{stats::mcnemar.test()}});
+\code{FALSE} gives the uncorrected \eqn{(b - c)^2 / (b + c)}.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_paired_categorical}. The
