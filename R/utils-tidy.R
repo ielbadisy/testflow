@@ -128,6 +128,18 @@ primary_df <- function(x) {
   if (!is.null(x$primary_test$parameter)) unname(x$primary_test$parameter[[1]]) else NA_real_
 }
 
+# Degrees-of-freedom text for printed/reported results. F tests carry both
+# numerator and denominator df (num.df/den.df, e.g. Welch's ANOVA, whose
+# `parameter` column is NA); other tests carry a single `parameter`.
+primary_df_text <- function(x) {
+  t <- x$primary_test
+  if (all(c("num.df", "den.df") %in% names(t)) && !is.na(t[["num.df"]][[1]]) && !is.na(t[["den.df"]][[1]])) {
+    return(paste0("df = ", format_stat(unname(t[["num.df"]][[1]])), ", ", format_stat(unname(t[["den.df"]][[1]]))))
+  }
+  df <- primary_df(x)
+  if (is.na(df)) "" else paste0("df = ", format_stat(df))
+}
+
 primary_ci <- function(x) {
   if (is.null(x$primary_test$conf.low) || is.null(x$primary_test$conf.high)) {
     return(c(NA_real_, NA_real_))

@@ -28,7 +28,10 @@ testgroups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRUE
   recommendation <- recommend_groups(normality, levene)
   formula <- tf_formula(outcome_nm, group_nm)
   aov_fit <- stats::aov(formula, data = df)
-  aov_test <- broom::tidy(aov_fit)[1, , drop = FALSE]
+  aov_full <- broom::tidy(aov_fit)
+  aov_test <- aov_full[1, , drop = FALSE]
+  aov_test$num.df <- aov_full$df[1]
+  aov_test$den.df <- aov_full$df[nrow(aov_full)]
   welch <- stats::oneway.test(formula, data = df, var.equal = FALSE)
   kruskal <- stats::kruskal.test(formula, data = df)
   primary <- switch(recommendation, "One-way ANOVA" = list_obj_from_tidy(aov_test, "One-way ANOVA"), "Welch ANOVA" = welch, "Kruskal-Wallis test" = kruskal)
@@ -47,5 +50,5 @@ testgroups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRUE
 }
 
 list_obj_from_tidy <- function(x, method) {
-  .bt(method = method, statistic = x$statistic[1], parameter = x$df[1], p.value = x$p.value[1])
+  .bt(method = method, statistic = x$statistic[1], parameter = x$df[1], num.df = x[["num.df"]][1], den.df = x[["den.df"]][1], p.value = x$p.value[1])
 }
