@@ -1,3 +1,7 @@
+# testflow 1.1.5
+
+* Welch ANOVA in `testgroups()` now reports its degrees of freedom: `parameter` is the numerator df and `num.df`/`den.df` hold both (was `NA`).
+
 # testflow 1.1.4
 
 * Rank-biserial correlation (`testtwogroups()` Wilcoxon branch) now has the right sign, `r = 2W/(n1 n2) - 1`, agreeing with Cohen's d and `effectsize` (#59).
