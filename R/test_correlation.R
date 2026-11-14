@@ -93,7 +93,13 @@ iqr_outlier_flags <- function(data, vars) {
 #' screening assumptions, selected correlation-matrix method, pairwise
 #' correlation matrix, pairwise p-value table, maximum absolute correlation as
 #' an effect-size summary, optional heatmap `ggplot`, original call, and report
-#' text.
+#' text. The pairwise results (one row per variable pair: `var1`, `var2`,
+#' `estimate`, raw `p`, pairwise-complete `n`, and Benjamini-Hochberg adjusted
+#' `p.adj`) are in `$posthoc`, and also in
+#' `$alternative_tests$correlation_table`; the matrix is in
+#' `$alternative_tests$correlation_matrix`. `$primary_test` is only a summary:
+#' its `p.value` is the smallest unadjusted pairwise p-value and its
+#' `statistic` is `NA`. Use `$posthoc$p.adj` for inference on single pairs.
 #' @export
 testcorrelationmatrix <- function(data, vars, method = c("spearman", "pearson", "kendall"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   method <- match.arg(method)
@@ -111,9 +117,10 @@ testcorrelationmatrix <- function(data, vars, method = c("spearman", "pearson", 
   pairs <- utils::combn(vars, 2, simplify = FALSE)
   long <- .map_dfr(pairs, function(z) {
     test <- suppressWarnings(stats::cor.test(full_vars[[z[1]]], full_vars[[z[2]]], method = method, exact = FALSE))
-    .bt(var1 = z[1], var2 = z[2], estimate = unname(test$estimate), p = test$p.value)
+    .bt(var1 = z[1], var2 = z[2], estimate = unname(test$estimate), p = test$p.value, n = sum(stats::complete.cases(full_vars[[z[1]]], full_vars[[z[2]]])))
   })
   long$p.adj <- stats::p.adjust(long$p, method = "BH")
+  long$p.adjust.method <- "BH"
   n_sig_adj <- sum(long$p.adj < alpha, na.rm = TRUE)
   assumptions <- assumption_checks(
     assumption_check("Variable types", "acceptable", "All selected variables should be numeric or ordinal."),
@@ -139,7 +146,7 @@ testcorrelationmatrix <- function(data, vars, method = c("spearman", "pearson", 
   } else NULL
   method_label <- title_case_method(paste(method, "correlation matrix"))
   primary <- .bt(method = method_label, statistic = NA_real_, parameter = NA_real_, p.value = min(long$p, na.rm = TRUE))
-  out <- new_testflow("correlation_matrix", "correlation matrix", paste(vars, collapse = ", "), data = df, descriptives = descriptives_numeric(df, vars), assumptions = assumptions, recommended = list(test = method_label), primary_test = primary, alternative_tests = list(correlation_matrix = mat, correlation_table = long), effect_size = .bt(name = "Maximum absolute r", estimate = max(abs(long$estimate), na.rm = TRUE), magnitude = magnitude_cramers_v(max(abs(long$estimate), na.rm = TRUE))), plot = plt, call = match.call(), subclass = "correlation_matrix")
+  out <- new_testflow("correlation_matrix", "correlation matrix", paste(vars, collapse = ", "), data = df, descriptives = descriptives_numeric(df, vars), assumptions = assumptions, recommended = list(test = method_label), primary_test = primary, alternative_tests = list(correlation_matrix = mat, correlation_table = long), posthoc = long, effect_size = .bt(name = "Maximum absolute r", estimate = max(abs(long$estimate), na.rm = TRUE), magnitude = magnitude_cramers_v(max(abs(long$estimate), na.rm = TRUE))), plot = plt, call = match.call(), subclass = "correlation_matrix")
   out$interpretation <- make_report(out, alpha)
   out
 }

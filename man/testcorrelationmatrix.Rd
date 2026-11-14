@@ -32,7 +32,13 @@ object is a list containing the cleaned data, numeric descriptives,
 screening assumptions, selected correlation-matrix method, pairwise
 correlation matrix, pairwise p-value table, maximum absolute correlation as
 an effect-size summary, optional heatmap \code{ggplot}, original call, and report
-text.
+text. The pairwise results (one row per variable pair: \code{var1}, \code{var2},
+\code{estimate}, raw \code{p}, pairwise-complete \code{n}, and Benjamini-Hochberg adjusted
+\code{p.adj}) are in \verb{$posthoc}, and also in
+\verb{$alternative_tests$correlation_table}; the matrix is in
+\verb{$alternative_tests$correlation_matrix}. \verb{$primary_test} is only a summary:
+its \code{p.value} is the smallest unadjusted pairwise p-value and its
+\code{statistic} is \code{NA}. Use \verb{$posthoc$p.adj} for inference on single pairs.
 }
 \description{
 Test a correlation matrix
