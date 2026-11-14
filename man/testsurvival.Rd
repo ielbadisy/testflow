@@ -23,7 +23,13 @@ A \code{testflow} object with class \code{testflow_survival}. The object is
 a list containing the cleaned data, per-group descriptive survival
 statistics, the log-rank test as the primary result with null hypothesis,
 the Kaplan-Meier curve data, a companion univariate hazard ratio as the
-effect size, optional \code{ggplot}, original call, and report text.
+effect size, optional \code{ggplot}, original call, and report text. The
+log-rank p-value is in \verb{$primary_test$p.value} (there is no top-level
+\verb{$p_value}). The hazard ratio, with its 95\% Wald CI (\code{conf.low},
+\code{conf.high}), is in \verb{$effect_size}; its name states the comparison, for
+example "Hazard ratio (F vs M)", where the second factor level is compared
+to the first (reference) level. Relevel the factor to change the reference.
+The Cox model table is in \verb{$alternative_tests$cox}.
 }
 \description{
 Kaplan-Meier and log-rank survival workflow
