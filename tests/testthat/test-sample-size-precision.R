@@ -255,3 +255,16 @@ test_that("samplesizeprecision width is the half-width (margin of error)", {
   expect_lte(stats::qnorm(0.975) * 10 / sqrt(n), 2)
   expect_gt(stats::qnorm(0.975) * 10 / sqrt(n - 1), 2)
 })
+
+test_that("binary one-sample planning notes contain evaluated text, not R code", {
+  for (m in c("wilson", "exact", "wald")) {
+    x <- suppressWarnings(samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.1, p = 0.3, method = m))
+    notes <- unlist(x$assumptions)
+    expect_false(any(grepl("identical(method", notes, fixed = TRUE)))
+  }
+  x <- suppressWarnings(samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.1, p = 0.3, method = "wilson"))
+  expect_true(any(grepl("anticipated proportion p itself", unlist(x$assumptions), fixed = TRUE)))
+  x <- suppressWarnings(samplesizeprecision(endpoint = "binary", design = "one_sample", width = 0.1, p = 0.3, method = "exact"))
+  expect_true(any(grepl("round(n * p)", unlist(x$assumptions), fixed = TRUE)))
+  expect_false(any(grepl("identical(method", capture.output(print(x)), fixed = TRUE)))
+})

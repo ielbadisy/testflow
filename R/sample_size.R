@@ -1411,7 +1411,7 @@ sample_size_precision_binary_one_sample <- function(width, p, alpha, dropout, co
     assumptions = sample_size_assumptions(
       paste0("Confidence interval method: ", ci_display_name, "."),
       if (identical(criterion, "expected")) {
-        "if (identical(method, \"wilson\")) \"The interval is evaluated at the anticipated proportion p itself (no rounding of the event count).\" else \"Event counts are evaluated at the single anticipated event count round(n * p).\""
+        if (identical(method, "wilson")) "The interval is evaluated at the anticipated proportion p itself (no rounding of the event count)." else "Event counts are evaluated at the single anticipated event count round(n * p)."
       } else {
         "Event counts are evaluated over a prevalence-local band of plausible counts (binomial 0.001/0.999 quantiles around n * p), not the anticipated count alone."
       },
