@@ -13,9 +13,13 @@
 #' @param na.rm Logical; remove missing values.
 #' @return A `testflow` object with class `testflow_factorial`. The object is a
 #' list containing the cleaned data, descriptive statistics, residual and
-#' variance assumption checks, recommended factorial ANOVA, primary ANOVA term
-#' result with null hypothesis, ANOVA table, effect size, optional `ggplot`,
-#' original call, and report text.
+#' variance assumption checks, recommended factorial ANOVA, primary results,
+#' ANOVA table, effect size, optional `ggplot`, original call, and report text.
+#' `primary_test` has one row per model term (main effects and interactions)
+#' with columns `term`, `statistic` (F), `parameter` and `num.df` (term df),
+#' `den.df` (residual df), `p.value`, the term's eta squared, and its null
+#' hypothesis. Levene's test for variance homogeneity is computed across all
+#' design cells (every combination of factor levels).
 #' @references
 #' Fisher, R. A. (1925). \emph{Statistical Methods for Research Workers}.
 #' Oliver and Boyd.
@@ -64,7 +68,11 @@ testfactorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2,
   tab <- tab[tab$term != "(Intercept)", , drop = FALSE]
   residual_df <- .bt(.resid = stats::residuals(fit))
   normality <- .residual_normality(residual_df$.resid, alpha, "Residuals appear approximately normal.", "Residuals deviate from normality.")
-  levene_test <- check_variance_homogeneity(df, outcome_nm, factor_nms[1], alpha)
+  # Levene's test across all design cells (every factor-level combination),
+  # not only the levels of the first factor.
+  cell_df <- df
+  cell_df$.cell <- interaction(df[factor_nms], drop = TRUE, sep = ":")
+  levene_test <- check_variance_homogeneity(cell_df, outcome_nm, ".cell", alpha)
   levene <- assumption_check(
     "Variance homogeneity",
     levene_test$status[1],
@@ -72,17 +80,21 @@ testfactorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2,
     method = levene_test$method[1],
     statistic = levene_test$statistic[1],
     p_value = levene_test$p[1],
-    details = paste0("Df1=", levene_test$df1[1], "; Df2=", levene_test$df2[1])
+    details = paste0("Across ", nlevels(cell_df$.cell), " cells of ", paste(factor_nms, collapse = " x "), "; Df1=", levene_test$df1[1], "; Df2=", levene_test$df2[1])
   )
   type_label <- c(`1` = "Type I (sequential)", `2` = "Type II", `3` = "Type III")[[as.character(type)]]
   balanced <- assumption_check("Balanced design", "not required", ifelse(length(unique(table(df[factor_nms]))) > 1, paste0("Cell sizes are unbalanced; ", type_label, " sums of squares are used so the terms are not order-dependent.", if (identical(type, 1)) " Type I sums of squares depend on the order factors are listed in the formula for unbalanced designs; consider `type = 2` or `type = 3`." else ""), "Cell sizes are balanced; Type I, II, and III sums of squares agree."))
   effect <- eta_squared_aov(fit, tab = ss_tab)
-  keep_row <- tab[!is.na(tab$term) & tab$term != "Residuals", , drop = FALSE][1, , drop = FALSE]
+  keep_rows <- tab[!is.na(tab$term) & tab$term != "Residuals", , drop = FALSE]
+  resid_df <- tab$df[!is.na(tab$term) & tab$term == "Residuals"][1]
   primary <- .bt(
     method = paste0("Factorial ANOVA (", type_label, ")"),
-    statistic = keep_row$statistic,
-    parameter = keep_row$df,
-    p.value = keep_row$p.value
+    term = keep_rows$term,
+    statistic = keep_rows$statistic,
+    parameter = keep_rows$df,
+    p.value = keep_rows$p.value,
+    num.df = keep_rows$df,
+    den.df = rep(resid_df, nrow(keep_rows))
   )
   plt <- if (plot && length(factor_nms) >= 2) {
     ggplot2::ggplot(df, ggplot2::aes(x = .data[[factor_nms[1]]], y = .data[[outcome_nm]], color = .data[[factor_nms[2]]], group = .data[[factor_nms[2]]])) +
@@ -91,8 +103,38 @@ testfactorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2,
       ggplot2::labs(title = "Factorial ANOVA workflow", subtitle = plot_subtitle("Factorial ANOVA", list(p.value = min(primary$p.value, na.rm = TRUE))), x = factor_nms[1], y = outcome_nm, color = factor_nms[2]) +
       ggplot2::theme_minimal()
   } else if (plot) make_plot("groups", df, outcome_nm, factor_nms[1], "Factorial ANOVA", list(p.value = min(primary$p.value, na.rm = TRUE)), effect) else NULL
-  h0 <- h0_mean_equal(outcome_nm, paste(factor_nms, collapse = ", "))
+  h0 <- h0_factorial_terms(outcome_nm, primary$term)
   out <- new_testflow("factorial", "factorial design", outcome_nm, paste(factor_nms, collapse = ", "), data = df, descriptives = descriptives_numeric(df, outcome_nm, factor_nms[1]), assumptions = assumption_checks(check_independence_note(), normality, levene, balanced), recommended = list(test = "Factorial ANOVA", rationale = "Primary workflow for factorial numeric outcomes."), primary_test = add_null_hypothesis(primary, h0), alternative_tests = list(anova_table = tab), effect_size = effect, plot = plt, call = match.call(), subclass = "factorial")
+  # One row per ANOVA term: attach each term's own eta squared.
+  idx <- match(out$primary_test$term, effect$term)
+  out$primary_test$effect_size <- effect$estimate[idx]
+  out$primary_test$effect_size_name <- effect$name[idx]
+  out$primary_test$effect_size_magnitude <- effect$magnitude[idx]
   out$interpretation <- make_report(out, alpha)
   out
+}
+
+h0_factorial_terms <- function(outcome, terms) {
+  vapply(terms, function(tm) {
+    parts <- strsplit(tm, ":", fixed = TRUE)[[1]]
+    if (length(parts) > 1) {
+      paste0("H0: there is no ", paste(parts, collapse = " x "), " interaction on the mean of ", outcome, ".")
+    } else {
+      paste0("H0: the population mean of ", outcome, " is equal across levels of ", tm, " (main effect).")
+    }
+  }, character(1), USE.NAMES = FALSE)
+}
+
+# Per-term summary used by print() and report() for factorial ANOVA.
+factorial_terms_text <- function(x, alpha = NULL) {
+  t <- x$primary_test
+  vapply(seq_len(nrow(t)), function(i) {
+    paste0(
+      t$term[i], ": F = ", format_stat(t$statistic[i]),
+      ", df = ", format_stat(t$num.df[i]), ", ", format_stat(t$den.df[i]),
+      ", p = ", format_p(t$p.value[i]),
+      if (!is.na(t$effect_size[i])) paste0(", ", t$effect_size_name[i], " = ", format_stat(t$effect_size[i])) else "",
+      if (!is.null(alpha)) ifelse(t$p.value[i] < alpha, " (significant)", " (not significant)") else ""
+    )
+  }, character(1))
 }

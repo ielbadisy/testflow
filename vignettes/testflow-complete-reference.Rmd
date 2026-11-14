@@ -251,9 +251,12 @@ and reports sums of squares of the chosen `type`:
 
 Effect size is eta squared per term, computed from whichever SS table
 (Type I/II/III) was actually used for the reported test - not always
-recomputed as Type I - so the effect size matches the p-value. Residual
-normality (Shapiro-Wilk) and variance homogeneity (Levene, on the first
-factor) are checked as assumptions.
+recomputed as Type I, so the effect size matches the p-value. The primary
+result has one row per term (each main effect and each interaction), with
+its F statistic, numerator and denominator df, p-value, eta squared, and
+null hypothesis. Residual normality (Shapiro-Wilk) and variance homogeneity
+(Levene, across all design cells, that is every combination of factor
+levels) are checked as assumptions.
 
 ```{r}
 x_factorial <- testfactorial(sbp_3m ~ sex * treatment, data = cardio)

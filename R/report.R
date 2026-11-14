@@ -43,6 +43,15 @@ make_report <- function(x, alpha = 0.05) {
     return(paste0("The outlier workflow flagged ", format_count(n), " ", ifelse(n == 1, "row", "rows"), " for review."))
   }
 
+  if (identical(x$workflow, "factorial") && "term" %in% names(x$primary_test)) {
+    return(paste0(
+      "The ", x$design, " workflow for ", x$outcome %||% "the outcome",
+      " used ", x$primary_test$method[[1]], " with one test per term. ",
+      paste(factorial_terms_text(x, alpha), collapse = "; "), ". ",
+      paste(x$primary_test$null_hypothesis, collapse = " ")
+    ))
+  }
+
   p <- primary_p(x)
   method <- x$recommended$test %||% x$recommended
   stat <- primary_statistic(x)
