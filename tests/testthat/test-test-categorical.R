@@ -28,3 +28,18 @@ test_that("testmultinomial adjusts pairwise post-hoc p-values, matching the rest
   expect_equal(z$posthoc$p.adjust.method, rep("BH", nrow(z$posthoc)))
   expect_equal(z$posthoc$p.adj, stats::p.adjust(z$posthoc$p, method = "BH"))
 })
+
+test_that("testcategorical offers the Bergsma bias-corrected Cramer's V", {
+  dat <- data.frame(cyl = factor(mtcars$cyl), gear = factor(mtcars$gear))
+  raw <- testcategorical(cyl ~ gear, data = dat, plot = FALSE)
+  adj <- testcategorical(cyl ~ gear, data = dat, plot = FALSE, biascorrect = TRUE)
+  tab <- table(dat$cyl, dat$gear)
+  n <- sum(tab); r <- nrow(tab); k <- ncol(tab)
+  phi2 <- suppressWarnings(chisq.test(tab, correct = FALSE))$statistic / n
+  phi2c <- max(0, phi2 - (k - 1) * (r - 1) / (n - 1))
+  rc <- r - (r - 1)^2 / (n - 1); kc <- k - (k - 1)^2 / (n - 1)
+  expect_equal(adj$effect_size$estimate, unname(sqrt(phi2c / min(kc - 1, rc - 1))))
+  expect_match(adj$effect_size$name, "bias-corrected")
+  expect_lt(adj$effect_size$estimate, raw$effect_size$estimate)
+  expect_equal(raw$effect_size$name, "Cramer's V")
+})
