@@ -10,7 +10,13 @@
 #' a list containing the cleaned data, per-group descriptive survival
 #' statistics, the log-rank test as the primary result with null hypothesis,
 #' the Kaplan-Meier curve data, a companion univariate hazard ratio as the
-#' effect size, optional `ggplot`, original call, and report text.
+#' effect size, optional `ggplot`, original call, and report text. The
+#' log-rank p-value is in `$primary_test$p.value` (there is no top-level
+#' `$p_value`). The hazard ratio, with its 95% Wald CI (`conf.low`,
+#' `conf.high`), is in `$effect_size`; its name states the comparison, for
+#' example "Hazard ratio (F vs M)", where the second factor level is compared
+#' to the first (reference) level. Relevel the factor to change the reference.
+#' The Cox model table is in `$alternative_tests$cox`.
 #' @details
 #' For groups A and B, the log-rank test compares observed to expected
 #' events under the null of equal survival distributions:
@@ -61,15 +67,24 @@ testsurvival <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE)
 
   hr <- unname(exp(stats::coef(fit_cox))[1])
   hr_ci <- exp(stats::confint(fit_cox))[1, ]
-  effect <- .bt(name = "Hazard ratio", estimate = hr, magnitude = NA_character_)
+  lv <- levels(df[[group_nm]])
+  # The Cox HR compares the second level to the first (reference) level;
+  # name both so the direction is explicit when level order changes.
+  effect <- .bt(
+    name = paste0("Hazard ratio (", lv[2], " vs ", lv[1], ")"),
+    estimate = hr,
+    magnitude = NA_character_,
+    conf.low = unname(hr_ci[1]),
+    conf.high = unname(hr_ci[2])
+  )
 
+  # The log-rank test has no confidence interval; the HR CI lives with the
+  # effect size and the Cox table, not on the log-rank row.
   primary <- .bt(
     method = "Log-rank test",
     statistic = chisq,
     parameter = lr_df,
-    p.value = lr_p,
-    conf.low = unname(hr_ci[1]),
-    conf.high = unname(hr_ci[2])
+    p.value = lr_p
   )
   h0 <- paste0("H0: the survival distributions are equal across levels of ", group_nm, ".")
 
@@ -80,7 +95,7 @@ testsurvival <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE)
       ggplot2::scale_y_continuous(limits = c(0, 1)) +
       ggplot2::labs(
         title = "Survival workflow",
-        subtitle = paste0("Log-rank test, p = ", format_p(lr_p), "; hazard ratio = ", format_stat(hr)),
+        subtitle = paste0("Log-rank test, p = ", format_p(lr_p), "; hazard ratio (", lv[2], " vs ", lv[1], ") = ", format_stat(hr)),
         x = time_nm, y = "Survival probability", color = group_nm, fill = group_nm
       ) +
       ggplot2::theme_minimal()
