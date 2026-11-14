@@ -86,7 +86,10 @@ add_null_hypothesis <- function(x, h0) {
 standardize_result_columns <- function(x) {
   if (is.null(x) || !inherits(x, "data.frame")) return(x)
   if (!"statistic" %in% names(x)) x$statistic <- NA_real_
-  if (!"parameter" %in% names(x)) x$parameter <- NA_real_
+  if (!"parameter" %in% names(x)) {
+    # Welch ANOVA (oneway.test) has two df; broom names them num.df/den.df.
+    x$parameter <- if ("num.df" %in% names(x)) unname(x$num.df) else NA_real_
+  }
   if (!"p.value" %in% names(x)) x$p.value <- NA_real_
   if (!"conf.low" %in% names(x)) x$conf.low <- NA_real_
   if (!"conf.high" %in% names(x)) x$conf.high <- NA_real_
