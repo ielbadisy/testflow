@@ -82,6 +82,10 @@ workflow_display <- list(
     outcome_label = "Method 1", group_label = "Method 2",
     table = "limits_table", table_label = "Bias and limits of agreement"
   ),
+  equivalence = list(
+    title = "Equivalence / Non-Inferiority (TOST)",
+    table = "one_sided", table_label = "One-sided tests"
+  ),
   icc = list(
     title = "Intraclass Correlation",
     table = "icc_table", table_label = "ICC comparison"
