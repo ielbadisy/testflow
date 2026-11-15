@@ -11,7 +11,8 @@ testtwogroups(
   alternative = c("two.sided", "less", "greater"),
   alpha = 0.05,
   plot = TRUE,
-  na.rm = TRUE
+  na.rm = TRUE,
+  method = c("auto", "welch", "student", "wilcoxon")
 )
 }
 \arguments{
@@ -28,6 +29,13 @@ testtwogroups(
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{method}{\code{"auto"} (default) picks the test from the normality and
+Levene pre-tests. \code{"welch"}, \code{"student"} or \code{"wilcoxon"} fixes the
+primary test in advance, as a pre-specified analysis plan would; the
+pre-tests are still reported as descriptive checks. Many statisticians
+advise against the two-step pre-test approach and prefer Welch's t test
+by default.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_two_groups}. The object is

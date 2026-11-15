@@ -6,6 +6,12 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param method `"auto"` (default) picks the test from the normality and
+#'   Levene pre-tests. `"welch"`, `"student"` or `"wilcoxon"` fixes the
+#'   primary test in advance, as a pre-specified analysis plan would; the
+#'   pre-tests are still reported as descriptive checks. Many statisticians
+#'   advise against the two-step pre-test approach and prefer Welch's t test
+#'   by default.
 #' @return A `testflow` object with class `testflow_two_groups`. The object is
 #' a list containing the cleaned data, descriptive statistics by group,
 #' assumption checks, recommended test, primary test result with null
@@ -19,9 +25,11 @@ testtwogroups <- function(
   alternative = c("two.sided", "less", "greater"),
   alpha = 0.05,
   plot = TRUE,
-  na.rm = TRUE
+  na.rm = TRUE,
+  method = c("auto", "welch", "student", "wilcoxon")
 ) {
   alternative <- match.arg(alternative)
+  method <- match.arg(method)
   vars <- resolve_formula_pair(tf_formula_arg(substitute(formula), parent.frame()), tf_formula_arg(substitute(data), parent.frame()), substitute(group), missing(group))
   outcome_nm <- vars$outcome
   group_nm <- vars$group
@@ -35,7 +43,14 @@ testtwogroups <- function(
   f_test <- check_variance_two_groups(df, outcome_nm, group_nm, alpha)
   outliers <- check_outliers(df[[outcome_nm]])
   independence <- check_independence_note()
-  recommendation <- recommend_two_groups(normality, levene)
+  recommendation <- switch(
+    method,
+    auto = recommend_two_groups(normality, levene),
+    welch = "Welch t-test",
+    student = "Student independent t-test",
+    wilcoxon = "Wilcoxon rank-sum test"
+  )
+  rationale <- if (method == "auto") recommend_rationale(recommendation, normality, levene, alpha) else paste0("Pre-specified by the user (method = \"", method, "\"); pre-tests are descriptive only.")
   formula <- tf_formula(outcome_nm, group_nm)
 
   student <- stats::t.test(formula, data = df, var.equal = TRUE, alternative = alternative)
@@ -59,7 +74,7 @@ testtwogroups <- function(
     data = df,
     descriptives = descriptives_numeric(df, outcome_nm, group_nm),
     assumptions = assumption_checks(independence, normality, levene, outliers, f_test),
-    recommended = list(test = recommendation, rationale = recommend_rationale(recommendation, normality, levene, alpha)),
+    recommended = list(test = recommendation, rationale = rationale),
     primary_test = primary_tidy,
     alternative_tests = list(
       student_t_test = add_null_hypothesis(safe_tidy_htest(student, "Student independent t-test"), h0_mean_equal(outcome_nm, group_nm)),
