@@ -110,7 +110,7 @@ format_primary_result <- function(x) {
   stat <- primary_statistic(x)
   df <- primary_df(x)
   ci <- primary_ci(x)
-  ci_text <- if (any(is.na(ci))) "" else paste0(", 95% CI [", format_stat(ci[1]), ", ", format_stat(ci[2]), "]")
+  ci_text <- if (any(is.na(ci))) "" else paste0(", ", primary_ci_level_text(x), " CI [", format_stat(ci[1]), ", ", format_stat(ci[2]), "]")
   paste0(
     "statistic = ", format_stat(stat),
     if (nzchar(primary_df_text(x))) paste0(", ", primary_df_text(x)) else "",
