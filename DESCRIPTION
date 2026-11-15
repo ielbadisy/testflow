@@ -49,6 +49,7 @@ Suggests:
     PowerTOST,
     irr,
     binom,
+    pROC,
     psych
 Config/testthat/edition: 3
 VignetteBuilder: knitr
