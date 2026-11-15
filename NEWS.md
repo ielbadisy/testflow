@@ -1,5 +1,6 @@
 # testflow 1.1.6
 
+* `testdiagnostic()` gains `ci = c("exact", "wilson")`; `"wilson"` gives Wilson score intervals for sensitivity, specificity, predictive values and accuracy (validated against `binom::binom.confint()`). Default unchanged.
 * New `testequivalence()`: TOST equivalence test for two independent groups, for means (Welch or Student t) and proportions (Wald z). An infinite bound gives a non-inferiority test. Validated against one-sided `t.test()` calls and hand formulas. Printed CIs now show their level when it is not 95%.
 * New `testblandaltman()`: Bland-Altman bias and limits of agreement with CIs (Bland and Altman 1999 exact-variance SE), normality and proportional-bias checks, and a Bland-Altman plot. Validated against hand computation.
 * `testagreement()` gains `weights = c("unweighted", "linear", "quadratic")` for Cohen's weighted kappa on ordered categories, with Fleiss-Cohen-Everitt CI and null SEs. Validated against `irr::kappa2()` and `psych::cohen.kappa()`. Default unchanged.
