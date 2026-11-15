@@ -1,5 +1,6 @@
 # testflow 1.1.6
 
+* New `samplesizeprediction()`: minimum sample size for developing a prediction model (Riley et al. 2019, 2020) for binary, survival and continuous outcomes, with the n for each criterion in `$criteria`. Validated against `pmsampsize::pmsampsize()`.
 * New `testroccompare()`: paired DeLong test comparing the AUCs of two markers on the same subjects, with the CI of the difference and each AUC's DeLong CI. Validated against `pROC::roc.test()`.
 * `testdiagnostic()` gains `ci = c("exact", "wilson")`; `"wilson"` gives Wilson score intervals for sensitivity, specificity, predictive values and accuracy (validated against `binom::binom.confint()`). Default unchanged.
 * New `testequivalence()`: TOST equivalence test for two independent groups, for means (Welch or Student t) and proportions (Wald z). An infinite bound gives a non-inferiority test. Validated against one-sided `t.test()` calls and hand formulas. Printed CIs now show their level when it is not 95%.
