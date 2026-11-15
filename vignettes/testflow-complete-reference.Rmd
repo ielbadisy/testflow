@@ -794,7 +794,7 @@ observed proportion) are only summarized inline elsewhere.
 
 # Sample-size planning
 
-`samplesize()` and the endpoint-specific `sample_size_*()` functions plan
+`samplesize()` and the endpoint-specific `samplesize*()` functions plan
 continuous, binary, survival, ordinal, bioequivalence, and precision-based
 designs, each under superiority, non-inferiority, or equivalence objectives
 where applicable. Every result is a `sample_size` object with a raw and

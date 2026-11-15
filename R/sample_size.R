@@ -79,10 +79,14 @@ samplesizecontinuous <- function(
   allocation = 1,
   dropout = 0,
   n_time = 2,
-  correlation = 0.5
+  correlation = 0.5,
+  method = c("normal", "t")
 ) {
   design <- match.arg(design)
   objective <- match.arg(objective)
+  method <- match.arg(method)
+  use_t <- identical(method, "t")
+  t_label <- function(x) if (use_t) paste0(sub(" normal approximation$| approximation$", "", x), " (noncentral t)") else x
   sample_size_validate_probability(alpha, "alpha")
   sample_size_validate_probability(power, "power")
   sample_size_validate_dropout(dropout)
@@ -116,13 +120,14 @@ samplesizecontinuous <- function(
     if (objective == "superiority") {
       sample_size_validate_positive(delta, "delta")
       n_raw <- ((z_alpha_two + z_power)^2 * scale_sd^2) / delta^2
+      if (use_t) n_raw <- sample_size_continuous_t(n_raw, "superiority", delta, scale_sd, alpha, power, paired = TRUE)
       n_main <- sample_size_round(n_raw)
       n_adj <- sample_size_apply_dropout(n_main, dropout)
       return(sample_size_result(
         endpoint = "continuous",
         design = design_label,
         objective = objective,
-        method = if (repeated_design) "repeated-measures normal approximation" else "paired normal approximation",
+        method = t_label(if (repeated_design) "repeated-measures normal approximation" else "paired normal approximation"),
         n = n_raw,
         n_adjusted = n_adj,
         n_total = n_adj,
@@ -160,13 +165,14 @@ samplesizecontinuous <- function(
         stop("The non-inferiority distance must be positive: expected_difference + margin > 0.", call. = FALSE)
       }
       n_raw <- ((z_power + z_alpha_one)^2 * scale_sd^2) / d_ni^2
+      if (use_t) n_raw <- sample_size_continuous_t(n_raw, "noninferiority", d_ni, scale_sd, alpha, power, paired = TRUE)
       n_main <- sample_size_round(n_raw)
       n_adj <- sample_size_apply_dropout(n_main, dropout)
       return(sample_size_result(
         endpoint = "continuous",
         design = design_label,
         objective = objective,
-        method = if (repeated_design) "repeated-measures non-inferiority normal approximation" else "paired non-inferiority normal approximation",
+        method = t_label(if (repeated_design) "repeated-measures non-inferiority normal approximation" else "paired non-inferiority normal approximation"),
         n = n_raw,
         n_adjusted = n_adj,
         n_total = n_adj,
@@ -201,13 +207,14 @@ samplesizecontinuous <- function(
       } else {
         n_raw <- ((z_power + z_alpha_one)^2 * scale_sd^2) / d_eq^2
       }
+      if (use_t) n_raw <- sample_size_continuous_t(n_raw, "equivalence", expected_difference, scale_sd, alpha, power, paired = TRUE, margin = delta)
       n_main <- sample_size_round(n_raw)
       n_adj <- sample_size_apply_dropout(n_main, dropout)
       return(sample_size_result(
         endpoint = "continuous",
         design = design_label,
         objective = objective,
-        method = if (repeated_design) "repeated-measures equivalence approximation" else "paired equivalence approximation",
+        method = t_label(if (repeated_design) "repeated-measures equivalence approximation" else "paired equivalence approximation"),
         n = n_raw,
         n_adjusted = n_adj,
         n_total = n_adj,
@@ -238,6 +245,7 @@ samplesizecontinuous <- function(
   if (objective == "superiority") {
     sample_size_validate_positive(delta, "delta")
     n_a_raw <- ((allocation + 1) * sd^2 * (z_alpha_two + z_power)^2) / (allocation * delta^2)
+    if (use_t) n_a_raw <- sample_size_continuous_t(n_a_raw, "superiority", delta, sd, alpha, power, allocation = allocation)
     n_b_raw <- allocation * n_a_raw
     n_a <- sample_size_round(n_a_raw)
     n_b <- sample_size_round(n_b_raw)
@@ -247,7 +255,7 @@ samplesizecontinuous <- function(
       endpoint = "continuous",
       design = "parallel",
       objective = objective,
-      method = "parallel normal approximation",
+      method = t_label("parallel normal approximation"),
       n = n_a_raw,
       n_adjusted = c(A = n_a_adj, B = n_b_adj),
       n_per_group = c(A = n_a_adj, B = n_b_adj),
@@ -272,6 +280,7 @@ samplesizecontinuous <- function(
       stop("The non-inferiority distance must be positive: expected_difference + margin > 0.", call. = FALSE)
     }
     n_a_raw <- ((allocation + 1) * sd^2 * (z_power + z_alpha_one)^2) / (allocation * d_ni^2)
+    if (use_t) n_a_raw <- sample_size_continuous_t(n_a_raw, "noninferiority", d_ni, sd, alpha, power, allocation = allocation)
     n_b_raw <- allocation * n_a_raw
     n_a <- sample_size_round(n_a_raw)
     n_b <- sample_size_round(n_b_raw)
@@ -281,7 +290,7 @@ samplesizecontinuous <- function(
       endpoint = "continuous",
       design = "parallel",
       objective = objective,
-      method = "parallel non-inferiority normal approximation",
+      method = t_label("parallel non-inferiority normal approximation"),
       n = n_a_raw,
       n_adjusted = c(A = n_a_adj, B = n_b_adj),
       n_per_group = c(A = n_a_adj, B = n_b_adj),
@@ -311,6 +320,7 @@ samplesizecontinuous <- function(
     } else {
       n_a_raw <- ((allocation + 1) * sd^2 * (z_power + z_alpha_one)^2) / (allocation * d_eq^2)
     }
+    if (use_t) n_a_raw <- sample_size_continuous_t(n_a_raw, "equivalence", expected_difference, sd, alpha, power, allocation = allocation, margin = delta)
     n_b_raw <- allocation * n_a_raw
     n_a <- sample_size_round(n_a_raw)
     n_b <- sample_size_round(n_b_raw)
@@ -320,7 +330,7 @@ samplesizecontinuous <- function(
       endpoint = "continuous",
       design = "parallel",
       objective = objective,
-      method = "parallel equivalence approximation",
+      method = t_label("parallel equivalence approximation"),
       n = n_a_raw,
       n_adjusted = c(A = n_a_adj, B = n_b_adj),
       n_per_group = c(A = n_a_adj, B = n_b_adj),
@@ -2001,6 +2011,37 @@ sample_size_validate_max_n <- function(max_n) {
     stop("`max_n` must be a single finite integer greater than or equal to 2.", call. = FALSE)
   }
   as.integer(round(max_n))
+}
+
+# Smallest n (per arm A for parallel designs, pairs for paired designs) whose
+# noncentral-t power reaches the target; `n_start` is the normal-approximation n.
+sample_size_continuous_t <- function(n_start, objective, d, sd, alpha, power, paired = FALSE, allocation = 1, margin = NULL) {
+  power_at <- function(n) {
+    if (paired) {
+      se <- sd / sqrt(n)
+      df <- n - 1
+    } else {
+      n_b <- allocation * n
+      se <- sd * sqrt(1 / n + 1 / n_b)
+      df <- n + n_b - 2
+    }
+    if (df < 1) return(0)
+    switch(
+      objective,
+      superiority = {
+        tc <- stats::qt(1 - alpha / 2, df)
+        stats::pt(tc, df, ncp = d / se, lower.tail = FALSE) + stats::pt(-tc, df, ncp = d / se)
+      },
+      noninferiority = stats::pt(stats::qt(1 - alpha, df), df, ncp = d / se, lower.tail = FALSE),
+      equivalence = {
+        tc <- stats::qt(1 - alpha, df)
+        max(0, stats::pt(-tc, df, ncp = (d - margin) / se) - stats::pt(tc, df, ncp = (d + margin) / se))
+      }
+    )
+  }
+  n <- max(2, floor(n_start))
+  while (power_at(n) < power) n <- n + 1
+  n
 }
 
 sample_size_round <- function(x) {
