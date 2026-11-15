@@ -1,5 +1,6 @@
 # testflow 1.1.6
 
+* `testagreement()` gains `weights = c("unweighted", "linear", "quadratic")` for Cohen's weighted kappa on ordered categories, with Fleiss-Cohen-Everitt CI and null SEs. Validated against `irr::kappa2()` and `psych::cohen.kappa()`. Default unchanged.
 * `samplesizecontinuous()` gains `method = c("normal", "t")`. `"t"` gives the smallest n whose noncentral-t power reaches the target (as `power.t.test()` and PowerTOST); the default normal approximation is unchanged. Vignettes now refer to `samplesize*()` names.
 
 # testflow 1.1.5

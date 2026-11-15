@@ -7,6 +7,11 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param weights `"unweighted"` (default) gives Cohen's kappa. `"linear"`
+#'   or `"quadratic"` give Cohen's (1968) weighted kappa for ordered
+#'   categories, with agreement weights \eqn{w_{ij} = 1 - |i-j|/(k-1)} or
+#'   \eqn{1 - (i-j)^2/(k-1)^2}. Category order follows the factor levels
+#'   (or numeric order), so code ordinal ratings as ordered factors.
 #' @return A `testflow` object with class `testflow_agreement`. The object
 #' is a list containing the cleaned data, categorical descriptives, the test
 #' of kappa against 0 as the primary result with null hypothesis, the
@@ -36,7 +41,18 @@
 #'   materially above chance - the typical case - inflating the z-statistic
 #'   and anti-conservatively shrinking the p-value; verified in package
 #'   tests to match `irr::kappa2()`'s reported z exactly.
+#'
+#' Weighted kappa replaces agreement on the diagonal with weighted agreement,
+#' \eqn{\kappa_w = (p_{o,w} - p_{e,w})/(1 - p_{e,w})} with
+#' \eqn{p_{o,w} = \sum w_{ij} p_{ij}} and
+#' \eqn{p_{e,w} = \sum w_{ij} \pi_{i\cdot}\pi_{\cdot j}}. Its CI and null
+#' SEs are the weighted forms in Fleiss, Cohen & Everitt (1969). Quadratic
+#' weighted kappa is close to the ICC for ordinal ratings.
 #' @references
+#' Cohen J. Weighted kappa: nominal scale agreement with provision for
+#' scaled disagreement or partial credit. *Psychological Bulletin*.
+#' 1968;70(4):213-220.
+#'
 #' Cohen J. A coefficient of agreement for nominal scales. *Educational and
 #' Psychological Measurement*. 1960;20(1):37-46.
 #'
@@ -50,12 +66,23 @@
 #' categorical data. *Biometrics*. 1977;33(1):159-174. (Magnitude
 #' convention.)
 #' @export
-testagreement <- function(data, rater1, rater2, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testagreement <- function(data, rater1, rater2, alpha = 0.05, plot = TRUE, na.rm = TRUE, weights = c("unweighted", "linear", "quadratic")) {
+  weights <- match.arg(weights)
   rater1_nm <- rlang::as_name(rlang::ensym(rater1))
   rater2_nm <- rlang::as_name(rlang::ensym(rater2))
   df <- drop_missing(data, c(rater1_nm, rater2_nm), na.rm = na.rm)
 
   category_levels <- sort(unique(c(as.character(df[[rater1_nm]]), as.character(df[[rater2_nm]]))))
+  if (weights != "unweighted") {
+    # Weighted kappa needs the category order: factor levels, else numeric
+    # order for numeric codes, else alphabetical.
+    lv <- unique(c(levels(df[[rater1_nm]]), levels(df[[rater2_nm]])))
+    if (length(lv)) {
+      category_levels <- c(intersect(lv, category_levels), setdiff(category_levels, lv))
+    } else if (is.numeric(df[[rater1_nm]]) && is.numeric(df[[rater2_nm]])) {
+      category_levels <- as.character(sort(unique(c(df[[rater1_nm]], df[[rater2_nm]]))))
+    }
+  }
   df[[rater1_nm]] <- factor(df[[rater1_nm]], levels = category_levels)
   df[[rater2_nm]] <- factor(df[[rater2_nm]], levels = category_levels)
   tab <- table(df[[rater1_nm]], df[[rater2_nm]])
@@ -87,15 +114,30 @@ testagreement <- function(data, rater1, rater2, alpha = 0.05, plot = TRUE, na.rm
   # shrinking the p-value). Matches `irr::kappa2()`'s reported z exactly.
   se0_kappa <- sqrt(pe + pe^2 - sum(pi_row * pi_col * (pi_row + pi_col))) / ((1 - pe) * sqrt(n))
 
+  kappa_name <- "Cohen's kappa"
+  if (weights != "unweighted") {
+    w <- agreement_weights(k, weights)
+    po_w <- sum(w * p)
+    pe_w <- sum(w * outer(pi_row, pi_col))
+    kappa <- (po_w - pe_w) / (1 - pe_w)
+    w_row <- as.vector(w %*% pi_col)
+    w_col <- as.vector(crossprod(w, pi_row))
+    dev_hat <- w - outer(w_row, w_col, "+") * (1 - kappa)
+    se_kappa <- sqrt(max(0, sum(p * dev_hat^2) - (kappa - pe_w * (1 - kappa))^2) / (n * (1 - pe_w)^2))
+    dev_0 <- w - outer(w_row, w_col, "+")
+    se0_kappa <- sqrt(max(0, sum(outer(pi_row, pi_col) * dev_0^2) - pe_w^2) / (n * (1 - pe_w)^2))
+    kappa_name <- paste0("Weighted kappa (", weights, ")")
+  }
+
   z <- stats::qnorm(1 - alpha / 2)
   # Wald interval clipped to the parameter range (kappa <= 1; floor at -1).
   kappa_ci <- pmin(pmax(kappa + c(-1, 1) * z * se_kappa, -1), 1)
   z_stat <- kappa / se0_kappa
   p_value <- 2 * stats::pnorm(-abs(z_stat))
 
-  effect <- .bt(name = "Cohen's kappa", estimate = kappa, magnitude = magnitude_kappa(kappa))
+  effect <- .bt(name = kappa_name, estimate = kappa, magnitude = magnitude_kappa(kappa))
   primary <- .bt(
-    method = "Cohen's kappa (vs. 0)",
+    method = paste0(kappa_name, " (vs. 0)"),
     statistic = z_stat,
     p.value = p_value,
     conf.low = kappa_ci[1],
@@ -111,7 +153,7 @@ testagreement <- function(data, rater1, rater2, alpha = 0.05, plot = TRUE, na.rm
       ggplot2::geom_text(ggplot2::aes(label = .data$n), color = "white") +
       ggplot2::scale_fill_gradient(low = "#A9BEDB", high = "#1F2933") +
       ggplot2::coord_equal() +
-      ggplot2::labs(title = "Inter-rater agreement workflow", subtitle = paste0("Cohen's kappa = ", format_stat(kappa), " (", effect$magnitude[1], ")"), x = rater1_nm, y = rater2_nm, fill = "n") +
+      ggplot2::labs(title = "Inter-rater agreement workflow", subtitle = paste0(kappa_name, " = ", format_stat(kappa), " (", effect$magnitude[1], ")"), x = rater1_nm, y = rater2_nm, fill = "n") +
       ggplot2::theme_minimal()
   } else NULL
 
@@ -123,7 +165,7 @@ testagreement <- function(data, rater1, rater2, alpha = 0.05, plot = TRUE, na.rm
     data = df,
     descriptives = descriptives_categorical(df, c(rater1_nm, rater2_nm)),
     assumptions = assumption_checks(check_independence_note("Raters are assumed to classify subjects independently.")),
-    recommended = list(test = "Cohen's kappa", rationale = "Two raters classifying the same subjects into the same categories."),
+    recommended = list(test = kappa_name, rationale = if (weights == "unweighted") "Two raters classifying the same subjects into the same categories." else paste0("Two raters classifying the same subjects on an ordered scale; ", weights, " weights give partial credit to near-miss disagreements.")),
     primary_test = add_null_hypothesis(primary, h0),
     alternative_tests = list(agreement_table = tab),
     effect_size = effect,
@@ -133,6 +175,12 @@ testagreement <- function(data, rater1, rater2, alpha = 0.05, plot = TRUE, na.rm
   )
   out$interpretation <- make_report(out, alpha)
   out
+}
+
+agreement_weights <- function(k, type) {
+  if (k < 2) return(matrix(1, 1, 1))
+  d <- abs(outer(seq_len(k), seq_len(k), "-")) / (k - 1)
+  if (identical(type, "quadratic")) 1 - d^2 else 1 - d
 }
 
 #' Intraclass correlation coefficient workflow
