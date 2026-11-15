@@ -1,5 +1,6 @@
 # testflow 1.1.6
 
+* New exported `descriptivesnumeric()` and `descriptivescategorical()`: the descriptive tables used inside the workflows, now callable directly.
 * `testtwogroups()` gains `method = c("auto", "welch", "student", "wilcoxon")` to pre-specify the primary test instead of choosing it from normality and Levene pre-tests. Default `"auto"` unchanged.
 * `testproportion()` gains `weights`, `cluster` and `strata` (column names) for complex survey samples: weighted proportion, design-based t test and logit CI, with the design effect in `$survey`. Validated against `survey::svyttest()` and `survey::svyciprop()`. Default unchanged.
 * New `samplesizeprediction()`: minimum sample size for developing a prediction model (Riley et al. 2019, 2020) for binary, survival and continuous outcomes, with the n for each criterion in `$criteria`. Validated against `pmsampsize::pmsampsize()`.

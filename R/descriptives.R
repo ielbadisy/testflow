@@ -58,3 +58,34 @@ descriptives_categorical <- function(data, vars) {
     )
   })
 }
+
+#' Descriptive statistics for numeric variables
+#'
+#' The summary table used inside every testflow workflow: n, mean, SD,
+#' median, IQR, minimum and maximum, optionally by group.
+#' @param data A data frame.
+#' @param vars Character vector of numeric column names.
+#' @param group Optional grouping column name (string).
+#' @return A table with one row per variable (and group).
+#' @examples
+#' descriptivesnumeric(mtcars, c("mpg", "wt"), group = "am")
+#' @export
+descriptivesnumeric <- function(data, vars, group = NULL) {
+  require_columns(data, c(vars, group))
+  descriptives_numeric(data, vars, group)
+}
+
+#' Frequency table for categorical variables
+#'
+#' Counts and proportions per level (missing values shown as a level), as
+#' used inside testflow workflows.
+#' @param data A data frame.
+#' @param vars Character vector of categorical column names.
+#' @return A table with one row per variable level.
+#' @examples
+#' descriptivescategorical(mtcars, c("cyl", "gear"))
+#' @export
+descriptivescategorical <- function(data, vars) {
+  require_columns(data, vars)
+  descriptives_categorical(data, vars)
+}
