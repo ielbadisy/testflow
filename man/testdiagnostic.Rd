@@ -4,7 +4,15 @@
 \alias{testdiagnostic}
 \title{Diagnostic test accuracy workflow}
 \usage{
-testdiagnostic(data, test, reference, alpha = 0.05, plot = TRUE, na.rm = TRUE)
+testdiagnostic(
+  data,
+  test,
+  reference,
+  alpha = 0.05,
+  plot = TRUE,
+  na.rm = TRUE,
+  ci = c("exact", "wilson")
+)
 }
 \arguments{
 \item{data}{A data frame.}
@@ -20,6 +28,10 @@ alphabetically second level is treated as "positive").}
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{ci}{Interval for sensitivity, specificity, predictive values and
+accuracy: \code{"exact"} (Clopper-Pearson, default) or \code{"wilson"} (Wilson
+score interval, narrower and closer to nominal coverage on average).}
 }
 \value{
 A \code{testflow} object with class \code{testflow_diagnostic}. The object
@@ -42,7 +54,9 @@ With true positives \eqn{TP}, false positives \eqn{FP}, false negatives
 LR^- = \frac{1-Sensitivity}{Specificity}}
 
 Sensitivity, specificity, PPV, NPV, and accuracy each get an exact
-(Clopper-Pearson) confidence interval. Likelihood ratios get the
+(Clopper-Pearson) confidence interval by default, or a Wilson score
+interval with \code{ci = "wilson"}:
+\deqn{\frac{\hat p + z^2/(2m) \pm z\sqrt{\hat p(1-\hat p)/m + z^2/(4m^2)}}{1 + z^2/m}} Likelihood ratios get the
 closed-form log-scale interval of Simel, Samsa & Matchar (1991):
 \deqn{SE[\log LR^+] = \sqrt{\frac1{TP}-\frac1{TP+FN}+\frac1{FP}-\frac1{FP+TN}}}
 
@@ -54,6 +68,9 @@ test, following the same convention as \code{caret::confusionMatrix()}.
 Simel DL, Samsa GP, Matchar DB. Likelihood ratios with confidence:
 sample size estimation for diagnostic test studies. \emph{Journal of Clinical
 Epidemiology}. 1991;44(8):763-770.
+
+Brown LD, Cai TT, DasGupta A. Interval estimation for a binomial
+proportion. \emph{Statistical Science}. 2001;16(2):101-133.
 
 Altman DG, Bland JM. Diagnostic tests 1: sensitivity and specificity.
 \emph{BMJ}. 1994;308(6943):1552.

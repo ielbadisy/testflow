@@ -8,6 +8,9 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param ci Interval for sensitivity, specificity, predictive values and
+#'   accuracy: `"exact"` (Clopper-Pearson, default) or `"wilson"` (Wilson
+#'   score interval, narrower and closer to nominal coverage on average).
 #' @return A `testflow` object with class `testflow_diagnostic`. The object
 #' is a list containing the cleaned data, categorical descriptives, the
 #' accuracy-vs-no-information-rate test as the primary result with null
@@ -24,7 +27,9 @@
 #' LR^- = \frac{1-Sensitivity}{Specificity}}
 #'
 #' Sensitivity, specificity, PPV, NPV, and accuracy each get an exact
-#' (Clopper-Pearson) confidence interval. Likelihood ratios get the
+#' (Clopper-Pearson) confidence interval by default, or a Wilson score
+#' interval with `ci = "wilson"`:
+#' \deqn{\frac{\hat p + z^2/(2m) \pm z\sqrt{\hat p(1-\hat p)/m + z^2/(4m^2)}}{1 + z^2/m}} Likelihood ratios get the
 #' closed-form log-scale interval of Simel, Samsa & Matchar (1991):
 #' \deqn{SE[\log LR^+] = \sqrt{\frac1{TP}-\frac1{TP+FN}+\frac1{FP}-\frac1{FP+TN}}}
 #'
@@ -36,10 +41,14 @@
 #' sample size estimation for diagnostic test studies. *Journal of Clinical
 #' Epidemiology*. 1991;44(8):763-770.
 #'
+#' Brown LD, Cai TT, DasGupta A. Interval estimation for a binomial
+#' proportion. *Statistical Science*. 2001;16(2):101-133.
+#'
 #' Altman DG, Bland JM. Diagnostic tests 1: sensitivity and specificity.
 #' *BMJ*. 1994;308(6943):1552.
 #' @export
-testdiagnostic <- function(data, test, reference, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testdiagnostic <- function(data, test, reference, alpha = 0.05, plot = TRUE, na.rm = TRUE, ci = c("exact", "wilson")) {
+  ci <- match.arg(ci)
   test_nm <- rlang::as_name(rlang::ensym(test))
   reference_nm <- rlang::as_name(rlang::ensym(reference))
   df <- drop_missing(data, c(test_nm, reference_nm), na.rm = na.rm)
@@ -63,6 +72,7 @@ testdiagnostic <- function(data, test, reference, alpha = 0.05, plot = TRUE, na.
 
   exact_ci <- function(x, m) {
     if (m == 0) return(c(NA_real_, NA_real_))
+    if (identical(ci, "wilson")) return(wilson_ci(x, m, alpha))
     as.numeric(stats::binom.test(x, m, conf.level = 1 - alpha)$conf.int)
   }
   sens_ci <- exact_ci(tp, tp + fn)
@@ -118,6 +128,14 @@ testdiagnostic <- function(data, test, reference, alpha = 0.05, plot = TRUE, na.
   )
   out$interpretation <- make_report(out, alpha)
   out
+}
+
+wilson_ci <- function(x, m, alpha = 0.05) {
+  z <- stats::qnorm(1 - alpha / 2)
+  p <- x / m
+  centre <- (p + z^2 / (2 * m)) / (1 + z^2 / m)
+  half <- z * sqrt(p * (1 - p) / m + z^2 / (4 * m^2)) / (1 + z^2 / m)
+  c(max(0, centre - half), min(1, centre + half))
 }
 
 #' Receiver operating characteristic (ROC) curve workflow
