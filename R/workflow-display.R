@@ -72,6 +72,11 @@ workflow_display <- list(
     outcome_label = "Predictor", group_label = "Outcome",
     table = "optimal_threshold", table_label = "Optimal threshold (Youden's J)"
   ),
+  roccompare = list(
+    title = "Paired ROC Comparison",
+    outcome_label = "Predictors", group_label = "Outcome",
+    table = "auc_table", table_label = "AUCs (DeLong)"
+  ),
   agreement = list(
     title = "Inter-Rater Agreement",
     outcome_label = "Rater 1", group_label = "Rater 2",

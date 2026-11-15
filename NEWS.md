@@ -1,5 +1,6 @@
 # testflow 1.1.6
 
+* New `testroccompare()`: paired DeLong test comparing the AUCs of two markers on the same subjects, with the CI of the difference and each AUC's DeLong CI. Validated against `pROC::roc.test()`.
 * `testdiagnostic()` gains `ci = c("exact", "wilson")`; `"wilson"` gives Wilson score intervals for sensitivity, specificity, predictive values and accuracy (validated against `binom::binom.confint()`). Default unchanged.
 * New `testequivalence()`: TOST equivalence test for two independent groups, for means (Welch or Student t) and proportions (Wald z). An infinite bound gives a non-inferiority test. Validated against one-sided `t.test()` calls and hand formulas. Printed CIs now show their level when it is not 95%.
 * New `testblandaltman()`: Bland-Altman bias and limits of agreement with CIs (Bland and Altman 1999 exact-variance SE), normality and proportional-bias checks, and a Bland-Altman plot. Validated against hand computation.
