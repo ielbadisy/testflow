@@ -1,0 +1,37 @@
+test_that("testproportion survey design matches the survey package", {
+  skip_if_not_installed("survey")
+  data(api, package = "survey", envir = environment())
+  x <- apiclus1
+  x$hi <- ifelse(x$api00 > 700, "yes", "no")
+  res <- testproportion(x, hi, "yes", p = 0.5, weights = "pw", cluster = "dnum", plot = FALSE)
+  d <- survey::svydesign(ids = ~dnum, weights = ~pw, data = x)
+  m <- survey::svymean(~I(hi == "yes"), d, deff = TRUE)
+  tt <- survey::svyttest(I((hi == "yes") - 0.5) ~ 0, d)
+  ci <- unname(stats::confint(survey::svyciprop(~I(hi == "yes"), d, method = "logit")))
+  expect_equal(res$primary_test$estimate, unname(stats::coef(m))[2], tolerance = 1e-8)
+  expect_equal(res$survey$se, unname(survey::SE(m))[2], tolerance = 1e-8)
+  expect_equal(res$primary_test$statistic, unname(tt$statistic), tolerance = 1e-6)
+  expect_equal(res$primary_test$p.value, unname(tt$p.value), tolerance = 1e-6)
+  expect_equal(c(res$primary_test$conf.low, res$primary_test$conf.high), as.numeric(ci), tolerance = 1e-6)
+})
+
+test_that("testproportion stratified design matches svyciprop and svyttest", {
+  skip_if_not_installed("survey")
+  data(api, package = "survey", envir = environment())
+  res <- testproportion(apistrat, sch.wide, "Yes", p = 0.8, weights = "pw", strata = "stype", plot = FALSE, alpha = 0.1)
+  d <- survey::svydesign(ids = ~1, strata = ~stype, weights = ~pw, data = apistrat)
+  tt <- survey::svyttest(I((sch.wide == "Yes") - 0.8) ~ 0, d)
+  ci <- unname(stats::confint(survey::svyciprop(~I(sch.wide == "Yes"), d, method = "logit", level = 0.9)))
+  expect_equal(res$primary_test$statistic, unname(tt$statistic), tolerance = 1e-6)
+  expect_equal(c(res$primary_test$conf.low, res$primary_test$conf.high), as.numeric(ci), tolerance = 1e-6)
+  expect_true("primary_unweighted" %in% names(res$alternative_tests))
+})
+
+test_that("testproportion default is unchanged without design columns", {
+  df <- data.frame(y = c(rep("a", 30), rep("b", 20)))
+  res <- testproportion(df, y, "a", plot = FALSE)
+  ref <- suppressWarnings(stats::prop.test(30, 50, p = 0.5, correct = FALSE))
+  expect_equal(res$primary_test$p.value, ref$p.value)
+  expect_null(res$survey)
+  expect_error(testproportion(df, y, "a", weights = 1), "column name")
+})

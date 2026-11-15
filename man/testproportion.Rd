@@ -11,7 +11,10 @@ testproportion(
   p = 0.5,
   alpha = 0.05,
   plot = TRUE,
-  na.rm = TRUE
+  na.rm = TRUE,
+  weights = NULL,
+  cluster = NULL,
+  strata = NULL
 )
 }
 \arguments{
@@ -28,6 +31,15 @@ testproportion(
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{weights, cluster, strata}{Optional column names (strings) for a
+complex survey design: sampling weights, primary sampling units and
+strata. When any is given, the primary test becomes design-based (via the
+\code{survey} package): the weighted proportion, its linearisation SE, a
+t test of \eqn{H_0: \pi = p} as in \code{survey::svyttest()}, and a
+logit CI from \code{survey::svyciprop()}. The design effect is reported. The
+unweighted exact and approximate tests stay in \code{alternative_tests}.
+Default \code{NULL} keeps the simple random sample analysis.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_proportion}. The object is
@@ -44,4 +56,7 @@ Test a one-sample proportion
 Clopper, C. J., & Pearson, E. S. (1934). The use of confidence or fiducial
 limits illustrated in the case of the binomial. \emph{Biometrika},
 26(4), 404-413.
+
+Lumley, T. (2004). Analysis of complex survey samples. \emph{Journal of
+Statistical Software}, 9(1), 1-19.
 }
