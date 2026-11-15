@@ -77,6 +77,11 @@ workflow_display <- list(
     outcome_label = "Rater 1", group_label = "Rater 2",
     table = "agreement_table", table_label = "Agreement table"
   ),
+  blandaltman = list(
+    title = "Bland-Altman Agreement",
+    outcome_label = "Method 1", group_label = "Method 2",
+    table = "limits_table", table_label = "Bias and limits of agreement"
+  ),
   icc = list(
     title = "Intraclass Correlation",
     table = "icc_table", table_label = "ICC comparison"
