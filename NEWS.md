@@ -1,3 +1,7 @@
+# testflow 1.1.6
+
+* `samplesizecontinuous()` gains `method = c("normal", "t")`. `"t"` gives the smallest n whose noncentral-t power reaches the target (as `power.t.test()` and PowerTOST); the default normal approximation is unchanged. Vignettes now refer to `samplesize*()` names.
+
 # testflow 1.1.5
 
 * Welch ANOVA in `testgroups()` now reports its degrees of freedom: `parameter` is the numerator df and `num.df`/`den.df` hold both (was `NA`).

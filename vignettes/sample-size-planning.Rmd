@@ -514,7 +514,7 @@ parallel_ss <- samplesizecontinuous(
 samplesizeclusteradjust(unname(parallel_ss$n_adjusted["A"]), m = 20, rho = 0.02)
 ```
 
-Unlike the other `sample_size_*()` functions, this one returns a plain
+Unlike the other `samplesize*()` functions, this one returns a plain
 integer rather than a `sample_size` object, since it is a post-processing
 adjustment applied to an already-computed sample size rather than a full
 planning calculation in its own right — the same shape as
@@ -541,7 +541,7 @@ as.data.frame(paired_ss)
 
 | Endpoint | Supported design(s) | Supported objective(s) | Formula family |
 |---|---|---|---|
-| Continuous | parallel, paired, repeated (2+ time points) | superiority, non-inferiority, equivalence | normal-approximation formulas for the mean difference, plus a compound-symmetry repeated-measures extension |
+| Continuous | parallel, paired, repeated (2+ time points) | superiority, non-inferiority, equivalence | normal-approximation formulas for the mean difference (`method = "t"` for the exact noncentral-t n), plus a compound-symmetry repeated-measures extension |
 | Binary | parallel, paired, repeated (2 time points) | superiority, non-inferiority, equivalence | risk-difference planning and discordant-pair planning |
 | Survival | parallel | superiority, non-inferiority, equivalence | event-based proportional-hazards planning, optional uniform-accrual adjustment |
 | Ordinal | parallel | superiority | Noether approximation |

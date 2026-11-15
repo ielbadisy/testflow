@@ -17,7 +17,8 @@ samplesizecontinuous(
   allocation = 1,
   dropout = 0,
   n_time = 2,
-  correlation = 0.5
+  correlation = 0.5,
+  method = c("normal", "t")
 )
 }
 \arguments{
