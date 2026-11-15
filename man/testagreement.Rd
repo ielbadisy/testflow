@@ -4,7 +4,15 @@
 \alias{testagreement}
 \title{Inter-rater agreement workflow (Cohen's kappa)}
 \usage{
-testagreement(data, rater1, rater2, alpha = 0.05, plot = TRUE, na.rm = TRUE)
+testagreement(
+  data,
+  rater1,
+  rater2,
+  alpha = 0.05,
+  plot = TRUE,
+  na.rm = TRUE,
+  weights = c("unweighted", "linear", "quadratic")
+)
 }
 \arguments{
 \item{data}{A data frame.}
@@ -19,6 +27,12 @@ set as \code{rater1}.}
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{weights}{\code{"unweighted"} (default) gives Cohen's kappa. \code{"linear"}
+or \code{"quadratic"} give Cohen's (1968) weighted kappa for ordered
+categories, with agreement weights \eqn{w_{ij} = 1 - |i-j|/(k-1)} or
+\eqn{1 - (i-j)^2/(k-1)^2}. Category order follows the factor levels
+(or numeric order), so code ordinal ratings as ordered factors.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_agreement}. The object
@@ -55,8 +69,19 @@ materially above chance - the typical case - inflating the z-statistic
 and anti-conservatively shrinking the p-value; verified in package
 tests to match \code{irr::kappa2()}'s reported z exactly.
 }
+
+Weighted kappa replaces agreement on the diagonal with weighted agreement,
+\eqn{\kappa_w = (p_{o,w} - p_{e,w})/(1 - p_{e,w})} with
+\eqn{p_{o,w} = \sum w_{ij} p_{ij}} and
+\eqn{p_{e,w} = \sum w_{ij} \pi_{i\cdot}\pi_{\cdot j}}. Its CI and null
+SEs are the weighted forms in Fleiss, Cohen & Everitt (1969). Quadratic
+weighted kappa is close to the ICC for ordinal ratings.
 }
 \references{
+Cohen J. Weighted kappa: nominal scale agreement with provision for
+scaled disagreement or partial credit. \emph{Psychological Bulletin}.
+1968;70(4):213-220.
+
 Cohen J. A coefficient of agreement for nominal scales. \emph{Educational and
 Psychological Measurement}. 1960;20(1):37-46.
 
