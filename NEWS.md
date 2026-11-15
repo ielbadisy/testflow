@@ -1,5 +1,6 @@
 # testflow 1.1.6
 
+* `testproportion()` gains `weights`, `cluster` and `strata` (column names) for complex survey samples: weighted proportion, design-based t test and logit CI, with the design effect in `$survey`. Validated against `survey::svyttest()` and `survey::svyciprop()`. Default unchanged.
 * New `samplesizeprediction()`: minimum sample size for developing a prediction model (Riley et al. 2019, 2020) for binary, survival and continuous outcomes, with the n for each criterion in `$criteria`. Validated against `pmsampsize::pmsampsize()`.
 * New `testroccompare()`: paired DeLong test comparing the AUCs of two markers on the same subjects, with the CI of the difference and each AUC's DeLong CI. Validated against `pROC::roc.test()`.
 * `testdiagnostic()` gains `ci = c("exact", "wilson")`; `"wilson"` gives Wilson score intervals for sensitivity, specificity, predictive values and accuracy (validated against `binom::binom.confint()`). Default unchanged.

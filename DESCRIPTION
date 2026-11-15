@@ -51,6 +51,7 @@ Suggests:
     binom,
     pROC,
     psych,
-    pmsampsize
+    pmsampsize,
+    survey
 Config/testthat/edition: 3
 VignetteBuilder: knitr
