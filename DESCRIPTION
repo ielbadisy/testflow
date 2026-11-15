@@ -50,6 +50,7 @@ Suggests:
     irr,
     binom,
     pROC,
-    psych
+    psych,
+    pmsampsize
 Config/testthat/edition: 3
 VignetteBuilder: knitr
