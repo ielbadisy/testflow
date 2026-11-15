@@ -149,8 +149,9 @@ primary_ci <- function(x) {
 
 # CI level label; a `conf.level` column in primary_test overrides the 95% default.
 primary_ci_level_text <- function(x) {
-  lvl <- x$primary_test$conf.level
-  if (is.null(lvl) || is.na(lvl[[1]])) "95%" else paste0(format(100 * lvl[[1]]), "%")
+  if (!"conf.level" %in% names(x$primary_test)) return("95%")
+  lvl <- x$primary_test[["conf.level"]]
+  if (is.na(lvl[[1]])) "95%" else paste0(format(100 * lvl[[1]]), "%")
 }
 
 primary_h0 <- function(x) {
