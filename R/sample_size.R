@@ -44,6 +44,13 @@ samplesize <- function(endpoint = c("continuous", "binary", "survival", "ordinal
 #' @param n_time Number of repeated measures.
 #' @param correlation Within-subject correlation for repeated measures when
 #'   `design = "repeated"` and `n_time > 2`.
+#' @param method `"normal"` (default) uses the normal approximation;
+#'   `"t"` returns the smallest n whose noncentral-t power reaches `power`
+#'   (as `stats::power.t.test()`).
+#' @param baseline_cor Correlation between the baseline and follow-up
+#'   measurement for an ANCOVA analysis of a parallel design. The planning
+#'   SD becomes \eqn{\sigma\sqrt{1 - \rho^2}} (Borm et al. 2007). Default
+#'   `0` (no baseline adjustment, results unchanged).
 #' @return A `sample_size` object.
 #' @details
 #' With \eqn{r} the allocation ratio \eqn{n_B / n_A}, \eqn{z_{1-\beta}} and
@@ -80,11 +87,28 @@ samplesizecontinuous <- function(
   dropout = 0,
   n_time = 2,
   correlation = 0.5,
-  method = c("normal", "t")
+  method = c("normal", "t"),
+  baseline_cor = 0
 ) {
   design <- match.arg(design)
   objective <- match.arg(objective)
   method <- match.arg(method)
+  if (baseline_cor != 0) {
+    if (design != "parallel") stop("`baseline_cor` applies to parallel designs only.", call. = FALSE)
+    if (abs(baseline_cor) >= 1) stop("`baseline_cor` must be in (-1, 1).", call. = FALSE)
+    sample_size_validate_positive(sd, "sd")
+    sd_a <- sd * sqrt(1 - baseline_cor^2)
+    res <- samplesizecontinuous(design, objective, delta, sd_a, sd_diff, expected_difference, margin, alpha, power,
+                                allocation, dropout, n_time, correlation, method)
+    res$method <- paste0(res$method, ", ANCOVA on baseline")
+    res$assumptions <- rbind(res$assumptions, sample_size_assumptions(paste0(
+      "ANCOVA: baseline-outcome correlation = ", format_sample_value(baseline_cor), ", SD ", format_sample_value(sd),
+      " reduced to ", format_sample_value(sd_a), "."))[1, ])
+    res$assumptions$name[nrow(res$assumptions)] <- paste0("Planning note ", nrow(res$assumptions))
+    res$report <- paste0(res$report, " The SD was reduced from ", format_sample_value(sd), " to ", format_sample_value(sd_a),
+                         " for ANCOVA with baseline correlation ", format_sample_value(baseline_cor), ".")
+    return(res)
+  }
   use_t <- identical(method, "t")
   t_label <- function(x) if (use_t) paste0(sub(" normal approximation$| approximation$", "", x), " (noncentral t)") else x
   sample_size_validate_probability(alpha, "alpha")
@@ -1067,6 +1091,48 @@ samplesizeordinal <- function(
     ),
     plot_data = sample_size_plot_frame(c("A", "B"), c(n_per_group_raw, n_per_group_raw), c(n_adj, n_adj))
   )
+}
+
+#' Sample size for a correlation coefficient
+#'
+#' Number of subjects to detect a Pearson correlation `r` against `r0`,
+#' using Fisher's z transformation.
+#'
+#' @param r Anticipated correlation.
+#' @param r0 Correlation under the null hypothesis (default 0).
+#' @param alpha Type I error rate.
+#' @param power Target power.
+#' @param alternative `"two.sided"` (default) or `"one.sided"`.
+#' @param dropout Expected dropout proportion.
+#' @return A `sample_size` object; `$n` is the unrounded n and
+#'   `$n_adjusted` the rounded, dropout-inflated n.
+#' @details
+#' \deqn{n = \left(\frac{z_{1-\alpha/2} + z_{1-\beta}}{\operatorname{atanh} r - \operatorname{atanh} r_0}\right)^2 + 3}
+#' (Rosner, Eq. 11.26), with \eqn{z_{1-\alpha}} for a one-sided test.
+#' @references
+#' Rosner B. *Fundamentals of Biostatistics* (8th ed.). Cengage; 2016.
+#' Section 11.8.
+#' @examples
+#' samplesizecorrelation(r = 0.3)
+#' @export
+samplesizecorrelation <- function(r, r0 = 0, alpha = 0.05, power = 0.90, alternative = c("two.sided", "one.sided"),
+                                  dropout = 0) {
+  alternative <- match.arg(alternative)
+  sample_size_validate_probability(alpha, "alpha"); sample_size_validate_probability(power, "power")
+  sample_size_validate_dropout(dropout)
+  if (abs(r) >= 1 || abs(r0) >= 1 || r == r0) stop("Need |r| < 1, |r0| < 1 and r != r0.", call. = FALSE)
+  za <- stats::qnorm(1 - if (alternative == "two.sided") alpha / 2 else alpha)
+  n_raw <- ((za + stats::qnorm(power)) / (atanh(r) - atanh(r0)))^2 + 3
+  n_adj <- sample_size_apply_dropout(sample_size_round(n_raw), dropout)
+  sample_size_result(
+    endpoint = "correlation", design = "single sample", objective = "superiority",
+    method = "Fisher z approximation", n = n_raw, n_adjusted = n_adj, n_total = n_adj,
+    assumptions = sample_size_assumptions("Bivariate normal data are assumed.",
+                                          paste0("Null correlation r0 = ", format_sample_value(r0), ".")),
+    report = paste0("Correlation sample size was calculated with r = ", format_sample_value(r), ", r0 = ",
+                    format_sample_value(r0), ", alpha = ", format_sample_value(alpha), " (", alternative, "), power = ",
+                    format_sample_value(power), "; required sample size = ", format_sample_count(n_adj), "."),
+    plot_data = sample_size_plot_frame("Required subjects", n_raw, n_adj))
 }
 
 #' Adjust a sample size for dropout

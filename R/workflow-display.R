@@ -18,7 +18,10 @@ workflow_display <- list(
     title = "Repeated Measures",
     table = "posthoc", table_label = "Post-hoc comparisons"
   ),
-  categorical = list(title = "Categorical Association"),
+  categorical = list(
+    title = "Categorical Association",
+    table = "effect_measures", table_label = "Effect measures (2 x 2)"
+  ),
   paired_categorical = list(
     title = "Paired Categorical Measurements",
     table = "discordant_pairs", table_label = "Discordant pairs"
@@ -94,6 +97,36 @@ workflow_display <- list(
   icc = list(
     title = "Intraclass Correlation",
     table = "icc_table", table_label = "ICC comparison"
+  ),
+  bootstrap = list(
+    title = "Bootstrap Confidence Interval",
+    table = "intervals", table_label = "Bootstrap intervals"
+  ),
+  permutation = list(title = "Permutation Test"),
+  trend = list(
+    title = "Test for Trend",
+    outcome_label = "Outcome", group_label = "Ordered exposure",
+    table = "trend_table", table_label = "Trend and departure from trend"
+  ),
+  stratified = list(
+    title = "Stratified 2 x 2 Analysis (Cochran-Mantel-Haenszel)",
+    outcome_label = "Outcome", group_label = "Exposure",
+    table = "stratum_or", table_label = "Stratum-specific odds ratios"
+  ),
+  paired_diagnostic = list(
+    title = "Paired Diagnostic Accuracy",
+    outcome_label = "Tests", group_label = "Reference",
+    table = "comparison", table_label = "Test 2 minus test 1 (McNemar within disease groups)"
+  ),
+  ordinal_regression = list(
+    title = "Ordinal Logistic Regression (Proportional Odds)",
+    outcome_label = "Outcome", group_label = "Predictors",
+    table = "odds_ratios", table_label = "Cumulative odds ratios"
+  ),
+  multinomial_regression = list(
+    title = "Multinomial Logistic Regression",
+    outcome_label = "Outcome", group_label = "Predictors",
+    table = "relative_risk_ratios", table_label = "Relative risk ratios"
   )
 )
 

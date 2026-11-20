@@ -8,6 +8,21 @@
 * Bug fix (label): the Kruskal-Wallis effect size labelled "Kruskal epsilon squared" was eta^2_H = (H - k + 1)/(n - k). It is now labelled "Kruskal eta squared (H)" (same value), and a second row gives epsilon^2_H = H/(n - 1), labelled "Kruskal epsilon squared (H)" (validated against `effectsize::rank_epsilon_squared()`).
 * `testpaired()`: when the primary test is the Wilcoxon signed-rank test, `$effect_size` adds the matched-pairs rank-biserial correlation r_c after Cohen's dz. Validated against `effectsize::rank_biserial(paired = TRUE)`.
 * `print()` shows every effect-size row and its CI when there is one (per-term tables still show the first row).
+* New `testbootstrap()`: bootstrap CI (BCa, percentile, basic, normal) for a one-sample statistic or a two-group difference or ratio (`y ~ 1`, `y ~ g`), with stratified resampling; all four intervals in `$alternative_tests$intervals`. Validated against `boot::boot.ci()`.
+* New `testpermutation()`: permutation test for two or more groups (mean, median, Welch t, F or a user function), exact when the relabellings are at most 1e5, Monte Carlo otherwise. Validated against `coin::oneway_test()`.
+* `testonesample()`: `$alternative_tests$median_ci` gives the distribution-free (binomial order-statistic) CI of the median. Validated against `DescTools::MedianCI(method = "exact")`.
+* `testproportion()` gains `exact = c("minlike", "central")` for the exact binomial p-value; `"central"` doubles the smaller tail. Default unchanged.
+* `testcategorical()`: 2x2 tables add `$alternative_tests$effect_measures` (risk difference with Newcombe CI, Katz risk ratio, Woolf odds ratio, NNT), with a new `event =` argument. `$posthoc` gives the cell table of adjusted standardised residuals. Validated against `DescTools::BinomDiffCI()` and `OddsRatio()`.
+* New `testtrend()`: Cochran-Armitage test for a binary outcome and linear-by-linear test for an ordinal outcome, with the departure-from-trend split. Validated against `prop.trend.test()` and `coin::lbl_test()`.
+* New `teststratified()`: Cochran-Mantel-Haenszel test with the Mantel-Haenszel OR (RGB CI), stratum ORs and the Breslow-Day test (with Tarone correction). Validated against `mantelhaen.test()` and `DescTools::BreslowDayTest()`.
+* `testcorrelation()` and `testcorrelationmatrix()` gain `covariates =` for partial Pearson or Spearman correlation; the marginal result moves to `$alternative_tests$marginal`. Validated against residual correlation from `lm()`.
+* `testroc()` gains `B = 0` and `seed`: with `B > 0`, `$optimal_threshold` adds a percentile bootstrap CI of the Youden threshold. Default unchanged.
+* New `testpaireddiagnostic()`: compares the sensitivity and specificity of two tests on the same subjects (McNemar on the discordant pairs, CI of the paired difference). Validated against `mcnemar.test()`.
+* New `samplesizecorrelation()`: sample size to detect a correlation (Fisher z). `samplesizecontinuous()` gains `baseline_cor = 0` for an ANCOVA-adjusted parallel design; the `method` argument is now documented (fixes the R CMD check warning).
+* `sumtab()` gains `smd = FALSE`: absolute standardised mean differences for two groups. Validated against `tableone::ExtractSmd()`.
+* `testcox()`: the assumption table adds one "Proportional hazards (<term>)" row per term from `cox.zph()`, after the global row.
+* `testlinearregression()` gains `pretests = TRUE`; `FALSE` skips the residual normality and homoscedasticity tests (reported as "not checked").
+* New `testordinalregression()` (proportional-odds model, `MASS::polr()`, with Brant or LR tests of proportional odds) and `testmultinomialregression()` (`nnet::multinom()`, relative-risk ratios). Validated against `polr()`, `brant::brant()` per-term tests and `multinom()`.
 
 # testflow 1.1.6
 

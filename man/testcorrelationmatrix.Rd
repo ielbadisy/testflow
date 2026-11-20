@@ -10,7 +10,8 @@ testcorrelationmatrix(
   method = c("spearman", "pearson", "kendall"),
   alpha = 0.05,
   plot = TRUE,
-  na.rm = TRUE
+  na.rm = TRUE,
+  covariates = NULL
 )
 }
 \arguments{
@@ -25,6 +26,10 @@ testcorrelationmatrix(
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{covariates}{Optional character vector of columns to partial out of
+every pair (see \code{\link[=testcorrelation]{testcorrelation()}}); each pair then uses its rows
+complete on the pair and the covariates. Pearson or Spearman only.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_correlation_matrix}. The

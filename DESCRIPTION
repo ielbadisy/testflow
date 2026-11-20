@@ -55,6 +55,12 @@ Suggests:
     survey,
     MASS,
     PMCMRplus,
-    afex
+    afex,
+    boot,
+    coin,
+    DescTools,
+    nnet,
+    tableone,
+    pwr
 Config/testthat/edition: 3
 VignetteBuilder: knitr

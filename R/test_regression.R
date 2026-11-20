@@ -5,6 +5,11 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param pretests Logical. If `TRUE` (default), the Shapiro-Wilk (residual
+#'   normality) and Breusch-Pagan (homoscedasticity) tests are run and
+#'   reported as assumption checks. `FALSE` skips both tests and records the
+#'   two assumptions as `"not checked"` (inspect the residual plot instead);
+#'   the fit and the primary test are unchanged.
 #' @return A `testflow` object with class `testflow_linear_regression`. The
 #' object is a list containing the cleaned data, descriptive statistics,
 #' residual/homoscedasticity/multicollinearity assumption checks, the overall
@@ -25,7 +30,7 @@
 #' @references
 #' Draper NR, Smith H. *Applied Regression Analysis* (3rd ed.). Wiley; 1998.
 #' @export
-testlinearregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testlinearregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE, pretests = TRUE) {
   formula_obj <- stats::as.formula(paste(deparse(formula), collapse = " "))
   outcome_nm <- all.vars(formula_obj[[2]])[1]
   predictor_nms <- all.vars(formula_obj[[3]])
@@ -34,10 +39,12 @@ testlinearregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm
   g <- broom::glance(fit)
   coefs <- broom::tidy(fit, conf.int = TRUE)
 
-  normality <- .residual_normality(stats::residuals(fit), alpha, "Residuals appear approximately normal.", "Residuals deviate from normality.")
+  skip <- function(nm) assumption_check(nm, "not checked", "Formal pre-test skipped (pretests = FALSE); inspect the residual plot.")
+  normality <- if (pretests) .residual_normality(stats::residuals(fit), alpha, "Residuals appear approximately normal.",
+                                                 "Residuals deviate from normality.") else skip("Normality of residuals")
 
-  nv <- car::ncvTest(fit)
-  homoscedasticity <- assumption_check(
+  nv <- if (pretests) car::ncvTest(fit)
+  homoscedasticity <- if (!pretests) skip("Homoscedasticity") else assumption_check(
     "Homoscedasticity",
     ifelse(nv$p >= alpha, "acceptable", "not acceptable"),
     ifelse(nv$p >= alpha, "Residual variance looks constant across fitted values.", "Residual variance may depend on the fitted values (heteroscedasticity)."),
