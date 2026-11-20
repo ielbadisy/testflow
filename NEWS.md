@@ -1,3 +1,10 @@
+# testflow 1.1.8
+
+* Bug fix: `testpaireddiagnostic()` `$primary_test` repeated the sensitivity difference in `effect_size` and `effect_size_name` on the Specificity row; each row now carries its own difference.
+* `testcorrelation()` runs the Shapiro-Wilk pre-test only for `method = "auto"`, where it drives the choice; with a given method the normality rows are "not checked" with a note. Results are unchanged.
+* Shapiro-Wilk checks no longer warn for n > 5000: they are reported as "not checked" with a note to inspect a Q-Q plot (`shapiro.test()` was already not run).
+* Bug fix: `teststratified()` errored in the Breslow-Day step when a stratum had a zero margin (for example no events). Such strata stay in the CMH test and MH odds ratio (as `mantelhaen.test()`) and are left out of Breslow-Day, whose df is the number of informative strata minus one; `breslow_day` and `breslow_day_tarone` gain `strata` and `note`. With fewer than two informative strata Breslow-Day is `NA`. Validated against `DescTools::BreslowDayTest()`.
+
 # testflow 1.1.7
 
 * `testrepeated()` and `testrepeatedlong()`: the repeated-measures ANOVA rows gain `gg.eps`, `hf.eps`, `p.gg` and `p.hf` (Greenhouse-Geisser and Huynh-Feldt epsilon and corrected p-values, as `anova.mlm(test = "Spherical")`), also for the within term and interaction of the mixed ANOVA (`between =`). The epsilons appear in the sphericity check and the report. Validated against `anova.mlm()` and `afex::aov_ez()`.

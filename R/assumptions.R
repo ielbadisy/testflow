@@ -3,17 +3,18 @@
 #' @param vars Numeric columns as character names.
 #' @param group Optional grouping column name.
 #' @param alpha Significance level.
+#' @param skip Character note; when given, no test is run and each row is "not checked" with this note.
 #' @noRd
-check_normality <- function(data, vars, group = NULL, alpha = 0.05) {
+check_normality <- function(data, vars, group = NULL, alpha = 0.05, skip = NULL) {
   run_one <- function(x) {
+    if (!is.null(skip)) return(assumption_check("Normality", "not checked", skip, method = "Shapiro-Wilk"))
     x <- x[!is.na(x)]
     n <- length(x)
     if (n < 3) {
       return(assumption_check("Normality", "not enough data", "Too few observations for a useful normality check.", method = "Shapiro-Wilk", statistic = NA_real_, p_value = NA_real_))
     }
     if (n > 5000) {
-      warning("Shapiro-Wilk is not recommended for n > 5000.", call. = FALSE)
-      return(assumption_check("Normality", "not checked", "Shapiro-Wilk is not recommended for n > 5000.", method = "Shapiro-Wilk", statistic = NA_real_, p_value = NA_real_))
+      return(assumption_check("Normality", "not checked", "Shapiro-Wilk is not used for n > 5000; inspect a normal Q-Q plot instead.", method = "Shapiro-Wilk", statistic = NA_real_, p_value = NA_real_))
     }
     test <- stats::shapiro.test(x)
     assumption_check(

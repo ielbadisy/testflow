@@ -176,11 +176,10 @@ primary_h0 <- function(x) {
   resid <- resid[!is.na(resid)]
   n <- length(resid)
   if (n < 3 || n > 5000) {
-    if (n > 5000) warning("Shapiro-Wilk is not recommended for n > 5000.", call. = FALSE)
     return(assumption_check(
       "Normality of residuals",
       if (n < 3) "not enough data" else "not checked",
-      if (n < 3) "Too few observations for a useful normality check." else "Shapiro-Wilk is not recommended for n > 5000; inspect the residual plot instead.",
+      if (n < 3) "Too few observations for a useful normality check." else "Shapiro-Wilk is not used for n > 5000; inspect the residual Q-Q plot instead.",
       method = "Shapiro-Wilk", statistic = NA_real_, p_value = NA_real_
     ))
   }
