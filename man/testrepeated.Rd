@@ -41,6 +41,14 @@ assumption checks, recommended repeated-measures ANOVA or Friedman test,
 primary test result with null hypothesis, alternative repeated-measures
 results, post-hoc paired comparisons, effect size, optional \code{ggplot},
 original call, and report text.
+
+The repeated-measures ANOVA rows (\verb{$alternative_tests$anova}, and
+\verb{$primary_test} when it is the ANOVA) carry \code{gg.eps} and \code{hf.eps}
+(Greenhouse-Geisser and Huynh-Feldt epsilon, from the subjects with all
+measures) and \code{p.gg}, \code{p.hf}, the p-values with both df multiplied by
+epsilon (Huynh-Feldt epsilon capped at 1), as \code{anova.mlm(test = "Spherical")}. The mixed ANOVA rows carry the same columns for the within
+term and the interaction (epsilon from the pooled within-group covariance;
+\code{NA} for the between term).
 }
 \description{
 Run a repeated-measures workflow from wide data
@@ -57,4 +65,11 @@ Wilcoxon, F. (1945). Individual comparisons by ranking methods.
 \emph{Biometrics Bulletin}, 1(6), 80-83.
 
 Girden, E. R. (1992). \emph{ANOVA: Repeated Measures}. Sage.
+
+Greenhouse, S. W., and Geisser, S. (1959). On methods in the analysis of
+profile data. \emph{Psychometrika}, 24(2), 95-112.
+
+Huynh, H., and Feldt, L. S. (1976). Estimation of the Box correction for
+degrees of freedom from sample data in randomized block and split-plot
+designs. \emph{Journal of Educational Statistics}, 1(1), 69-82.
 }

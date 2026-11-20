@@ -3,7 +3,15 @@
 #' @param data A data frame, or an outcome column when using data-first style.
 #' @param group Grouping column. Optional when using formula style.
 #' @param alpha Significance level.
-#' @param posthoc Logical; compute post-hoc comparisons.
+#' @param posthoc Post-hoc method. `"auto"` (default, same as `TRUE`) follows
+#'   the recommended omnibus test: Tukey HSD after one-way ANOVA, pairwise
+#'   Welch t tests after Welch ANOVA, pairwise Wilcoxon rank-sum tests after
+#'   Kruskal-Wallis. `"tukey"`, `"gameshowell"` (Games-Howell, unequal
+#'   variances), `"welch"`, `"wilcoxon"` or `"dunn"` (Dunn's test on pooled
+#'   ranks, see [testdunn()]) fixes the method; `"none"` (or `FALSE`) skips it.
+#' @param p.adjust.method Multiplicity adjustment for the `"welch"`,
+#'   `"wilcoxon"` and `"dunn"` post hoc tests (Tukey and Games-Howell carry
+#'   their own studentized-range adjustment).
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
 #' @return A `testflow` object with class `testflow_groups`. The object is a
@@ -11,8 +19,21 @@
 #' checks, recommended omnibus test, primary test result with null hypothesis,
 #' alternative omnibus results, post-hoc comparisons when requested, effect
 #' size, optional `ggplot`, original call, and report text.
+#'
+#' `$posthoc` is a list with `method`, `result` (a `TukeyHSD` or
+#' `pairwise.htest` object), `p.adjust.method` and `table`, a tidy table with
+#' one row per pair: `group1`, `group2`, `estimate` (group2 minus group1: mean
+#' difference, or mean rank difference for Dunn), `statistic`, `conf.low`,
+#' `conf.high`, `p`, `p.adj` and `p.adjust.method` (`NA` where a method does
+#' not give the quantity).
+#'
+#' After a Kruskal-Wallis test, `$effect_size` has two rows:
+#' `eta^2_H = (H - k + 1) / (n - k)` and `epsilon^2_H = H / (n - 1)`.
 #' @export
-testgroups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRUE, plot = TRUE, na.rm = TRUE) {
+testgroups <- function(formula, data, group = NULL, alpha = 0.05,
+                       posthoc = c("auto", "tukey", "gameshowell", "welch", "wilcoxon", "dunn", "none"),
+                       plot = TRUE, na.rm = TRUE, p.adjust.method = "BH") {
+  posthoc <- if (isTRUE(posthoc)) "auto" else if (isFALSE(posthoc)) "none" else match.arg(posthoc)
   vars <- resolve_formula_pair(tf_formula_arg(substitute(formula), parent.frame()), tf_formula_arg(substitute(data), parent.frame()), substitute(group), missing(group))
   outcome_nm <- vars$outcome
   group_nm <- vars$group
@@ -38,10 +59,14 @@ testgroups <- function(formula, data, group = NULL, alpha = 0.05, posthoc = TRUE
   h0 <- h0_mean_equal(outcome_nm, group_nm)
   primary_tidy <- if (inherits(primary, "htest")) safe_tidy_htest(primary, recommendation) else primary
   primary_tidy <- add_null_hypothesis(primary_tidy, h0)
-  ph <- if (posthoc) posthoc_groups(df, outcome_nm, group_nm, recommendation, alpha = alpha) else NULL
+  ph <- if (posthoc != "none") {
+    posthoc_groups(df, outcome_nm, group_nm, recommendation, alpha, posthoc, p.adjust.method)
+  }
   effect <- if (recommendation == "Kruskal-Wallis test") {
     h <- unname(kruskal$statistic); n <- nrow(df); k <- length(unique(df[[group_nm]]))
-    .bt(name = "Kruskal epsilon squared", estimate = (h - k + 1) / (n - k), magnitude = magnitude_eta2((h - k + 1) / (n - k)))
+    es <- c((h - k + 1) / (n - k), h / (n - 1))
+    .bt(name = c("Kruskal eta squared (H)", "Kruskal epsilon squared (H)"), estimate = es,
+        magnitude = magnitude_eta2(es))
   } else eta_squared_aov(aov_fit)[1, , drop = FALSE]
   plt <- if (plot) make_plot("groups", df, outcome_nm, group_nm, recommendation, if (inherits(primary, "htest")) primary else list(p.value = primary_tidy$p.value[1]), effect) else NULL
   out <- new_testflow("groups", "more than two independent groups", outcome_nm, group_nm, data = df, descriptives = descriptives_numeric(df, outcome_nm, group_nm), assumptions = assumption_checks(independence, normality, levene, bartlett, outliers), recommended = list(test = recommendation, rationale = recommend_rationale(recommendation, normality, levene, alpha)), primary_test = primary_tidy, alternative_tests = list(anova = add_null_hypothesis(aov_test, h0), welch = add_null_hypothesis(safe_tidy_htest(welch, "Welch ANOVA"), h0), kruskal = add_null_hypothesis(safe_tidy_htest(kruskal, "Kruskal-Wallis test"), h0)), posthoc = ph, effect_size = effect, plot = plt, call = match.call(), subclass = "groups")

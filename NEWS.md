@@ -1,3 +1,14 @@
+# testflow 1.1.7
+
+* `testrepeated()` and `testrepeatedlong()`: the repeated-measures ANOVA rows gain `gg.eps`, `hf.eps`, `p.gg` and `p.hf` (Greenhouse-Geisser and Huynh-Feldt epsilon and corrected p-values, as `anova.mlm(test = "Spherical")`), also for the within term and interaction of the mixed ANOVA (`between =`). The epsilons appear in the sphericity check and the report. Validated against `anova.mlm()` and `afex::aov_ez()`.
+* `testtwogroups()`: t-test effect sizes now include Hedges' g (exact small-sample factor) as a second row, and both d and g carry noncentral t 95% CIs (`conf.low`, `conf.high`) and a `comparison` column. Validated against `effectsize::hedges_g()` and `effectsize::cohens_d()`.
+* `testtwogroups()` (Wilcoxon): the rank-biserial r gets a DeLong 95% CI, through a new second row with the probability of superiority theta = P(X1 > X2) + P(X1 = X2)/2 (r = 2 theta - 1). The report says that W is the Mann-Whitney U of the first factor level. Validated against `pROC::ci.auc(method = "delong")`.
+* `testgroups()` gains `posthoc = c("auto", "tukey", "gameshowell", "welch", "wilcoxon", "dunn", "none")` (`TRUE`/`FALSE` still work as `"auto"`/`"none"`) and `p.adjust.method = "BH"`. `"auto"` keeps the previous choice. `$posthoc` gains `table`, a tidy table of the pairwise comparisons. Validated against `TukeyHSD()` and `PMCMRplus::gamesHowellTest()`.
+* New `testdunn()`: Dunn's test on ranks pooled over all groups, with tie correction and p adjustment, also available as `testgroups(posthoc = "dunn")`. Validated against `PMCMRplus::kwAllPairsDunnTest()`.
+* Bug fix (label): the Kruskal-Wallis effect size labelled "Kruskal epsilon squared" was eta^2_H = (H - k + 1)/(n - k). It is now labelled "Kruskal eta squared (H)" (same value), and a second row gives epsilon^2_H = H/(n - 1), labelled "Kruskal epsilon squared (H)" (validated against `effectsize::rank_epsilon_squared()`).
+* `testpaired()`: when the primary test is the Wilcoxon signed-rank test, `$effect_size` adds the matched-pairs rank-biserial correlation r_c after Cohen's dz. Validated against `effectsize::rank_biserial(paired = TRUE)`.
+* `print()` shows every effect-size row and its CI when there is one (per-term tables still show the first row).
+
 # testflow 1.1.6
 
 * New exported `descriptivesnumeric()` and `descriptivescategorical()`: the descriptive tables used inside the workflows, now callable directly.

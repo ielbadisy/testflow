@@ -64,3 +64,25 @@ cochran_q_effect_size <- function(test, n, k) {
   w <- unname(test$statistic) / (n * (k - 1))
   .bt(name = "Cochran Q Kendall's W", estimate = w, magnitude = magnitude_cramers_v(w))
 }
+
+# Greenhouse-Geisser and Huynh-Feldt epsilon from the complete wide matrix (one row per subject), using
+# the residual covariance of lm(M ~ between) on orthonormal within contrasts. HF uses the same
+# formula as anova.mlm() and car::Anova(): ((n + 1) p GG - 2) / (p (n - p GG)), n = residual df.
+sphericity_eps <- function(M, between = NULL) {
+  p <- ncol(M) - 1
+  if (p < 2) return(c(gg = 1, hf = 1))
+  fit <- if (is.null(between)) stats::lm(M ~ 1) else stats::lm(M ~ factor(between))
+  n <- fit$df.residual; C <- stats::contr.poly(ncol(M))
+  l <- eigen(crossprod(C, crossprod(stats::residuals(fit)) %*% C), symmetric = TRUE, only.values = TRUE)$values
+  gg <- sum(l)^2 / sum(l^2) / p
+  c(gg = gg, hf = ((n + 1) * p * gg - 2) / (p * (n - p * gg)))
+}
+
+# Adds gg.eps, hf.eps and the corrected p-values (df scaled by epsilon, HF capped at 1) to F-test rows.
+add_eps <- function(tb, eps, df1 = tb$parameter, df2 = tb$df.error, rows = TRUE) {
+  na <- ifelse(rows, 1, NA)
+  tb$gg.eps <- eps[["gg"]] * na; tb$hf.eps <- eps[["hf"]] * na
+  pc <- function(e) stats::pf(tb$statistic, df1 * e, df2 * e, lower.tail = FALSE) * na
+  tb$p.gg <- pc(eps[["gg"]]); tb$p.hf <- pc(min(1, eps[["hf"]]))
+  tb
+}

@@ -43,6 +43,15 @@ a list containing the cleaned data, descriptive statistics by group,
 assumption checks, recommended test, primary test result with null
 hypothesis, alternative test results, effect size, optional \code{ggplot},
 original call, and report text.
+
+\verb{$effect_size} has columns \code{name}, \code{estimate}, \code{magnitude}, \code{conf.low},
+\code{conf.high} (95\% CI) and \code{comparison} (first level vs second level; positive
+values mean larger outcomes in the first level). For t tests its rows are
+Cohen's d and Hedges' g (exact small-sample factor), both with noncentral t
+CIs. For the Wilcoxon test they are the rank-biserial correlation
+r = 2 theta - 1 and the probability of superiority
+\code{theta = P(X1 > X2) + P(X1 = X2) / 2}, with a DeLong CI for theta. The
+Wilcoxon statistic W is the Mann-Whitney U of the first factor level.
 }
 \description{
 Compare a numeric outcome between two independent groups

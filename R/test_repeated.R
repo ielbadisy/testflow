@@ -17,6 +17,15 @@
 #' primary test result with null hypothesis, alternative repeated-measures
 #' results, post-hoc paired comparisons, effect size, optional `ggplot`,
 #' original call, and report text.
+#'
+#' The repeated-measures ANOVA rows (`$alternative_tests$anova`, and
+#' `$primary_test` when it is the ANOVA) carry `gg.eps` and `hf.eps`
+#' (Greenhouse-Geisser and Huynh-Feldt epsilon, from the subjects with all
+#' measures) and `p.gg`, `p.hf`, the p-values with both df multiplied by
+#' epsilon (Huynh-Feldt epsilon capped at 1), as `anova.mlm(test =
+#' "Spherical")`. The mixed ANOVA rows carry the same columns for the within
+#' term and the interaction (epsilon from the pooled within-group covariance;
+#' `NA` for the between term).
 #' @references
 #' Fisher, R. A. (1925). \emph{Statistical Methods for Research Workers}.
 #' Oliver and Boyd.
@@ -29,6 +38,13 @@
 #' \emph{Biometrics Bulletin}, 1(6), 80-83.
 #'
 #' Girden, E. R. (1992). \emph{ANOVA: Repeated Measures}. Sage.
+#'
+#' Greenhouse, S. W., and Geisser, S. (1959). On methods in the analysis of
+#' profile data. \emph{Psychometrika}, 24(2), 95-112.
+#'
+#' Huynh, H., and Feldt, L. S. (1976). Estimation of the Box correction for
+#' degrees of freedom from sample data in randomized block and split-plot
+#' designs. \emph{Journal of Educational Statistics}, 1(1), 69-82.
 #' @export
 testrepeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   measure_nms <- tidyselect_names(data, {{ measures }})
@@ -61,6 +77,15 @@ testrepeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.05
 #' primary test result with null hypothesis, alternative repeated-measures
 #' results, post-hoc paired comparisons, effect size, optional `ggplot`,
 #' original call, and report text.
+#'
+#' The repeated-measures ANOVA rows (`$alternative_tests$anova`, and
+#' `$primary_test` when it is the ANOVA) carry `gg.eps` and `hf.eps`
+#' (Greenhouse-Geisser and Huynh-Feldt epsilon, from the subjects with all
+#' measures) and `p.gg`, `p.hf`, the p-values with both df multiplied by
+#' epsilon (Huynh-Feldt epsilon capped at 1), as `anova.mlm(test =
+#' "Spherical")`. The mixed ANOVA rows carry the same columns for the within
+#' term and the interaction (epsilon from the pooled within-group covariance;
+#' `NA` for the between term).
 #' @export
 testrepeatedlong <- function(data, outcome, within, id, between = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))
@@ -93,10 +118,16 @@ repeated_core <- function(data, outcome_nm, within_nm, id_nm, outcome_label = NU
   rownames(wide) <- NULL
   wide <- .as_bt(wide)
   measure_nms <- setdiff(names(wide), id_nm)
-  complete <- stats::na.omit(wide[, measure_nms, drop = FALSE])
+  cc <- stats::complete.cases(wide[, measure_nms, drop = FALSE])
+  complete <- wide[cc, measure_nms, drop = FALSE]
   sphericity <- check_sphericity(as.matrix(complete), alpha)
   friedman <- stats::friedman.test(as.matrix(complete))
-  anova <- repeated_anova_test(df, outcome_nm, within_nm, id_nm)
+  eps <- sphericity_eps(as.matrix(complete))
+  anova <- add_eps(repeated_anova_test(df, outcome_nm, within_nm, id_nm), eps)
+  if (ncol(complete) > 2) {
+    sphericity$details <- paste0("Greenhouse-Geisser epsilon = ", format_stat(eps[["gg"]]),
+                                 "; Huynh-Feldt epsilon = ", format_stat(eps[["hf"]]))
+  }
   recommendation <- if (all(normality$status == "acceptable")) "Repeated-measures ANOVA" else "Friedman test"
   h0 <- h0_mean_equal(outcome_label, within_nm)
   primary <- if (recommendation == "Friedman test") {
@@ -120,9 +151,22 @@ repeated_core <- function(data, outcome_nm, within_nm, id_nm, outcome_label = NU
       ggplot2::theme_minimal()
   } else NULL
   alt <- list(anova = add_null_hypothesis(anova, h0), friedman = add_null_hypothesis(safe_tidy_htest(friedman, "Friedman test"), h0))
-  if (!is.null(between_nm)) alt$mixed_anova <- mixed_anova_test(df, outcome_nm, within_nm, id_nm, between_nm)
+  if (!is.null(between_nm)) {
+    bw <- df[[between_nm]][match(wide[[id_nm]][cc], df[[id_nm]])]
+    alt$mixed_anova <- mixed_anova_test(df, outcome_nm, within_nm, id_nm, between_nm)
+    m <- alt$mixed_anova
+    eb <- sphericity_eps(as.matrix(complete), bw)
+    alt$mixed_anova <- add_eps(m, eb, df2 = m$den.df, rows = m$term != between_nm)
+  }
   out <- new_testflow("repeated", "repeated numeric measurements", outcome_label, within_nm, id_nm, df, descriptives_numeric(df, outcome_nm, within_nm), assumption_checks(check_independence_note("Repeated measurements from the same subjects are assumed by design."), normality, sphericity), list(test = recommendation, rationale = recommend_rationale(recommendation, normality, alpha = alpha)), primary, alt, posthoc = posthoc_tests, effect_size = effect, plot = plt, call = call, subclass = "repeated")
   out$interpretation <- make_report(out, alpha)
+  if (recommendation == "Repeated-measures ANOVA" && ncol(complete) > 2) {
+    out$interpretation <- paste0(
+      out$interpretation, " Sphericity corrections: Greenhouse-Geisser epsilon = ", format_stat(eps[["gg"]]),
+      ", p = ", format_p(anova$p.gg), "; Huynh-Feldt epsilon = ", format_stat(eps[["hf"]]),
+      ", p = ", format_p(anova$p.hf), "."
+    )
+  }
   if (!is.null(alt$mixed_anova)) {
     m <- alt$mixed_anova
     out$interpretation <- paste0(

@@ -1,6 +1,6 @@
 Package: testflow
 Title: A Workflow for Statistical Testing and Interpretation
-Version: 1.1.6
+Version: 1.1.7
 Authors@R: c(
     person(
       given = "Imad",
@@ -52,6 +52,9 @@ Suggests:
     pROC,
     psych,
     pmsampsize,
-    survey
+    survey,
+    MASS,
+    PMCMRplus,
+    afex
 Config/testthat/edition: 3
 VignetteBuilder: knitr

@@ -9,9 +9,10 @@ testgroups(
   data,
   group = NULL,
   alpha = 0.05,
-  posthoc = TRUE,
+  posthoc = c("auto", "tukey", "gameshowell", "welch", "wilcoxon", "dunn", "none"),
   plot = TRUE,
-  na.rm = TRUE
+  na.rm = TRUE,
+  p.adjust.method = "BH"
 )
 }
 \arguments{
@@ -23,11 +24,20 @@ testgroups(
 
 \item{alpha}{Significance level.}
 
-\item{posthoc}{Logical; compute post-hoc comparisons.}
+\item{posthoc}{Post-hoc method. \code{"auto"} (default, same as \code{TRUE}) follows
+the recommended omnibus test: Tukey HSD after one-way ANOVA, pairwise
+Welch t tests after Welch ANOVA, pairwise Wilcoxon rank-sum tests after
+Kruskal-Wallis. \code{"tukey"}, \code{"gameshowell"} (Games-Howell, unequal
+variances), \code{"welch"}, \code{"wilcoxon"} or \code{"dunn"} (Dunn's test on pooled
+ranks, see \code{\link[=testdunn]{testdunn()}}) fixes the method; \code{"none"} (or \code{FALSE}) skips it.}
 
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{p.adjust.method}{Multiplicity adjustment for the \code{"welch"},
+\code{"wilcoxon"} and \code{"dunn"} post hoc tests (Tukey and Games-Howell carry
+their own studentized-range adjustment).}
 }
 \value{
 A \code{testflow} object with class \code{testflow_groups}. The object is a
@@ -35,6 +45,16 @@ list containing the cleaned data, grouped descriptive statistics, assumption
 checks, recommended omnibus test, primary test result with null hypothesis,
 alternative omnibus results, post-hoc comparisons when requested, effect
 size, optional \code{ggplot}, original call, and report text.
+
+\verb{$posthoc} is a list with \code{method}, \code{result} (a \code{TukeyHSD} or
+\code{pairwise.htest} object), \code{p.adjust.method} and \code{table}, a tidy table with
+one row per pair: \code{group1}, \code{group2}, \code{estimate} (group2 minus group1: mean
+difference, or mean rank difference for Dunn), \code{statistic}, \code{conf.low},
+\code{conf.high}, \code{p}, \code{p.adj} and \code{p.adjust.method} (\code{NA} where a method does
+not give the quantity).
+
+After a Kruskal-Wallis test, \verb{$effect_size} has two rows:
+\verb{eta^2_H = (H - k + 1) / (n - k)} and \verb{epsilon^2_H = H / (n - 1)}.
 }
 \description{
 Compare a numeric outcome across more than two groups
