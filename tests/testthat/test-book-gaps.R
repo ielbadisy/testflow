@@ -181,3 +181,46 @@ test_that("testmultinomialregression matches multinom", {
   expect_equal(co$std.error, as.vector(t(summary(fit)$standard.errors)), tolerance = 1e-3)
   expect_equal(r$alternative_tests$relative_risk_ratios$rrr, exp(co$estimate))
 })
+
+test_that("testpaireddiagnostic gives each row its own effect size", {
+  set.seed(1); d <- data.frame(dis = rbinom(200, 1, 0.4))
+  d$t1 <- ifelse(d$dis == 1, rbinom(200, 1, 0.8), rbinom(200, 1, 0.1))
+  d$t2 <- ifelse(d$dis == 1, rbinom(200, 1, 0.9), rbinom(200, 1, 0.2))
+  p <- testpaireddiagnostic(d, t1, t2, dis, plot = FALSE)$primary_test
+  N <- d[d$dis == 0, ]
+  expect_equal(p$effect_size, p$estimate)
+  expect_equal(p$effect_size[2], mean(N$t2 == 0) - mean(N$t1 == 0))
+  expect_equal(p$effect_size_name, c("Sensitivity difference", "Specificity difference"))
+})
+
+test_that("testcorrelation skips Shapiro-Wilk for a given method and for n > 5000", {
+  set.seed(4); d <- data.frame(x = rnorm(6000)); d$y <- d$x + rnorm(6000)
+  r <- expect_no_warning(testcorrelation(y ~ x, d, method = "pearson", plot = FALSE))
+  nm <- r$assumptions[grepl("Normality", r$assumptions$name), ]
+  expect_true(all(nm$status == "not checked") && all(is.na(nm$p_value)))
+  expect_equal(r$primary_test$estimate, unname(cor.test(d$x, d$y)$estimate))
+  a <- expect_no_warning(testcorrelation(y ~ x, d, plot = FALSE))
+  expect_true(all(is.na(a$assumptions$p_value[grepl("Normality", a$assumptions$name)])))
+  s <- testcorrelation(y ~ x, d[1:100, ], method = "pearson", plot = FALSE)
+  expect_true(all(is.na(s$assumptions$p_value[grepl("Normality", s$assumptions$name)])))
+})
+
+test_that("teststratified skips zero-margin strata in Breslow-Day only", {
+  skip_if_not_installed("DescTools")
+  u <- as.data.frame(UCBAdmissions); u <- u[rep(seq_len(nrow(u)), u$Freq), 1:3]
+  z <- data.frame(Admit = "Rejected", Gender = c("Male", "Male", "Female"), Dept = "G")
+  u2 <- rbind(u, z); u2$Admit <- factor(u2$Admit, levels(u$Admit)); u2$Dept <- factor(u2$Dept)
+  s <- expect_no_error(teststratified(Admit ~ Gender | Dept, u2, event = "Admitted", plot = FALSE))
+  arr <- table(factor(u2$Gender, c("Female", "Male")), factor(u2$Admit, c("Admitted", "Rejected")), u2$Dept)
+  mh <- mantelhaen.test(arr)
+  expect_equal(c(s$primary_test$statistic, s$primary_test$estimate), unname(c(mh$statistic, mh$estimate)), tolerance = 1e-8)
+  bd <- DescTools::BreslowDayTest(arr[, , 1:6])
+  expect_equal(s$alternative_tests$breslow_day$statistic, unname(bd$statistic), tolerance = 1e-6)
+  expect_equal(s$alternative_tests$breslow_day$parameter, 5)
+  expect_equal(s$alternative_tests$breslow_day_tarone$statistic,
+               unname(DescTools::BreslowDayTest(arr[, , 1:6], correct = TRUE)$statistic), tolerance = 1e-6)
+  expect_match(s$alternative_tests$breslow_day$note, "G")
+  one <- teststratified(Admit ~ Gender | Dept, droplevels(u2[u2$Dept %in% c("A", "G"), ]), plot = FALSE)
+  expect_true(is.na(one$alternative_tests$breslow_day$statistic))
+  expect_equal(one$assumptions$status[2], "not checked")
+})

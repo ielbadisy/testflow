@@ -99,6 +99,9 @@ testpaireddiagnostic <- function(data, test1, test2, reference, exact = FALSE, c
                       effect_size = .bt(name = c("Sensitivity difference", "Specificity difference"), estimate = comparison$estimate,
                                         magnitude = NA_character_),
                       plot = plt, call = match.call(), subclass = "paired_diagnostic")
+  # Two rows: each carries its own difference (the default attaches row 1 only).
+  out$primary_test$effect_size <- out$effect_size$estimate
+  out$primary_test$effect_size_name <- out$effect_size$name
   pct <- function(x) paste0(format_stat(100 * x, 1), "%")
   txt <- function(i) paste0(comparison$measure[i], " was ", pct(comparison$test1[i]), " for ", t1, " and ", pct(comparison$test2[i]),
                             " for ", t2, " (difference ", pct(comparison$estimate[i]), ", ", primary_ci_level_text(out), " CI ",

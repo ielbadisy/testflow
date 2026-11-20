@@ -22,7 +22,10 @@ testcorrelation(
 
 \item{y}{Second numeric column. Optional when using formula style.}
 
-\item{method}{Correlation method or \code{"auto"}.}
+\item{method}{Correlation method or \code{"auto"}. Only \code{"auto"} runs the
+Shapiro-Wilk pre-test (to choose Pearson or Spearman); a given method
+reports normality as "not checked". Shapiro-Wilk is never run for
+n > 5000 (normality is then "not checked"; use a Q-Q plot).}
 
 \item{alpha}{Significance level.}
 

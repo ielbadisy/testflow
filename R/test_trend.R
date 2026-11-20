@@ -120,13 +120,20 @@ bd_cell <- function(t, psi) {
 #'   the first, for the `event` level. `$alternative_tests` has
 #'   `stratum_or` (Woolf OR per stratum, 0.5 added in tables with a zero
 #'   cell), `crude_or` (collapsed table), `breslow_day` and
-#'   `breslow_day_tarone` (homogeneity, `K - 1` df).
+#'   `breslow_day_tarone` (homogeneity, `K - 1` df over the `strata`
+#'   informative strata, with a `note` naming any stratum skipped).
 #' @details
 #' The Breslow-Day statistic is \eqn{\sum_k (a_k - E_k)^2 / V_k}, with
 #' \eqn{E_k} and \eqn{V_k} the mean and asymptotic variance of the first
 #' cell under the MH common odds ratio. Tarone's version subtracts
 #' \eqn{(\sum a_k - \sum E_k)^2 / \sum V_k}. These match
-#' `DescTools::BreslowDayTest()`.
+#' `DescTools::BreslowDayTest()`. A stratum with a zero margin (no events,
+#' no non-events, or one exposure level empty) has \eqn{V_k = 0} and no
+#' information on the odds ratio: it is kept in the CMH test and the MH
+#' odds ratio (where it contributes nothing, as in
+#' `stats::mantelhaen.test()`) but left out of Breslow-Day, whose df is
+#' then the number of informative strata minus one. With fewer than two
+#' informative strata the Breslow-Day statistics are `NA`.
 #' @references
 #' Mantel N, Haenszel W. Statistical aspects of the analysis of data from
 #' retrospective studies of disease. *JNCI*. 1959;22:719-748.
@@ -153,9 +160,15 @@ teststratified <- function(formula, data, event = NULL, correct = TRUE, alpha = 
   K <- dim(arr)[3]
   mh <- stats::mantelhaen.test(arr, correct = correct, conf.level = 1 - alpha)
   psi <- unname(mh$estimate)
-  bd <- vapply(seq_len(K), function(k) bd_cell(arr[, , k], psi), numeric(2))
-  a <- arr[1, 1, ]
-  bdx <- sum((a - bd["a", ])^2 / bd["v", ]); tar <- bdx - (sum(a) - sum(bd["a", ]))^2 / sum(bd["v", ])
+  # A stratum with a zero margin has V_k = 0 and carries no information on the OR: Breslow-Day skips it.
+  inf <- apply(arr, 3, function(t) all(rowSums(t) > 0, colSums(t) > 0)); Ki <- sum(inf)
+  a <- arr[1, 1, ]; ai <- a[inf]
+  bd <- vapply(which(inf), function(k) bd_cell(arr[, , k], psi), numeric(2))
+  bdx <- if (Ki > 1) sum((ai - bd["a", ])^2 / bd["v", ]) else NA_real_
+  tar <- if (Ki > 1) bdx - (sum(ai) - sum(bd["a", ]))^2 / sum(bd["v", ]) else NA_real_
+  bdp <- stats::pchisq(bdx, Ki - 1, lower.tail = FALSE)
+  skip <- dimnames(arr)[[3]][!inf]
+  bdnote <- if (length(skip)) paste0("Strata with a zero margin skipped: ", paste(skip, collapse = ", "), ".") else NA_character_
   woolf <- function(t) {
     t <- t + if (any(t == 0)) 0.5 else 0; se <- sqrt(sum(1 / t)); z <- stats::qnorm(1 - alpha / 2)
     or <- t[1, 1] * t[2, 2] / (t[1, 2] * t[2, 1]); c(or, exp(log(or) + c(-1, 1) * z * se))
@@ -163,8 +176,8 @@ teststratified <- function(formula, data, event = NULL, correct = TRUE, alpha = 
   so <- vapply(seq_len(K), function(k) woolf(arr[, , k]), numeric(3))
   cr <- woolf(apply(arr, c(1, 2), sum))
   cmp <- paste0(levels(x)[2], " vs ", levels(x)[1])
-  bdrow <- function(m, st) .bt(method = m, statistic = st, parameter = K - 1,
-                               p.value = stats::pchisq(st, K - 1, lower.tail = FALSE))
+  bdrow <- function(m, st) .bt(method = m, statistic = st, parameter = Ki - 1,
+                               p.value = stats::pchisq(st, Ki - 1, lower.tail = FALSE), strata = Ki, note = bdnote)
   primary <- .bt(method = mh$method, estimate = psi, statistic = unname(mh$statistic), parameter = 1,
                  p.value = mh$p.value, conf.low = mh$conf.int[1], conf.high = mh$conf.int[2], conf.level = 1 - alpha)
   h0 <- paste0("H0: ", y_nm, " and ", x_nm, " are independent within every level of ", s_nm, " (common OR = 1).")
@@ -179,16 +192,17 @@ teststratified <- function(formula, data, event = NULL, correct = TRUE, alpha = 
       ggplot2::geom_pointrange(ggplot2::aes(xmin = .data$lo, xmax = .data$hi), colour = "#4C78A8") +
       ggplot2::scale_x_log10() +
       ggplot2::labs(title = "Stratified 2 x 2 workflow", subtitle = paste0("CMH p = ", format_p(mh$p.value),
-                    "; Breslow-Day p = ", format_p(stats::pchisq(bdx, K - 1, lower.tail = FALSE))),
+                    "; Breslow-Day p = ", format_p(bdp)),
                     x = paste0("Odds ratio (", cmp, ")"), y = s_nm) +
       ggplot2::theme_minimal()
   } else NULL
   out <- new_testflow("stratified", "two binary variables within strata", y_nm, x_nm, data = df,
                       descriptives = descriptives_categorical(df, c(y_nm, x_nm, s_nm)),
                       assumptions = assumption_checks(check_independence_note(),
-                        assumption_check("Homogeneity of odds ratios", if (stats::pchisq(bdx, K - 1, lower.tail = FALSE) < alpha)
-                          "not acceptable" else "acceptable", "A common odds ratio across strata is assumed by the pooled estimate.",
-                          method = "Breslow-Day", statistic = bdx, p_value = stats::pchisq(bdx, K - 1, lower.tail = FALSE))),
+                        assumption_check("Homogeneity of odds ratios", if (is.na(bdp)) "not checked" else if (bdp < alpha)
+                          "not acceptable" else "acceptable", paste(c("A common odds ratio across strata is assumed by the pooled estimate.",
+                          if (Ki < 2) "Fewer than two informative strata: Breslow-Day not computed.", if (length(skip)) bdnote), collapse = " "),
+                          method = "Breslow-Day", statistic = bdx, p_value = bdp)),
                       recommended = list(test = mh$method, rationale = paste0("Binary exposure and outcome compared within ", K,
                                                                                " strata of ", s_nm, ".")),
                       primary_test = add_null_hypothesis(primary, h0),

@@ -39,7 +39,8 @@ A \code{testflow} object with class \code{testflow_stratified}.
 the first, for the \code{event} level. \verb{$alternative_tests} has
 \code{stratum_or} (Woolf OR per stratum, 0.5 added in tables with a zero
 cell), \code{crude_or} (collapsed table), \code{breslow_day} and
-\code{breslow_day_tarone} (homogeneity, \code{K - 1} df).
+\code{breslow_day_tarone} (homogeneity, \code{K - 1} df over the \code{strata}
+informative strata, with a \code{note} naming any stratum skipped).
 }
 \description{
 Tests the association between a binary exposure and a binary outcome
@@ -51,7 +52,13 @@ The Breslow-Day statistic is \eqn{\sum_k (a_k - E_k)^2 / V_k}, with
 \eqn{E_k} and \eqn{V_k} the mean and asymptotic variance of the first
 cell under the MH common odds ratio. Tarone's version subtracts
 \eqn{(\sum a_k - \sum E_k)^2 / \sum V_k}. These match
-\code{DescTools::BreslowDayTest()}.
+\code{DescTools::BreslowDayTest()}. A stratum with a zero margin (no events,
+no non-events, or one exposure level empty) has \eqn{V_k = 0} and no
+information on the odds ratio: it is kept in the CMH test and the MH
+odds ratio (where it contributes nothing, as in
+\code{stats::mantelhaen.test()}) but left out of Breslow-Day, whose df is
+then the number of informative strata minus one. With fewer than two
+informative strata the Breslow-Day statistics are \code{NA}.
 }
 \examples{
 d <- as.data.frame(UCBAdmissions)

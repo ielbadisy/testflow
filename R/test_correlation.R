@@ -2,7 +2,10 @@
 #' @param formula A formula such as `y ~ x`, or a data frame when using pipe/data-first style.
 #' @param data A data frame, or a first numeric column when using data-first style.
 #' @param y Second numeric column. Optional when using formula style.
-#' @param method Correlation method or `"auto"`.
+#' @param method Correlation method or `"auto"`. Only `"auto"` runs the
+#'   Shapiro-Wilk pre-test (to choose Pearson or Spearman); a given method
+#'   reports normality as "not checked". Shapiro-Wilk is never run for
+#'   n > 5000 (normality is then "not checked"; use a Q-Q plot).
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
@@ -38,7 +41,9 @@ testcorrelation <- function(formula, data, y = NULL, method = c("auto", "pearson
   data_obj <- resolve_data_first_or_formula(formula, data)
   df <- drop_missing(data_obj, c(x_nm, y_nm, covariates), na.rm = na.rm)
   warn_if_small_correlation_n(df, x_nm, y_nm)
-  normality <- check_normality(df, c(x_nm, y_nm), alpha = alpha)
+  # The normality pre-test only drives the automatic choice; skip it when the method is given.
+  normality <- check_normality(df, c(x_nm, y_nm), alpha = alpha, skip = if (method != "auto")
+    paste0("Not pre-tested: method = \"", method, "\" was given; inspect a normal Q-Q plot if relevant."))
   outlier_flags <- iqr_outlier_flags(df, c(x_nm, y_nm))
   outliers <- iqr_outlier_assumption(outlier_flags, c(x_nm, y_nm))
   chosen <- if (method == "auto") {
