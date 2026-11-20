@@ -44,10 +44,15 @@ print.testflow <- function(x, ...) {
       if (is.na(x$effect_size$estimate[1])) {
         tf_bullet("Effect size not reported.")
       } else {
-        tf_line(paste0(
-          tf_label(x$effect_size$name[1]), " ",
-          format_stat(x$effect_size$estimate[1]),
-          if (!is.na(x$effect_size$magnitude[1])) paste0(", ", tf_value(x$effect_size$magnitude[1])) else ""
+        es <- x$effect_size
+        # Per-term tables (factorial) keep printing their first row only.
+        for (i in if ("term" %in% names(es)) 1L else seq_len(nrow(es))) tf_line(paste0(
+          tf_label(es$name[i]), " ",
+          format_stat(es$estimate[i]),
+          if ("conf.low" %in% names(es) && !is.na(es$conf.low[i])) {
+            paste0(" [", format_stat(es$conf.low[i]), ", ", format_stat(es$conf.high[i]), "]")
+          } else "",
+          if (!is.na(es$magnitude[i])) paste0(", ", tf_value(es$magnitude[i])) else ""
         ))
       }
       tf_blank()

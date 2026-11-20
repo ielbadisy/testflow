@@ -11,6 +11,11 @@
 #' statistics, assumption checks, recommended paired test, primary test result
 #' with null hypothesis, alternative test results, effect size, optional
 #' `ggplot`, original call, and report text.
+#'
+#' `$effect_size` always starts with Cohen's dz. When the primary test is the
+#' Wilcoxon signed-rank test, a second row gives the matched-pairs
+#' rank-biserial correlation r_c = (T+ - T-) / (T+ + T-) (ranks of the
+#' non-zero |after - before|), the effect size that matches that test.
 #' @export
 testpaired <- function(formula, data, after = NULL, alternative = c("two.sided", "less", "greater"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   alternative <- match.arg(alternative)
@@ -42,6 +47,9 @@ testpaired <- function(formula, data, after = NULL, alternative = c("two.sided",
   signs <- stats::binom.test(sum(df$diff > 0), sum(df$diff != 0), p = 0.5, alternative = alternative)
   primary <- if (recommendation == "Paired t-test") ttest else wilcox
   effect <- cohens_d_paired(df[[before_nm]], df[[after_nm]])
+  if (recommendation != "Paired t-test") {
+    effect <- .rbind_rows(list(effect, rank_biserial_paired(df[[before_nm]], df[[after_nm]])))
+  }
   long <- .pivot_longer_simple(df, c(before_nm, after_nm), "time", "value")
   plt <- if (plot) make_plot("paired", long, paste(after_nm, "-", before_nm), recommended = recommendation, primary = primary, effect = effect) else NULL
   h0 <- paste0("H0: the mean or median paired difference (", after_nm, " - ", before_nm, ") equals 0.")

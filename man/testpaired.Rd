@@ -35,6 +35,11 @@ list containing the cleaned paired data, paired difference, descriptive
 statistics, assumption checks, recommended paired test, primary test result
 with null hypothesis, alternative test results, effect size, optional
 \code{ggplot}, original call, and report text.
+
+\verb{$effect_size} always starts with Cohen's dz. When the primary test is the
+Wilcoxon signed-rank test, a second row gives the matched-pairs
+rank-biserial correlation r_c = (T+ - T-) / (T+ + T-) (ranks of the
+non-zero |after - before|), the effect size that matches that test.
 }
 \description{
 Compare paired before and after numeric measurements

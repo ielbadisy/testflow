@@ -17,6 +17,15 @@
 #' assumption checks, recommended test, primary test result with null
 #' hypothesis, alternative test results, effect size, optional `ggplot`,
 #' original call, and report text.
+#'
+#' `$effect_size` has columns `name`, `estimate`, `magnitude`, `conf.low`,
+#' `conf.high` (95% CI) and `comparison` (first level vs second level; positive
+#' values mean larger outcomes in the first level). For t tests its rows are
+#' Cohen's d and Hedges' g (exact small-sample factor), both with noncentral t
+#' CIs. For the Wilcoxon test they are the rank-biserial correlation
+#' r = 2 theta - 1 and the probability of superiority
+#' `theta = P(X1 > X2) + P(X1 = X2) / 2`, with a DeLong CI for theta. The
+#' Wilcoxon statistic W is the Mann-Whitney U of the first factor level.
 #' @export
 testtwogroups <- function(
   formula,
@@ -87,5 +96,12 @@ testtwogroups <- function(
     subclass = "two_groups"
   )
   x$interpretation <- make_report(x, alpha)
+  if (recommendation == "Wilcoxon rank-sum test") {
+    lv <- levels(df[[group_nm]])
+    x$interpretation <- paste0(
+      x$interpretation, " W is the Mann-Whitney U of ", lv[1], ": the number of (", lv[1], ", ", lv[2],
+      ") pairs in which ", lv[1], " has the larger ", outcome_nm, " (ties count 1/2)."
+    )
+  }
   x
 }
