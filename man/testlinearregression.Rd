@@ -4,7 +4,14 @@
 \alias{testlinearregression}
 \title{Multiple linear regression workflow}
 \usage{
-testlinearregression(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE)
+testlinearregression(
+  formula,
+  data,
+  alpha = 0.05,
+  plot = TRUE,
+  na.rm = TRUE,
+  pretests = TRUE
+)
 }
 \arguments{
 \item{formula}{A formula such as \code{outcome ~ x1 + x2 + x3}.}
@@ -16,6 +23,12 @@ testlinearregression(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE)
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{pretests}{Logical. If \code{TRUE} (default), the Shapiro-Wilk (residual
+normality) and Breusch-Pagan (homoscedasticity) tests are run and
+reported as assumption checks. \code{FALSE} skips both tests and records the
+two assumptions as \code{"not checked"} (inspect the residual plot instead);
+the fit and the primary test are unchanged.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_linear_regression}. The

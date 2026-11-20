@@ -22,6 +22,13 @@
 #' @param alpha Significance level used by automatic test selection.
 #' @param fisher_threshold Expected-count threshold for Fisher's exact test.
 #' @param na.rm Logical; remove missing values before summaries and tests.
+#' @param smd Logical; add an `SMD` column (absolute standardised mean
+#'   difference, 3 decimals, on each variable's first row) when the grouping
+#'   variable has exactly two levels. Numeric variables use
+#'   \eqn{|\bar x_2 - \bar x_1| / \sqrt{(s_1^2 + s_2^2)/2}}; categorical
+#'   variables use the multinomial SMD of Yang and Dalton (2012),
+#'   \eqn{\sqrt{T^\top S^{-1} T}}. Both match `tableone::ExtractSmd()`.
+#'   Default `FALSE`.
 #' @return A basetable with one row per numeric variable and one row per
 #'   categorical level.
 #' @examples
@@ -37,7 +44,8 @@ sumtab <- function(
   p_digits = 3,
   alpha = 0.05,
   fisher_threshold = 5,
-  na.rm = TRUE
+  na.rm = TRUE,
+  smd = FALSE
 ) {
   parsed <- parse_sumtab_formula(tf_formula_arg(substitute(formula), parent.frame()))
   require_columns(data, c(parsed$vars, parsed$group))
@@ -47,6 +55,7 @@ sumtab <- function(
 
   group_levels <- sumtab_group_levels(data, parsed$group)
   group_labels <- sumtab_group_labels(data, parsed$group, group_levels)
+  if (isTRUE(smd) && length(group_levels) != 2) stop("`smd = TRUE` needs a grouping variable with exactly two levels.", call. = FALSE)
   overall_label <- paste0("Overall (n = ", nrow(data), ")")
 
   out <- .map_dfr(parsed$vars, function(variable) {
@@ -62,6 +71,11 @@ sumtab <- function(
       rows$test <- c(test$method, rep(NA_character_, nrow(rows) - 1))
     }
 
+    if (isTRUE(smd)) {
+      g <- data[[parsed$group]]
+      rows$SMD <- c(formatC(sumtab_smd(data[[variable]][g == group_levels[1]], data[[variable]][g == group_levels[2]]),
+                            format = "f", digits = 3), rep(NA_character_, nrow(rows) - 1))
+    }
     rows
   })
 
@@ -284,4 +298,17 @@ sumtab_categorical_test <- function(data, variable, group, fisher_threshold) {
   }
 
   list(p.value = chi$p.value, method = "Chi-square test of independence")
+}
+
+# Absolute SMD between two groups: pooled-SD for numeric, Yang-Dalton (2012) multinomial for categorical.
+sumtab_smd <- function(x1, x2) {
+  x1 <- x1[!is.na(x1)]; x2 <- x2[!is.na(x2)]
+  if (is.numeric(x1)) return(abs(mean(x2) - mean(x1)) / sqrt((stats::var(x1) + stats::var(x2)) / 2))
+  lv <- union(sort(unique(as.character(x1))), sort(unique(as.character(x2))))
+  if (is.factor(x1)) lv <- levels(droplevels(factor(c(as.character(x1), as.character(x2)), levels(x1))))
+  p1 <- table(factor(x1, lv))[-1] / length(x1); p2 <- table(factor(x2, lv))[-1] / length(x2)
+  S <- -(outer(p1, p1) + outer(p2, p2)) / 2
+  diag(S) <- (p1 * (1 - p1) + p2 * (1 - p2)) / 2
+  d <- as.vector(p2 - p1)
+  sqrt(drop(t(d) %*% solve(S) %*% d))
 }

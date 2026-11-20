@@ -116,6 +116,10 @@ format_primary_result <- function(x) {
   df <- primary_df(x)
   ci <- primary_ci(x)
   ci_text <- if (any(is.na(ci))) "" else paste0(", ", primary_ci_level_text(x), " CI [", format_stat(ci[1]), ", ", format_stat(ci[2]), "]")
+  # Estimation-only results (bootstrap, paired accuracy) have no test statistic.
+  if (is.na(stat) && is.na(primary_p(x)) && !is.null(test$estimate)) {
+    return(paste0("estimate = ", format_stat(test$estimate[[1]]), ci_text))
+  }
   paste0(
     "statistic = ", format_stat(stat),
     if (nzchar(primary_df_text(x))) paste0(", ", primary_df_text(x)) else "",

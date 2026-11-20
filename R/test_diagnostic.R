@@ -148,6 +148,12 @@ wilson_ci <- function(x, m, alpha = 0.05) {
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param B Number of bootstrap resamples for a percentile CI of the
+#'   Youden-optimal threshold. Default `0` (no bootstrap). When `B > 0`,
+#'   cases and controls are resampled separately and
+#'   `$alternative_tests$optimal_threshold` gains `threshold.conf.low`,
+#'   `threshold.conf.high` and `B`.
+#' @param seed Optional seed for the bootstrap.
 #' @param method Standard-error method for the AUC: `"hanley"` (default,
 #'   Hanley & McNeil 1982 closed form) or `"delong"` (DeLong, DeLong &
 #'   Clarke-Pearson 1988 nonparametric structural-components variance).
@@ -196,7 +202,7 @@ wilson_ci <- function(x, m, alpha = 0.05) {
 #' ed.). Wiley; 2013. (AUC magnitude convention, p. 177.)
 #' @export
 testroc <- function(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm = TRUE,
-                    method = c("hanley", "delong")) {
+                    method = c("hanley", "delong"), B = 0, seed = NULL) {
   method <- match.arg(method)
   predictor_nm <- rlang::as_name(rlang::ensym(predictor))
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))
@@ -243,6 +249,7 @@ testroc <- function(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm =
   youden <- roc_curve$sensitivity + roc_curve$specificity - 1
   best <- which.max(youden)
   optimal <- roc_curve[best, ]
+  yb <- if (B > 0) youden_boot_ci(pos, neg, B, alpha, seed)
 
   effect <- .bt(name = "AUC", estimate = auc, magnitude = magnitude_auc(auc))
   primary <- .bt(
@@ -281,7 +288,9 @@ testroc <- function(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm =
     primary_test = add_null_hypothesis(primary, h0),
     alternative_tests = list(
       roc_curve = roc_curve,
-      optimal_threshold = .bt(threshold = optimal$threshold, sensitivity = optimal$sensitivity, specificity = optimal$specificity, youden_j = youden[best])
+      optimal_threshold = .bt(threshold = optimal$threshold, sensitivity = optimal$sensitivity,
+                              specificity = optimal$specificity, youden_j = youden[best],
+                              threshold.conf.low = if (B > 0) yb[1], threshold.conf.high = if (B > 0) yb[2], B = if (B > 0) B)
     ),
     effect_size = effect,
     plot = plt,
@@ -290,4 +299,17 @@ testroc <- function(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm =
   )
   out$interpretation <- make_report(out, alpha)
   out
+}
+
+# Threshold maximising Youden's J (positive when predictor >= threshold), lowest J-maximiser first as in testroc().
+youden_threshold <- function(pos, neg) {
+  x <- sort(unique(c(pos, neg)), decreasing = TRUE)
+  j <- vapply(x, function(t) mean(pos >= t) + mean(neg < t) - 1, numeric(1))
+  x[which.max(j)]
+}
+
+youden_boot_ci <- function(pos, neg, B, alpha, seed) {
+  if (!is.null(seed)) set.seed(seed)
+  t <- vapply(seq_len(B), function(b) youden_threshold(sample(pos, replace = TRUE), sample(neg, replace = TRUE)), numeric(1))
+  stats::quantile(t, c(alpha / 2, 1 - alpha / 2), names = FALSE)
 }

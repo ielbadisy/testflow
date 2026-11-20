@@ -13,7 +13,8 @@ sumtab(
   p_digits = 3,
   alpha = 0.05,
   fisher_threshold = 5,
-  na.rm = TRUE
+  na.rm = TRUE,
+  smd = FALSE
 )
 }
 \arguments{
@@ -36,6 +37,14 @@ supplied.}
 \item{fisher_threshold}{Expected-count threshold for Fisher's exact test.}
 
 \item{na.rm}{Logical; remove missing values before summaries and tests.}
+
+\item{smd}{Logical; add an \code{SMD} column (absolute standardised mean
+difference, 3 decimals, on each variable's first row) when the grouping
+variable has exactly two levels. Numeric variables use
+\eqn{|\bar x_2 - \bar x_1| / \sqrt{(s_1^2 + s_2^2)/2}}; categorical
+variables use the multinomial SMD of Yang and Dalton (2012),
+\eqn{\sqrt{T^\top S^{-1} T}}. Both match \code{tableone::ExtractSmd()}.
+Default \code{FALSE}.}
 }
 \value{
 A basetable with one row per numeric variable and one row per

@@ -14,6 +14,12 @@
 #'   logit CI from `survey::svyciprop()`. The design effect is reported. The
 #'   unweighted exact and approximate tests stay in `alternative_tests`.
 #'   Default `NULL` keeps the simple random sample analysis.
+#' @param exact Two-sided p-value of the exact binomial test. `"minlike"`
+#'   (default, as `stats::binom.test()`) sums the probabilities of all
+#'   outcomes no more likely than the observed one; `"central"` doubles the
+#'   smaller tail, \eqn{\min(1, 2\min\{P(X \le x), P(X \ge x)\})}, which
+#'   matches the Clopper-Pearson interval (the p-value is below `alpha`
+#'   exactly when the interval excludes `p`).
 #' @return A `testflow` object with class `testflow_proportion`. The object is
 #' a list containing the cleaned data, categorical descriptives, assumption
 #' checks, recommended exact or approximate one-sample proportion test, primary
@@ -29,7 +35,8 @@
 #' Statistical Software}, 9(1), 1-19.
 #' @export
 testproportion <- function(data, outcome, success, p = 0.5, alpha = 0.05, plot = TRUE, na.rm = TRUE,
-                           weights = NULL, cluster = NULL, strata = NULL) {
+                           weights = NULL, cluster = NULL, strata = NULL, exact = c("minlike", "central")) {
+  exact <- match.arg(exact)
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))
   design_cols <- c(weights, cluster, strata)
   if (!is.null(design_cols) && (!is.character(design_cols) || any(lengths(list(weights, cluster, strata)) > 1))) {
@@ -40,6 +47,8 @@ testproportion <- function(data, outcome, success, p = 0.5, alpha = 0.05, plot =
   success_n <- sum(df[[outcome_nm]] == success, na.rm = TRUE)
   total_n <- sum(!is.na(df[[outcome_nm]]))
   binom <- stats::binom.test(success_n, total_n, p = p)
+  if (exact == "central") binom$p.value <- min(1, 2 * min(stats::pbinom(success_n, total_n, p),
+                                                          stats::pbinom(success_n - 1, total_n, p, lower.tail = FALSE)))
   prop <- suppressWarnings(stats::prop.test(success_n, total_n, p = p, correct = FALSE))
   expected_success <- total_n * p
   expected_failure <- total_n * (1 - p)

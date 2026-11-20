@@ -14,7 +14,8 @@ testproportion(
   na.rm = TRUE,
   weights = NULL,
   cluster = NULL,
-  strata = NULL
+  strata = NULL,
+  exact = c("minlike", "central")
 )
 }
 \arguments{
@@ -40,6 +41,13 @@ t test of \eqn{H_0: \pi = p} as in \code{survey::svyttest()}, and a
 logit CI from \code{survey::svyciprop()}. The design effect is reported. The
 unweighted exact and approximate tests stay in \code{alternative_tests}.
 Default \code{NULL} keeps the simple random sample analysis.}
+
+\item{exact}{Two-sided p-value of the exact binomial test. \code{"minlike"}
+(default, as \code{stats::binom.test()}) sums the probabilities of all
+outcomes no more likely than the observed one; \code{"central"} doubles the
+smaller tail, \eqn{\min(1, 2\min\{P(X \le x), P(X \ge x)\})}, which
+matches the Clopper-Pearson interval (the p-value is below \code{alpha}
+exactly when the interval excludes \code{p}).}
 }
 \value{
 A \code{testflow} object with class \code{testflow_proportion}. The object is

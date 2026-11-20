@@ -34,12 +34,20 @@ A \code{testflow} object with class \code{testflow_one_sample}. The object is
 a list containing the cleaned data, descriptive statistics, assumption
 checks, recommended test, primary test result with null hypothesis,
 alternative test results, effect size, optional \code{ggplot}, original call, and
-report text.
+report text. \verb{$alternative_tests$median_ci} holds the distribution-free
+confidence interval for the median: with \eqn{k} the \eqn{\alpha/2}
+quantile of Binomial(\eqn{n}, 0.5), the interval is
+\eqn{[x_{(k)}, x_{(n-k+1)}]} and its achieved coverage
+\eqn{1 - 2P(B \le k - 1)} (at least \eqn{1 - \alpha}) is in \code{conf.level};
+the bounds are \code{NA} when \eqn{n} is too small for that coverage.
 }
 \description{
 Test one numeric sample against a reference value
 }
 \references{
+Conover, W. J. (1999). \emph{Practical Nonparametric Statistics} (3rd ed.).
+Wiley. Section 3.2.
+
 Gosset, W. S. (1908). The probable error of a mean. \emph{Biometrika},
 6(1), 1-25.
 

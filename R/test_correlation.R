@@ -6,6 +6,14 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param covariates Optional character vector of columns to partial out.
+#'   When given, the primary result is the partial correlation of `y` and
+#'   `x` given the covariates: the Pearson correlation of the residuals of
+#'   `y` and `x` regressed on the covariates (ranks of all variables for
+#'   Spearman). Its t test has \eqn{n - 2 - k} df for \eqn{k} covariate
+#'   columns and the Fisher-z interval uses SE \eqn{1/\sqrt{n - 3 - k}}.
+#'   The marginal result moves to `$alternative_tests$marginal`. Kendall is
+#'   not supported. Default `NULL` keeps the marginal analysis.
 #' @return A `testflow` object with class `testflow_correlation`. The object is
 #' a list containing the cleaned complete-case data, numeric descriptives,
 #' assumption checks, recommended correlation method, primary correlation test
@@ -21,13 +29,14 @@
 #' Kendall, M. G. (1938). A new measure of rank correlation. \emph{Biometrika},
 #' 30(1/2), 81-93.
 #' @export
-testcorrelation <- function(formula, data, y = NULL, method = c("auto", "pearson", "spearman", "kendall"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testcorrelation <- function(formula, data, y = NULL, method = c("auto", "pearson", "spearman", "kendall"), alpha = 0.05, plot = TRUE, na.rm = TRUE,
+                            covariates = NULL) {
   method <- match.arg(method)
   vars <- resolve_formula_pair(tf_formula_arg(substitute(formula), parent.frame()), tf_formula_arg(substitute(data), parent.frame()), substitute(y), missing(y), rhs_label = "x")
   y_nm <- vars$outcome
   x_nm <- vars$group
   data_obj <- resolve_data_first_or_formula(formula, data)
-  df <- drop_missing(data_obj, c(x_nm, y_nm), na.rm = na.rm)
+  df <- drop_missing(data_obj, c(x_nm, y_nm, covariates), na.rm = na.rm)
   warn_if_small_correlation_n(df, x_nm, y_nm)
   normality <- check_normality(df, c(x_nm, y_nm), alpha = alpha)
   outlier_flags <- iqr_outlier_flags(df, c(x_nm, y_nm))
@@ -53,6 +62,18 @@ testcorrelation <- function(formula, data, y = NULL, method = c("auto", "pearson
   h0 <- h0_no_correlation(x_nm, y_nm)
   corr_assumptions <- switch(chosen, pearson = assumption_checks(linearity, normality, outliers), spearman = assumption_checks(monotonicity, outliers, assumption_check("Normality", "not required", "Normality is not required for Spearman correlation.")), kendall = assumption_checks(monotonicity, outliers, assumption_check("Normality", "not required", "Normality is not required for Kendall correlation.")))
   out <- new_testflow("correlation", "two numeric variables", y_nm, x_nm, data = df, descriptives = descriptives_numeric(df, c(x_nm, y_nm)), assumptions = corr_assumptions, recommended = list(test = chosen_label, rationale = if (method == "auto") recommend_rationale(chosen_label, normality, alpha = alpha, extra = if (any(outlier_flags$is_outlier, na.rm = TRUE)) "IQR outliers were flagged, which also favours Spearman" else "no IQR outliers were flagged") else paste0(chosen_label, " was requested by the user (method = \"", method, "\").")), primary_test = add_null_hypothesis(safe_tidy_htest(primary, chosen_label), h0), alternative_tests = list(correlation_table = .bt(method = c("Pearson", "Spearman", "Kendall"), statistic = c(unname(pearson$estimate), unname(spearman$estimate), unname(kendall$estimate)), p.value = c(pearson$p.value, spearman$p.value, kendall$p.value)), pearson = add_null_hypothesis(safe_tidy_htest(pearson, "Pearson correlation"), h0), spearman = add_null_hypothesis(safe_tidy_htest(spearman, "Spearman correlation"), h0), kendall = add_null_hypothesis(safe_tidy_htest(kendall, "Kendall correlation"), h0)), effect_size = effect, plot = plt, call = match.call(), subclass = "correlation")
+  if (length(covariates)) {
+    if (chosen == "kendall") stop("Partial correlation supports Pearson or Spearman only.", call. = FALSE)
+    pc <- partial_cor(df[[x_nm]], df[[y_nm]], df[covariates], chosen, alpha)
+    lab <- paste0("Partial ", chosen_label, " (given ", paste(covariates, collapse = ", "), ")")
+    h0p <- paste0("H0: ", x_nm, " and ", y_nm, " are uncorrelated given ", paste(covariates, collapse = ", "), ".")
+    out$alternative_tests <- c(list(marginal = out$primary_test), out$alternative_tests)
+    out$primary_test <- add_null_hypothesis(safe_tidy_htest(pc, lab), h0p)
+    out$primary_test$conf.level <- 1 - alpha
+    out$recommended$test <- lab
+    out$effect_size <- .bt(name = paste0(lab, " r"), estimate = unname(pc$estimate),
+                           magnitude = magnitude_cramers_v(abs(unname(pc$estimate))))
+  }
   out$interpretation <- make_report(out, alpha)
   out
 }
@@ -88,6 +109,9 @@ iqr_outlier_flags <- function(data, vars) {
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param covariates Optional character vector of columns to partial out of
+#'   every pair (see [testcorrelation()]); each pair then uses its rows
+#'   complete on the pair and the covariates. Pearson or Spearman only.
 #' @return A `testflow` object with class `testflow_correlation_matrix`. The
 #' object is a list containing the cleaned data, numeric descriptives,
 #' screening assumptions, selected correlation-matrix method, pairwise
@@ -101,7 +125,8 @@ iqr_outlier_flags <- function(data, vars) {
 #' its `p.value` is the smallest unadjusted pairwise p-value and its
 #' `statistic` is `NA`. Use `$posthoc$p.adj` for inference on single pairs.
 #' @export
-testcorrelationmatrix <- function(data, vars, method = c("spearman", "pearson", "kendall"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testcorrelationmatrix <- function(data, vars, method = c("spearman", "pearson", "kendall"), alpha = 0.05, plot = TRUE,
+                                  na.rm = TRUE, covariates = NULL) {
   method <- match.arg(method)
   vars <- tidyselect_names(data, {{ vars }})
   warn_if_screening_workflow("correlation_matrix")
@@ -115,10 +140,21 @@ testcorrelationmatrix <- function(data, vars, method = c("spearman", "pearson", 
   full_vars <- as.data.frame(data)[, vars, drop = FALSE]
   mat <- stats::cor(full_vars, method = method, use = "pairwise.complete.obs")
   pairs <- utils::combn(vars, 2, simplify = FALSE)
+  if (length(covariates) && method == "kendall") stop("Partial correlation supports Pearson or Spearman only.", call. = FALSE)
+  cov_df <- as.data.frame(data)[, covariates, drop = FALSE]
   long <- .map_dfr(pairs, function(z) {
+    if (length(covariates)) {
+      ok <- stats::complete.cases(full_vars[z], cov_df)
+      test <- partial_cor(full_vars[[z[1]]][ok], full_vars[[z[2]]][ok], cov_df[ok, , drop = FALSE], method, alpha)
+      return(.bt(var1 = z[1], var2 = z[2], estimate = unname(test$estimate), p = test$p.value, n = sum(ok)))
+    }
     test <- suppressWarnings(stats::cor.test(full_vars[[z[1]]], full_vars[[z[2]]], method = method, exact = FALSE))
     .bt(var1 = z[1], var2 = z[2], estimate = unname(test$estimate), p = test$p.value, n = sum(stats::complete.cases(full_vars[[z[1]]], full_vars[[z[2]]])))
   })
+  if (length(covariates)) {
+    mat[] <- 1
+    for (i in seq_len(nrow(long))) mat[long$var1[i], long$var2[i]] <- mat[long$var2[i], long$var1[i]] <- long$estimate[i]
+  }
   long$p.adj <- stats::p.adjust(long$p, method = "BH")
   long$p.adjust.method <- "BH"
   n_sig_adj <- sum(long$p.adj < alpha, na.rm = TRUE)
@@ -203,4 +239,16 @@ select_names <- function(data, quo) {
   drop <- -val[val < 0L]
   if (!length(keep) && length(drop)) keep <- seq_along(nms)
   nms[setdiff(keep, drop)]
+}
+
+# Partial correlation as an htest: correlation of residuals on the covariates (on ranks for Spearman).
+partial_cor <- function(x, y, z, method = "pearson", alpha = 0.05) {
+  rk <- function(v) if (method == "spearman") rank(v) else v
+  Z <- stats::model.matrix(~ ., data.frame(lapply(z, function(v) if (is.numeric(v)) rk(v) else v)))
+  r <- stats::cor(stats::lm.fit(Z, rk(x))$residuals, stats::lm.fit(Z, rk(y))$residuals)
+  n <- length(x); k <- ncol(Z) - 1; df <- n - 2 - k; tt <- r * sqrt(df / (1 - r^2))
+  ci <- tanh(atanh(r) + c(-1, 1) * stats::qnorm(1 - alpha / 2) / sqrt(n - 3 - k))
+  structure(list(statistic = c(t = tt), parameter = c(df = df), p.value = 2 * stats::pt(-abs(tt), df),
+                 estimate = c(cor = r), conf.int = structure(ci, conf.level = 1 - alpha), alternative = "two.sided",
+                 method = paste0("Partial ", method, " correlation")), class = "htest")
 }

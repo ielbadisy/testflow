@@ -19,8 +19,9 @@ testcox(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE)
 }
 \value{
 A \code{testflow} object with class \code{testflow_cox}. The object is a
-list containing the cleaned data, descriptive statistics, a proportional-
-hazards assumption check, the overall likelihood-ratio test as the
+list containing the cleaned data, descriptive statistics, proportional-
+hazards assumption checks (the global \code{cox.zph()} test, then one row per
+term named \code{"Proportional hazards (<term>)"}), the overall likelihood-ratio test as the
 primary result with null hypothesis, the per-term hazard-ratio
 coefficient table, the concordance index as the effect size, optional
 \code{ggplot}, original call, and report text.

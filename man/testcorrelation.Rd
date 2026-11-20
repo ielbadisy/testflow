@@ -11,7 +11,8 @@ testcorrelation(
   method = c("auto", "pearson", "spearman", "kendall"),
   alpha = 0.05,
   plot = TRUE,
-  na.rm = TRUE
+  na.rm = TRUE,
+  covariates = NULL
 )
 }
 \arguments{
@@ -28,6 +29,15 @@ testcorrelation(
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{covariates}{Optional character vector of columns to partial out.
+When given, the primary result is the partial correlation of \code{y} and
+\code{x} given the covariates: the Pearson correlation of the residuals of
+\code{y} and \code{x} regressed on the covariates (ranks of all variables for
+Spearman). Its t test has \eqn{n - 2 - k} df for \eqn{k} covariate
+columns and the Fisher-z interval uses SE \eqn{1/\sqrt{n - 3 - k}}.
+The marginal result moves to \verb{$alternative_tests$marginal}. Kendall is
+not supported. Default \code{NULL} keeps the marginal analysis.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_correlation}. The object is

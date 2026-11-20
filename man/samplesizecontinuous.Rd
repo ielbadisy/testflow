@@ -18,7 +18,8 @@ samplesizecontinuous(
   dropout = 0,
   n_time = 2,
   correlation = 0.5,
-  method = c("normal", "t")
+  method = c("normal", "t"),
+  baseline_cor = 0
 )
 }
 \arguments{
@@ -49,6 +50,15 @@ paired designs, \code{sd} is used.}
 
 \item{correlation}{Within-subject correlation for repeated measures when
 \code{design = "repeated"} and \code{n_time > 2}.}
+
+\item{method}{\code{"normal"} (default) uses the normal approximation;
+\code{"t"} returns the smallest n whose noncentral-t power reaches \code{power}
+(as \code{stats::power.t.test()}).}
+
+\item{baseline_cor}{Correlation between the baseline and follow-up
+measurement for an ANCOVA analysis of a parallel design. The planning
+SD becomes \eqn{\sigma\sqrt{1 - \rho^2}} (Borm et al. 2007). Default
+\code{0} (no baseline adjustment, results unchanged).}
 }
 \value{
 A \code{sample_size} object.

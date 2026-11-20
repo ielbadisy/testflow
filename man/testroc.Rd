@@ -11,7 +11,9 @@ testroc(
   alpha = 0.05,
   plot = TRUE,
   na.rm = TRUE,
-  method = c("hanley", "delong")
+  method = c("hanley", "delong"),
+  B = 0,
+  seed = NULL
 )
 }
 \arguments{
@@ -32,6 +34,14 @@ second level is treated as the positive class).}
 \item{method}{Standard-error method for the AUC: \code{"hanley"} (default,
 Hanley & McNeil 1982 closed form) or \code{"delong"} (DeLong, DeLong &
 Clarke-Pearson 1988 nonparametric structural-components variance).}
+
+\item{B}{Number of bootstrap resamples for a percentile CI of the
+Youden-optimal threshold. Default \code{0} (no bootstrap). When \code{B > 0},
+cases and controls are resampled separately and
+\verb{$alternative_tests$optimal_threshold} gains \code{threshold.conf.low},
+\code{threshold.conf.high} and \code{B}.}
+
+\item{seed}{Optional seed for the bootstrap.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_roc}. The object is a

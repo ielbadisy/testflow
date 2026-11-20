@@ -12,7 +12,8 @@ testcategorical(
   fisher_threshold = 5,
   plot = TRUE,
   na.rm = TRUE,
-  biascorrect = FALSE
+  biascorrect = FALSE,
+  event = NULL
 )
 }
 \arguments{
@@ -34,6 +35,9 @@ testcategorical(
 usual Cramer's V, \eqn{V = \sqrt{\chi^2 / (n(\min(r, c) - 1))}}, which is
 biased upwards in small samples and sparse tables. If \code{TRUE}, the
 Bergsma (2013) bias-corrected V is reported instead.}
+
+\item{event}{For 2 x 2 tables, the outcome level counted as the event.
+Default \code{NULL} uses the second level of the outcome.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_categorical}. The object is
@@ -41,6 +45,19 @@ a list containing the cleaned data, categorical descriptives, assumption
 checks, recommended association test, primary test result with null
 hypothesis, alternative chi-square and Fisher results, effect size, optional
 \code{ggplot}, original call, and report text.
+
+\verb{$posthoc} holds one row per cell: \code{observed}, \code{expected}, the adjusted
+standardised residual \code{stdres} (as \code{stats::chisq.test()$stdres}), its
+two-sided normal \code{p.value} and the Benjamini-Hochberg \code{p.adj}.
+
+For a 2 x 2 table, \verb{$alternative_tests$effect_measures} compares the
+second level of the group (columns) with the first, for the \code{event} level
+of the outcome (rows): risk difference \code{RD} with the Newcombe hybrid score
+interval (Wilson limits of each risk), risk ratio \code{RR} (log scale,
+Katz), odds ratio \code{OR} (log scale, Woolf) and the number needed to treat
+\code{NNT} = 1/|RD| with limits 1/|RD limits| (Altman 1998). When the RD
+interval includes 0, the NNT interval runs through infinity and \code{note}
+says so. With a zero cell, 0.5 is added to every cell for RR and OR.
 }
 \description{
 Test association between two categorical variables
@@ -56,6 +73,13 @@ tables, and the calculation of P. \emph{Journal of the Royal Statistical
 Society}, 85(1), 87-94.
 
 Cramer, H. (1946). \emph{Mathematical Methods of Statistics}. Princeton.
+
+Newcombe, R. G. (1998). Interval estimation for the difference between
+independent proportions: comparison of eleven methods. \emph{Statistics
+in Medicine}, 17(8), 873-890.
+
+Altman, D. G. (1998). Confidence intervals for the number needed to treat.
+\emph{BMJ}, 317(7168), 1309-1312.
 
 Bergsma, W. (2013). A bias-correction for Cramer's V and Tschuprow's T.
 \emph{Journal of the Korean Statistical Society}, 42(3), 323-328.

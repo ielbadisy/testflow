@@ -129,8 +129,9 @@ testsurvival <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE)
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
 #' @return A `testflow` object with class `testflow_cox`. The object is a
-#' list containing the cleaned data, descriptive statistics, a proportional-
-#' hazards assumption check, the overall likelihood-ratio test as the
+#' list containing the cleaned data, descriptive statistics, proportional-
+#' hazards assumption checks (the global `cox.zph()` test, then one row per
+#' term named `"Proportional hazards (<term>)"`), the overall likelihood-ratio test as the
 #' primary result with null hypothesis, the per-term hazard-ratio
 #' coefficient table, the concordance index as the effect size, optional
 #' `ggplot`, original call, and report text.
@@ -181,6 +182,13 @@ testcox <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
     statistic = unname(zph_global["chisq"]),
     p_value = unname(zph_global["p"])
   )
+  zt <- zph$table[rownames(zph$table) != "GLOBAL", , drop = FALSE]
+  ph_terms <- .map_dfr(rownames(zt), function(tm) assumption_check(
+    paste0("Proportional hazards (", tm, ")"), ifelse(zt[tm, "p"] >= alpha, "acceptable", "not acceptable"),
+    ifelse(zt[tm, "p"] >= alpha, "No evidence that this term's effect changes over time.",
+           "This term's scaled Schoenfeld residuals trend with time; its hazard ratio may vary over follow-up."),
+    method = "Schoenfeld residual test (Grambsch-Therneau)", statistic = unname(zt[tm, "chisq"]), p_value = unname(zt[tm, "p"]),
+    details = paste0("df = ", zt[tm, "df"])))
 
   effect <- .bt(name = "Concordance index", estimate = unname(g$concordance), magnitude = NA_character_)
   primary <- .bt(
@@ -208,7 +216,7 @@ testcox <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
     paste(predictor_nms, collapse = ", "),
     data = df,
     descriptives = descriptives_numeric(df, intersect(predictor_nms, names(df)[vapply(df, is.numeric, logical(1))])),
-    assumptions = assumption_checks(check_independence_note("Independent censoring is assumed."), ph_check),
+    assumptions = assumption_checks(check_independence_note("Independent censoring is assumed."), ph_check, ph_terms),
     recommended = list(test = "Cox proportional hazards regression", rationale = "Time-to-event outcome modeled as a function of the predictors."),
     primary_test = add_null_hypothesis(primary, h0),
     alternative_tests = list(coefficients = coefs_log, hazard_ratios = coefs_hr),
