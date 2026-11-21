@@ -10,6 +10,10 @@
 #'   reported as assumption checks. `FALSE` skips both tests and records the
 #'   two assumptions as `"not checked"` (inspect the residual plot instead);
 #'   the fit and the primary test are unchanged.
+#' @param view Plot: `"auto"` (default) draws the fitted lines by group over
+#'   the data when the model has one numeric and one factor predictor (ANCOVA),
+#'   and residuals against fitted values otherwise; `"fitted"` and
+#'   `"residuals"` force one view.
 #' @return A `testflow` object with class `testflow_linear_regression`. The
 #' object is a list containing the cleaned data, descriptive statistics,
 #' residual/homoscedasticity/multicollinearity assumption checks, the overall
@@ -30,7 +34,9 @@
 #' @references
 #' Draper NR, Smith H. *Applied Regression Analysis* (3rd ed.). Wiley; 1998.
 #' @export
-testlinearregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE, pretests = TRUE) {
+testlinearregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE, pretests = TRUE,
+                                 view = c("auto", "fitted", "residuals")) {
+  view <- match.arg(view)
   formula_obj <- stats::as.formula(paste(deparse(formula), collapse = " "))
   outcome_nm <- all.vars(formula_obj[[2]])[1]
   predictor_nms <- all.vars(formula_obj[[3]])
@@ -65,18 +71,32 @@ testlinearregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm
   )
   h0 <- paste0("H0: none of ", paste(predictor_nms, collapse = ", "), " explain variation in ", outcome_nm, " (all slopes equal 0).")
 
-  plt <- if (plot) {
-    plot_df <- .bt(.fitted = stats::fitted(fit), .resid = stats::residuals(fit))
-    ggplot2::ggplot(plot_df, ggplot2::aes(x = .data$.fitted, y = .data$.resid)) +
-      ggplot2::geom_point(alpha = 0.6, color = "#4C78A8") +
-      ggplot2::geom_hline(yintercept = 0, linetype = "dashed", color = "#F58518") +
-      ggplot2::geom_smooth(se = FALSE, method = "loess", formula = y ~ x, color = "#1F2933", linewidth = 0.7) +
-      ggplot2::labs(
-        title = "Linear regression workflow",
-        subtitle = paste0("Residuals vs fitted, R-squared = ", format_stat(g$r.squared)),
-        x = "Fitted values", y = "Residuals"
-      ) +
-      ggplot2::theme_minimal()
+  num <- vapply(df[predictor_nms], is.numeric, TRUE)
+  anc <- length(predictor_nms) == 2 && sum(num) == 1
+  if (view == "fitted" && !anc) stop("`view = \"fitted\"` needs one numeric and one factor predictor.", call. = FALSE)
+  plt <- if (plot && (view == "fitted" || (view == "auto" && anc))) {
+    xn <- predictor_nms[num]; gn <- predictor_nms[!num]; d <- as.data.frame(df)
+    d[[gn]] <- factor(d[[gn]], lvls(d[[gn]])); k <- nlevels(d[[gn]])
+    nd <- expand.grid(x = seq(min(d[[xn]]), max(d[[xn]]), length.out = 50), g = levels(d[[gn]]))
+    names(nd) <- c(xn, gn); nd[[gn]] <- factor(nd[[gn]], levels(d[[gn]])); nd$.fit <- stats::predict(fit, nd)
+    d1 <- stats::drop1(fit, test = "F")
+    ggplot2::ggplot(d, ggplot2::aes(x = .data[[xn]], y = .data[[outcome_nm]], colour = .data[[gn]], shape = .data[[gn]])) +
+      ggplot2::geom_point(alpha = 0.6, size = 1.4) +
+      ggplot2::geom_line(ggplot2::aes(y = .data$.fit), data = nd, linewidth = 0.9) +
+      ggplot2::scale_colour_manual(values = tfpal(k)) +
+      ggplot2::scale_shape_manual(values = rep(c(16, 17, 15, 18, 1, 2), length.out = k)) +
+      ggplot2::labs(subtitle = termp("Adjusted F test", .bt(term = rownames(d1)[-1], p.value = d1[["Pr(>F)"]][-1])),
+                    caption = "Lines: fitted values by group.", x = xn, y = outcome_nm) +
+      tftheme()
+  } else if (plot) {
+    ggplot2::ggplot(.bt(.fitted = stats::fitted(fit), .resid = stats::residuals(fit)),
+                    ggplot2::aes(x = .data$.fitted, y = .data$.resid)) +
+      ggplot2::geom_point(alpha = 0.6, colour = TFCOL[["pt"]]) +
+      ggplot2::geom_hline(yintercept = 0, linetype = "dashed", colour = TFCOL[["ink"]]) +
+      ggplot2::geom_smooth(se = FALSE, method = "loess", formula = y ~ x, colour = TFCOL[["a1"]], linewidth = 0.7) +
+      ggplot2::labs(subtitle = paste0("Residuals vs fitted, R-squared = ", format_stat(g$r.squared)),
+                    x = "Fitted values", y = "Residuals") +
+      tftheme()
   } else NULL
 
   out <- new_testflow(
@@ -107,6 +127,9 @@ testlinearregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param units Optional named numeric vector of plotting units for numeric
+#'   predictors, for example `c(age = 10)` to plot the odds ratio per 10
+#'   years. Only the plot changes; tables stay per unit.
 #' @return A `testflow` object with class `testflow_logistic_regression`. The
 #' object is a list containing the cleaned data, descriptive statistics,
 #' multicollinearity/influential-point assumption checks, the likelihood-ratio
@@ -132,7 +155,7 @@ testlinearregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm
 #' Hosmer DW, Lemeshow S, Sturdivant RX. *Applied Logistic Regression* (3rd
 #' ed.). Wiley; 2013.
 #' @export
-testlogisticregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testlogisticregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE, units = NULL) {
   formula_obj <- stats::as.formula(paste(deparse(formula), collapse = " "))
   outcome_nm <- all.vars(formula_obj[[2]])[1]
   predictor_nms <- all.vars(formula_obj[[3]])
@@ -177,15 +200,8 @@ testlogisticregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.
   )
   h0 <- paste0("H0: none of ", paste(predictor_nms, collapse = ", "), " are associated with ", outcome_nm, " (all log-odds slopes equal 0).")
 
-  plt <- if (plot) {
-    or_df <- coefs_or[coefs_or$term != "(Intercept)", , drop = FALSE]
-    ggplot2::ggplot(or_df, ggplot2::aes(x = .data$odds_ratio, y = stats::reorder(.data$term, .data$odds_ratio))) +
-      ggplot2::geom_vline(xintercept = 1, linetype = "dashed", color = "#8A8F98") +
-      ggplot2::geom_pointrange(ggplot2::aes(xmin = .data$or.conf.low, xmax = .data$or.conf.high), color = "#4C78A8") +
-      ggplot2::scale_x_log10() +
-      ggplot2::labs(title = "Logistic regression workflow", subtitle = "Odds ratios with 95% confidence intervals", x = "Odds ratio (log scale)", y = NULL) +
-      ggplot2::theme_minimal()
-  } else NULL
+  plt <- if (plot) ratio_plot(coefs_log_odds, "Odds ratio, 95% profile CI (log scale)", predictor_nms, units,
+                              subtitle = paste0("Likelihood-ratio test, ", pstr(lr_p))) else NULL
 
   out <- new_testflow(
     "logistic_regression",

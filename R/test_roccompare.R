@@ -98,17 +98,21 @@ testroccompare <- function(data, predictor1, predictor2, outcome, alpha = 0.05, 
       )
     }
     cd <- rbind(curve(df[[p1]], p1), curve(df[[p2]], p2))
+    lb <- stats::setNames(paste0(c(p1, p2), ", AUC ", format_stat(auc_table$auc), " (", format_stat(auc_table$conf.low), " to ",
+                          format_stat(pmin(auc_table$conf.high, 1)), ")"), c(p1, p2))
+    cd$predictor <- factor(cd$predictor, c(p1, p2))
+    yd <- do.call(rbind, lapply(split(cd, cd$predictor), function(d) d[which.max(d$tpr - d$fpr), ]))
     ggplot2::ggplot(cd, ggplot2::aes(x = .data$fpr, y = .data$tpr, colour = .data$predictor)) +
-      ggplot2::geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = "#8A8F98") +
-      ggplot2::geom_step(linewidth = 0.8) +
-      ggplot2::scale_colour_manual(values = c("#4C78A8", "#F58518")) +
+      ggplot2::geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = "grey60") +
+      ggplot2::geom_path(linewidth = 0.8) +
+      ggplot2::geom_point(data = yd, size = 2.5, shape = 21, fill = "white", stroke = 1.2) +
+      ggplot2::scale_colour_manual(values = stats::setNames(unname(TFCOL[c("a1", "a2")]), c(p1, p2)), labels = lb) +
       ggplot2::coord_equal() +
-      ggplot2::labs(
-        title = "Paired ROC comparison",
-        subtitle = paste0("AUC ", format_stat(a$auc), " vs ", format_stat(b$auc), "; DeLong p = ", format_p(p_value)),
-        x = "1 - Specificity", y = "Sensitivity", colour = NULL
-      ) +
-      ggplot2::theme_minimal()
+      ggplot2::guides(colour = ggplot2::guide_legend(ncol = 1)) +
+      ggplot2::labs(subtitle = paste0("Paired DeLong test, difference ", format_stat(diff), ", ", pstr(p_value)),
+                    caption = paste0("Open circles: Youden-optimal cut-offs. ", 100 * (1 - alpha), "% CIs."),
+                    x = "1 - Specificity", y = "Sensitivity", colour = NULL) +
+      tftheme() + ggplot2::theme(legend.position = "bottom")
   } else NULL
 
   out <- new_testflow(

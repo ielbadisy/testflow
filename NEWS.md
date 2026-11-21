@@ -1,3 +1,28 @@
+# testflow 1.1.10
+
+* Bug fix (plots): `plot(x, title = NULL)` (and `subtitle = NULL`, `caption = NULL`) now removes the label; before, `NULL` was ignored.
+* Bug fix: `plot()` on a result run with `plot = FALSE` returned `NULL` silently; it now stops with a message saying to rerun with `plot = TRUE`.
+* Bug fix (plots): the remaining default plots were redrawn in greys plus the Okabe-Ito blue and vermillion, without "workflow" titles, with real level and term names and the p-value of the primary test in the subtitle. Results are unchanged.
+* `testcategorical()`: bars of percent within each group, the event level in blue at the bottom, counts in the segments; for 2 x 2 tables the caption gives RD, RR and OR with CIs. Logical variables show "No"/"Yes".
+* `testmultinomial()`: observed bars with the expected counts marked and the standardized residuals printed.
+* `testpairedcategorical()`: the paired 2 x 2 table with the discordant cells highlighted, labelled with the real variable and level names.
+* `testrepeatedcategorical()`: percent with Wilson CIs per measure; new `event` argument names the plotted level (default the second level, as before). Cochran's Q is unchanged.
+* `testtrend()`: percents (or mean scores) with Wilson CIs, the fitted linear trend and the departure-from-linearity p-value.
+* `teststratified()`: the forest adds the crude OR row next to the MH pooled OR; zero-margin strata are shown as "not estimable" and strata with a zero cell are flagged.
+* `testproportion()`: all observed levels with their names, the success level with its CI, and the subtitle names the primary test (approximate or exact).
+* `testequivalence()`: compact plot with the decision interval (90% for TOST) and the 95% CI against the shaded margins.
+* `testonesample()`: under the Wilcoxon recommendation the plot shows the median and its order-statistic CI instead of the mean.
+* `testtwogroups()` and `testgroups()`: means and CIs are computed on the raw scale, so a log axis added by the user no longer turns them into geometric means.
+* `testcorrelation(covariates = )`: the plot shows the residuals of both variables given the covariates, with the partial correlation in the subtitle.
+* `testicc()`, `testagreement()`, `testroc()`, `testdiagnostic()`: CIs in place of verbal labels ("good", "excellent"); `testagreement()` highlights the diagonal and angles long level names.
+* `testroc()` and `testroccompare()`: the empirical ROC is drawn as a path (ties no longer give a staircase), with Youden points and AUC CIs in the legend.
+* `testblandaltman()`: CI bands for the bias and both limits of agreement. `testpaireddiagnostic()`: accent colours and discordant counts in the caption.
+* `plot.sample_size()`: power curves for all designs with a power target (normal approximation scaled to the computed size where no exact curve exists), raw bars labelled to one decimal so they match the planned sizes, and no title.
+* `testlogisticregression()`, `testordinalregression()`, `testmultinomialregression()` and `testcox()` gain `units` (rescale numeric terms, e.g. `units = c(age = 10)` for the OR per 10 years) and label terms as "variable: level"; `testcox()` gains `crude = FALSE` to add and store univariable HRs.
+* `testlinearregression()` gains `view`: with one numeric and one factor predictor it draws the fitted lines by group, otherwise residuals vs fitted.
+* `testsurvival()` gains `risktable = TRUE` and `times`: the Kaplan-Meier plot has CI bands and a numbers-at-risk table under the axis.
+* `testrepeated()` gains `times` to label the measures on the x axis.
+
 # testflow 1.1.9
 
 * Bug fix (plots): the default plots of `testgroups()`, `testtwogroups()`, `testpaired()`, `testfactorial()`, `testrepeated()`, `testrepeatedlong()` and `testcorrelation()` were redrawn. They use greys plus two colour-blind-safe accents (Okabe-Ito blue and vermillion), drop the "workflow" titles, label both axes, and show the observations with the mean and 95% CI. Results are unchanged.

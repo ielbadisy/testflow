@@ -10,7 +10,8 @@ testlinearregression(
   alpha = 0.05,
   plot = TRUE,
   na.rm = TRUE,
-  pretests = TRUE
+  pretests = TRUE,
+  view = c("auto", "fitted", "residuals")
 )
 }
 \arguments{
@@ -29,6 +30,11 @@ normality) and Breusch-Pagan (homoscedasticity) tests are run and
 reported as assumption checks. \code{FALSE} skips both tests and records the
 two assumptions as \code{"not checked"} (inspect the residual plot instead);
 the fit and the primary test are unchanged.}
+
+\item{view}{Plot: \code{"auto"} (default) draws the fitted lines by group over
+the data when the model has one numeric and one factor predictor (ANCOVA),
+and residuals against fitted values otherwise; \code{"fitted"} and
+\code{"residuals"} force one view.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_linear_regression}. The

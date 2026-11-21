@@ -19,3 +19,11 @@ A \code{ggplot2} object, or a combined patchwork object when \code{type = "both"
 \description{
 Plot a sample size object
 }
+\details{
+The curve shows power against sample size. Designs without an
+exact curve use the normal approximation scaled to the computed size:
+since \eqn{n \propto (z_{1-lpha/2} + z_{1-eta})^2}, power at \eqn{n}
+is \eqn{\Phi(\sqrt{n / n_0}(z_{1-lpha/2} + z_{1-eta}) - z_{1-lpha/2})},
+with \eqn{n_0} the unrounded total. Designs without a power target
+(precision) show the summary bars only.
+}

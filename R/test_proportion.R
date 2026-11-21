@@ -55,24 +55,39 @@ testproportion <- function(data, outcome, success, p = 0.5, alpha = 0.05, plot =
   approx_ok <- expected_success >= 5 && expected_failure >= 5
   warn_if(!approx_ok && expected_success >= 3 && expected_failure >= 3, "Proportion test approximation is borderline; exact binomial results are safer.")
   effect <- .bt(name = "Observed proportion", estimate = success_n / total_n, magnitude = NA_character_)
-  plt <- if (plot) {
-    counts <- c(success_n, total_n - success_n)
-    pd <- .bt(level = c("success", "other"), n = counts, prop = counts / total_n)
-    ggplot2::ggplot(pd, ggplot2::aes(x = .data$level, y = .data$prop, fill = .data$level)) +
-      ggplot2::geom_col() +
-      ggplot2::geom_hline(yintercept = p, linetype = "dashed") +
-      ggplot2::labs(title = "One-sample proportion workflow", subtitle = plot_subtitle("Exact binomial test", binom), x = NULL, y = "Proportion") +
-      ggplot2::theme_minimal() +
-      ggplot2::theme(legend.position = "none")
-  } else NULL
   h0 <- h0_proportion(outcome_nm, p)
   primary <- if (approx_ok) prop else binom
   primary_name <- if (approx_ok) "One-sample proportion test" else "Exact binomial test"
+  plt <- if (plot) {
+    # Every observed level with its real label; the success level is blue, with its CI and the reference p.
+    y <- as.character(catlev(df[[outcome_nm]])); s <- as.character(catlev(success))
+    lv <- c(s, setdiff(levels(catlev(df[[outcome_nm]])), s)); y <- factor(y, lv)
+    ci <- if (approx_ok) wilson_ci(success_n, total_n, alpha) else
+      stats::binom.test(success_n, total_n, conf.level = 1 - alpha)$conf.int
+    pd <- data.frame(level = factor(lv, lv), prop = as.vector(table(y)) / total_n, n = as.vector(table(y)))
+    pd$hit <- pd$level == s
+    ggplot2::ggplot(pd, ggplot2::aes(x = .data$level, y = .data$prop, fill = .data$hit)) +
+      ggplot2::geom_col(width = 0.6) +
+      ggplot2::geom_errorbar(data = pd[1, ], ggplot2::aes(ymin = ci[1], ymax = ci[2]), width = 0.15,
+                             colour = TFCOL[["ink"]]) +
+      ggplot2::geom_hline(yintercept = p, linetype = "dashed", colour = TFCOL[["ink"]]) +
+      ggplot2::annotate("text", x = Inf, y = p, label = paste0("p0 = ", format_stat(p)), hjust = 1.05, vjust = -0.5,
+                        size = 3) +
+      ggplot2::scale_fill_manual(values = c(`TRUE` = TFCOL[["a1"]], `FALSE` = TFCOL[["line"]]), guide = "none") +
+      ggplot2::scale_y_continuous(labels = function(b) paste0(100 * b, "%"), expand = ggplot2::expansion(c(0, 0.05))) +
+      ggplot2::labs(subtitle = plot_subtitle(primary_name, primary), caption = paste0(
+        "Bar: ", s, " (", success_n, "/", total_n, ") with ", 100 * (1 - alpha), "% ",
+        if (approx_ok) "Wilson" else "Clopper-Pearson", " CI; dashed: reference proportion."),
+        x = outcome_nm, y = "Percent") +
+      tftheme() + ggplot2::theme(panel.grid.major.x = ggplot2::element_blank())
+  } else NULL
   out <- new_testflow("proportion", "one categorical proportion", outcome_nm, data = df, descriptives = descriptives_categorical(df, outcome_nm), assumptions = assumption_checks(check_independence_note(), assumption_check("Fixed number of trials", "assumed", "The workflow treats the observed sample size as fixed."), assumption_check("Expected successes and failures", ifelse(approx_ok, "acceptable", "not acceptable"), ifelse(approx_ok, "Approximate one-sample proportion test is reasonable.", "Exact binomial test is safer for small expected counts."), details = paste0("expected_success = ", format(expected_success, digits = 3), "; expected_failure = ", format(expected_failure, digits = 3)))), recommended = list(test = primary_name), primary_test = add_null_hypothesis(safe_tidy_htest(primary, primary_name), h0), alternative_tests = list(exact_binomial = add_null_hypothesis(safe_tidy_htest(binom, "Exact binomial test"), h0), prop_test = add_null_hypothesis(safe_tidy_htest(prop, "One-sample proportion test"), h0)), effect_size = effect, plot = plt, call = match.call(), subclass = "proportion")
   if (length(design_cols)) {
     survey_res <- proportion_survey_test(df, outcome_nm, success, p, alpha, weights, cluster, strata)
     out$alternative_tests <- c(list(primary_unweighted = out$primary_test), out$alternative_tests)
     out$primary_test <- add_null_hypothesis(safe_tidy_htest(survey_res$test, "Design-based proportion test"), h0)
+    if (plot) out$plot <- out$plot + ggplot2::labs(subtitle = plot_subtitle("Design-based proportion test (bars unweighted)",
+                                                                             survey_res$test))
     out$primary_test$conf.level <- 1 - alpha
     out$recommended <- list(test = "Design-based proportion test", rationale = "Survey design columns were supplied, so inference uses the weighted estimate and design-based SE.")
     out$effect_size <- .bt(name = "Weighted proportion", estimate = survey_res$estimate, magnitude = NA_character_)

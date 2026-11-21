@@ -52,14 +52,18 @@ testmultinomial <- function(data, outcome, p = NULL, alpha = 0.05, plot = TRUE, 
   pairwise$p.adjust.method <- "BH"
   effect <- .bt(name = "Chi-square goodness-of-fit", estimate = unname(chisq$statistic), magnitude = NA_character_)
   plt <- if (plot) {
-    pd <- .pivot_longer_simple(
-      .bt(level = levels, observed = counts, expected = expected),
-      c("observed", "expected"), "type", "n"
-    )
-    ggplot2::ggplot(pd, ggplot2::aes(x = .data$level, y = .data$n, fill = .data$type)) +
-      ggplot2::geom_col(position = "dodge") +
-      ggplot2::labs(title = "Multinomial workflow", subtitle = plot_subtitle("Chi-square goodness-of-fit", chisq), x = outcome_nm, y = "Count") +
-      ggplot2::theme_minimal()
+    pd <- data.frame(level = factor(levels, levels), O = counts, E = expected, r = (counts - expected) / sqrt(expected))
+    ggplot2::ggplot(pd, ggplot2::aes(x = .data$level)) +
+      ggplot2::geom_col(ggplot2::aes(y = .data$O), width = 0.6, fill = TFCOL[["line"]]) +
+      ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$E, ymax = .data$E), width = 0.75, colour = TFCOL[["a1"]],
+                             linewidth = 0.9) +
+      ggplot2::geom_text(ggplot2::aes(y = pmax(.data$O, .data$E), label = sprintf("%+.1f", .data$r)), vjust = -0.5,
+                         size = 3, colour = TFCOL[["ink"]]) +
+      ggplot2::scale_y_continuous(expand = ggplot2::expansion(c(0, 0.1))) +
+      ggplot2::labs(subtitle = plot_subtitle("Chi-square goodness-of-fit", chisq),
+                    caption = "Bars: observed; blue: expected; numbers: residuals (O - E)/sqrt(E).",
+                    x = outcome_nm, y = "Count") +
+      tftheme() + ggplot2::theme(panel.grid.major.x = ggplot2::element_blank())
   } else NULL
   h0 <- paste0("H0: the distribution of ", outcome_nm, " follows the expected probabilities.")
   out <- new_testflow("multinomial", "one multinomial categorical variable", outcome_nm, data = df, descriptives = descriptives_categorical(df, outcome_nm), assumptions = assumption_checks(check_independence_note(), assumption_check("Expected category counts", ifelse(expected_ok, "acceptable", "warning"), ifelse(expected_ok, "Chi-square approximation is reasonable.", "Some expected counts are small; consider exact or simulation-based alternatives."), details = paste0("min expected = ", format(min(expected), digits = 3)))), recommended = list(test = "Chi-square goodness-of-fit", rationale = ifelse(expected_ok, "Expected counts are adequate.", "Expected counts are small; interpret the chi-square approximation with caution.")), primary_test = add_null_hypothesis(safe_tidy_htest(chisq, "Chi-square goodness-of-fit"), h0), alternative_tests = list(pairwise_binomial = pairwise), effect_size = effect, plot = plt, call = match.call(), subclass = "multinomial")

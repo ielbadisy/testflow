@@ -81,12 +81,21 @@ testpaireddiagnostic <- function(data, test1, test2, reference, exact = FALSE, c
   primary$conf.level <- 1 - alpha
   h0 <- paste0("H0: ", t1, " and ", t2, " have equal sensitivity (diseased) and equal specificity (non-diseased).")
   plt <- if (plot) {
-    ggplot2::ggplot(acc, ggplot2::aes(x = .data$test, y = .data$estimate, colour = .data$test)) +
-      ggplot2::geom_pointrange(ggplot2::aes(ymin = .data$conf.low, ymax = .data$conf.high)) +
-      ggplot2::facet_wrap(~measure) + ggplot2::scale_y_continuous(limits = c(0, 1)) +
-      ggplot2::labs(title = "Paired diagnostic accuracy workflow", subtitle = paste0("McNemar p: Se ",
-                    format_p(comparison$p.value[1]), ", Sp ", format_p(comparison$p.value[2])), x = NULL, y = NULL) +
-      ggplot2::theme_minimal() + ggplot2::theme(legend.position = "none")
+    acc$test <- factor(acc$test, c(t1, t2))
+    acc$y <- ifelse(acc$measure == "Sensitivity", 2, 1) + ifelse(acc$test == t1, 0.15, -0.15)
+    ggplot2::ggplot(acc, ggplot2::aes(x = .data$estimate, y = .data$y, colour = .data$test)) +
+      ggplot2::geom_pointrange(ggplot2::aes(xmin = .data$conf.low, xmax = .data$conf.high)) +
+      ggplot2::scale_y_continuous(breaks = 1:2, labels = c("Specificity", "Sensitivity"), limits = c(0.6, 2.4)) +
+      ggplot2::scale_colour_manual(values = stats::setNames(unname(TFCOL[c("a1", "a2")]), c(t1, t2))) +
+      ggplot2::scale_x_continuous(limits = c(0, 1), labels = function(x) paste0(100 * x, "%")) +
+      ggplot2::labs(subtitle = paste0("McNemar: sensitivity ", pstr(comparison$p.value[1]), "; specificity ",
+                                      pstr(comparison$p.value[2])),
+                    caption = paste0(100 * (1 - alpha), "% Clopper-Pearson CIs; discordant pairs: Se ",
+                                     comparison$only_test1[1], " vs ", comparison$only_test2[1], ", Sp ",
+                                     comparison$only_test1[2], " vs ", comparison$only_test2[2], "."),
+                    x = NULL, y = NULL, colour = NULL) +
+      tftheme() + ggplot2::theme(legend.position = "top", panel.grid.major.y = ggplot2::element_blank(),
+                                 panel.grid.minor.y = ggplot2::element_blank())
   } else NULL
   out <- new_testflow("paired_diagnostic", "two binary tests on the same subjects", paste(t1, "vs", t2), rf, data = df,
                       descriptives = descriptives_categorical(df, c(t1, t2, rf)),

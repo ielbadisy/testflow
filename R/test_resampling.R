@@ -104,11 +104,11 @@ testbootstrap <- function(formula, data, statistic = "mean", type = c("bca", "pe
                  conf.high = ivl[type, 2], conf.level = 1 - alpha, B = B)
   plt <- if (plot) {
     ggplot2::ggplot(data.frame(t = t), ggplot2::aes(x = .data$t)) +
-      ggplot2::geom_histogram(bins = 40, fill = "#4C78A8", colour = "white") +
-      ggplot2::geom_vline(xintercept = th, colour = "#F58518") +
+      ggplot2::geom_histogram(bins = 40, fill = "grey75", colour = "white") +
+      ggplot2::geom_vline(xintercept = th, colour = TFCOL[["a2"]]) +
       ggplot2::geom_vline(xintercept = ivl[type, ], linetype = "dashed") +
-      ggplot2::labs(title = "Bootstrap workflow", subtitle = label, x = name, y = "Replicates") +
-      ggplot2::theme_minimal()
+      ggplot2::labs(subtitle = label, x = name, y = "Replicates") +
+      tftheme()
   } else NULL
   out <- new_testflow("bootstrap", if (is.na(v$g)) "one-sample bootstrap" else "two-sample bootstrap", v$y,
                       if (is.na(v$g)) NULL else v$g, data = df,
@@ -217,11 +217,11 @@ testpermutation <- function(formula, data, statistic = "mean", alternative = c("
   h0 <- paste0("H0: the distribution of ", v$y, " is the same in every level of ", v$g, " (exchangeable labels).")
   plt <- if (plot) {
     ggplot2::ggplot(data.frame(t = t), ggplot2::aes(x = .data$t)) +
-      ggplot2::geom_histogram(bins = 40, fill = "#4C78A8", colour = "white") +
-      ggplot2::geom_vline(xintercept = tobs, colour = "#F58518") +
-      ggplot2::labs(title = "Permutation workflow", subtitle = paste0(method, ", p = ", format_p(p)), x = slab,
+      ggplot2::geom_histogram(bins = 40, fill = "grey75", colour = "white") +
+      ggplot2::geom_vline(xintercept = tobs, colour = TFCOL[["a2"]]) +
+      ggplot2::labs(subtitle = paste0(method, ", ", pstr(p)), x = slab,
                     y = "Relabellings") +
-      ggplot2::theme_minimal()
+      tftheme()
   } else NULL
   out <- new_testflow("permutation", if (k == 2) "two independent groups" else "more than two independent groups",
                       v$y, v$g, data = df, descriptives = descriptives_numeric(df, v$y, v$g),

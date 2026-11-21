@@ -10,7 +10,8 @@ testordinalregression(
   potest = c("brant", "lr"),
   alpha = 0.05,
   plot = TRUE,
-  na.rm = TRUE
+  na.rm = TRUE,
+  units = NULL
 )
 }
 \arguments{
@@ -29,6 +30,10 @@ relaxes every slope).}
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{units}{Optional named numeric vector of plotting units for numeric
+predictors, for example \code{c(age = 10)} to plot the odds ratio per 10
+years, \eqn{e^{10\beta}}. Only the plot changes; tables stay per unit.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_ordinal_regression}.

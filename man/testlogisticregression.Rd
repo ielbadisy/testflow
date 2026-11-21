@@ -4,7 +4,14 @@
 \alias{testlogisticregression}
 \title{Logistic regression workflow}
 \usage{
-testlogisticregression(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE)
+testlogisticregression(
+  formula,
+  data,
+  alpha = 0.05,
+  plot = TRUE,
+  na.rm = TRUE,
+  units = NULL
+)
 }
 \arguments{
 \item{formula}{A formula such as \code{outcome ~ x1 + x2 + x3}, with a binary
@@ -17,6 +24,10 @@ testlogisticregression(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE)
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{units}{Optional named numeric vector of plotting units for numeric
+predictors, for example \code{c(age = 10)} to plot the odds ratio per 10
+years. Only the plot changes; tables stay per unit.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_logistic_regression}. The

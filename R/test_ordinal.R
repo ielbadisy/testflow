@@ -51,6 +51,9 @@ wald_tab <- function(term, est, se, alpha, ename, extra = NULL) {
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param units Optional named numeric vector of plotting units for numeric
+#'   predictors, for example `c(age = 10)` to plot the odds ratio per 10
+#'   years, \eqn{e^{10\beta}}. Only the plot changes; tables stay per unit.
 #' @return A `testflow` object with class `testflow_ordinal_regression`.
 #'   `$primary_test` is the LR test of all slopes (`statistic`, `parameter`,
 #'   `p.value`). `$alternative_tests` has `coefficients` (log odds, Wald
@@ -79,7 +82,8 @@ wald_tab <- function(term, est, se, alpha, ename, extra = NULL) {
 #'   testordinalregression(Sat ~ Infl + Type, h, plot = FALSE)
 #' }
 #' @export
-testordinalregression <- function(formula, data, potest = c("brant", "lr"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testordinalregression <- function(formula, data, potest = c("brant", "lr"), alpha = 0.05, plot = TRUE, na.rm = TRUE,
+                                  units = NULL) {
   if (!requireNamespace("MASS", quietly = TRUE)) stop("Package `MASS` is required.", call. = FALSE)
   potest <- match.arg(potest); v <- reg_vars(formula)
   df <- drop_missing(data, c(v$y, v$x), na.rm = na.rm)
@@ -106,7 +110,8 @@ testordinalregression <- function(formula, data, potest = c("brant", "lr"), alph
   primary <- .bt(method = "Ordinal logistic regression (likelihood-ratio test)", statistic = lr, parameter = p,
                  p.value = stats::pchisq(lr, p, lower.tail = FALSE))
   h0 <- paste0("H0: none of ", paste(v$x, collapse = ", "), " are associated with ", v$y, " (all cumulative log-odds slopes equal 0).")
-  plt <- if (plot) or_plot(wt$exp, "odds_ratio", "Ordinal regression workflow", "Cumulative odds ratios", alpha) else NULL
+  plt <- if (plot) ratio_plot(wt$log, paste0("Cumulative odds ratio, ", 100 * (1 - alpha), "% CI (log scale)"), v$x, units,
+                              subtitle = paste0("Likelihood-ratio test, ", pstr(primary$p.value))) else NULL
   out <- new_testflow("ordinal_regression", "ordinal logistic regression", v$y, paste(v$x, collapse = ", "), data = df,
                       descriptives = descriptives_categorical(df, v$y),
                       assumptions = assumption_checks(check_independence_note(), po_check, check_multicollinearity(fit)),
@@ -118,17 +123,6 @@ testordinalregression <- function(formula, data, potest = c("brant", "lr"), alph
   out$model <- fit
   out$interpretation <- make_report(out, alpha)
   out
-}
-
-or_plot <- function(tab, col, title, sub, alpha) {
-  tab$label <- if ("y.level" %in% names(tab)) paste0(tab$y.level, ": ", tab$term) else tab$term
-  ggplot2::ggplot(tab, ggplot2::aes(x = .data[[col]], y = .data$label)) +
-    ggplot2::geom_vline(xintercept = 1, linetype = "dashed", color = "#8A8F98") +
-    ggplot2::geom_pointrange(ggplot2::aes(xmin = .data$conf.low, xmax = .data$conf.high), color = "#4C78A8") +
-    ggplot2::scale_x_log10() +
-    ggplot2::labs(title = title, subtitle = paste0(sub, " with ", 100 * (1 - alpha), "% confidence intervals"),
-                  x = "Ratio (log scale)", y = NULL) +
-    ggplot2::theme_minimal()
 }
 
 #' Multinomial logistic regression workflow
@@ -143,6 +137,8 @@ or_plot <- function(tab, col, title, sub, alpha) {
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param units Optional named numeric vector of plotting units for numeric
+#'   predictors (see [testordinalregression()]).
 #' @return A `testflow` object with class `testflow_multinomial_regression`.
 #'   `$primary_test` is the LR test of all slopes. `$alternative_tests` has
 #'   `coefficients` (log scale, one row per `y.level` and `term`, Wald SE,
@@ -163,7 +159,7 @@ or_plot <- function(tab, col, title, sub, alpha) {
 #'   testmultinomialregression(Species ~ Sepal.Width, iris, plot = FALSE)
 #' }
 #' @export
-testmultinomialregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testmultinomialregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE, units = NULL) {
   if (!requireNamespace("nnet", quietly = TRUE)) stop("Package `nnet` is required.", call. = FALSE)
   v <- reg_vars(formula)
   df <- drop_missing(data, c(v$y, v$x), na.rm = na.rm)
@@ -179,8 +175,9 @@ testmultinomialregression <- function(formula, data, alpha = 0.05, plot = TRUE, 
                  p.value = stats::pchisq(lr, dd, lower.tail = FALSE))
   h0 <- paste0("H0: none of ", paste(v$x, collapse = ", "), " are associated with ", v$y, " (all baseline-category slopes equal 0).")
   rrr <- wt$exp[wt$exp$term != "(Intercept)", ]
-  plt <- if (plot) or_plot(rrr, "rrr", "Multinomial regression workflow",
-                           paste0("Relative risk ratios vs ", levels(df[[v$y]])[1]), alpha) else NULL
+  plt <- if (plot) ratio_plot(wt$log, paste0("Relative risk ratio vs ", levels(df[[v$y]])[1], ", ", 100 * (1 - alpha),
+                                            "% CI (log scale)"), v$x, units,
+                              subtitle = paste0("Likelihood-ratio test, ", pstr(primary$p.value))) else NULL
   out <- new_testflow("multinomial_regression", "multinomial logistic regression", v$y, paste(v$x, collapse = ", "), data = df,
                       descriptives = descriptives_categorical(df, v$y),
                       assumptions = assumption_checks(check_independence_note(), assumption_check(

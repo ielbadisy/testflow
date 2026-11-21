@@ -68,15 +68,12 @@ testcategorical <- function(formula, data, y = NULL, alpha = 0.05, fisher_thresh
   primary <- if (use_fisher) fisher else chi
   effect <- cramers_v(tab, biascorrect = biascorrect)
   expected <- check_expected_counts(tab, fisher_threshold)
-  plt <- if (plot) {
-    ggplot2::ggplot(df, ggplot2::aes(x = .data[[x_nm]], fill = .data[[y_nm]])) +
-      ggplot2::geom_bar(position = "fill") +
-      ggplot2::labs(title = "Categorical association workflow", subtitle = plot_subtitle(recommendation, primary), caption = paste0(effect$name[1], " = ", format_stat(effect$estimate[1]), ", ", effect$magnitude[1]), x = x_nm, y = "Proportion", fill = y_nm) +
-      ggplot2::theme_minimal()
-  } else NULL
+  em <- if (all(dim(tab) == 2)) effect_measures_2x2(tab, event, alpha)
+  plt <- if (plot) stack_plot(df[[y_nm]], df[[x_nm]], y_nm, x_nm, plot_subtitle(recommendation, primary),
+                              paste(c(effstr(effect), emstr(em, alpha)), collapse = "\n"), event = em$event[1]) else NULL
   h0 <- h0_no_association(x_nm, y_nm)
   out <- new_testflow("categorical", "two categorical variables", x_nm, y_nm, data = df, descriptives = descriptives_categorical(df, c(x_nm, y_nm)), assumptions = assumption_checks(check_independence_note(), expected), recommended = list(test = recommendation), primary_test = add_null_hypothesis(safe_tidy_htest(primary, recommendation), h0), alternative_tests = list(chi_square = add_null_hypothesis(safe_tidy_htest(chi, "Chi-square test of independence"), h0), fisher = add_null_hypothesis(safe_tidy_htest(fisher, fisher_label), h0),
-                      effect_measures = if (all(dim(tab) == 2)) effect_measures_2x2(tab, event, alpha)), posthoc = cell_residuals(chi),
+                      effect_measures = em), posthoc = cell_residuals(chi),
                       effect_size = effect, plot = plt, call = match.call(), subclass = "categorical")
   out$interpretation <- make_report(out, alpha)
   out
@@ -115,4 +112,41 @@ effect_measures_2x2 <- function(tab, event = NULL, alpha = 0.05) {
                if (spans) paste0("RD CI includes 0: NNT runs from ", format_stat(nnt_ci[1]), " (", if (rd < 0) "NNTB" else "NNTH",
                                  ") through infinity to ", format_stat(nnt_ci[2]), " (", if (rd < 0) "NNTH" else "NNTB", ")")
                else paste0("NNT for ", dir)))
+}
+
+# Logical and 0/1 levels read as words; other levels keep their order.
+catlev <- function(x) {
+  if (is.logical(x)) return(factor(x, c(FALSE, TRUE), c("No", "Yes")))
+  factor(x, lvls(x))
+}
+
+# Bars per group (x) stacked by outcome (fill), proportions within each group, with the count in each segment.
+stack_plot <- function(g, y, gname, yname, subtitle = NULL, caption = NULL, event = NULL) {
+  if (is.logical(y) && !is.null(event)) event <- c("FALSE" = "No", "TRUE" = "Yes")[[as.character(event)]]
+  g <- catlev(g); y <- catlev(y)
+  # The event level goes at the bottom of each bar, in blue, so its proportion reads off the axis.
+  lv <- levels(y); if (!is.null(event) && event %in% lv) lv <- c(setdiff(lv, event), event)
+  y <- factor(y, lv); k <- length(lv)
+  tb <- as.data.frame(table(g = g, y = y)); tb$p <- stats::ave(tb$Freq, tb$g, FUN = function(f) f / max(sum(f), 1))
+  tb$ink <- ifelse(as.integer(tb$y) > k / 2, "white", "grey15")
+  ggplot2::ggplot(tb, ggplot2::aes(x = .data$g, y = .data$p, fill = .data$y)) +
+    ggplot2::geom_col(width = 0.6, colour = "white", linewidth = 0.3) +
+    ggplot2::geom_text(ggplot2::aes(label = ifelse(.data$p >= 0.06, .data$Freq, ""), colour = .data$ink),
+                       position = ggplot2::position_stack(vjust = 0.5), size = 3) +
+    ggplot2::scale_colour_identity() +
+    ggplot2::scale_fill_manual(values = stats::setNames(tfgrey(k), lv)) +
+    ggplot2::scale_x_discrete(labels = wraplab(14)) +
+    ggplot2::scale_y_continuous(labels = function(b) paste0(100 * b, "%"), expand = ggplot2::expansion(c(0, 0.02))) +
+    ggplot2::labs(subtitle = subtitle, caption = caption, x = gname, y = paste0("Percent within ", gname), fill = yname) +
+    tftheme() + ggplot2::theme(panel.grid.major.x = ggplot2::element_blank())
+}
+
+# One line with RD, RR and OR (and their CIs) of a 2 x 2 effect-measure table.
+emstr <- function(em, alpha = 0.05) {
+  if (is.null(em)) return(NULL)
+  f <- function(i, pct = FALSE) { k <- if (pct) 100 else 1
+    paste0(em$measure[i], " ", format_stat(k * em$estimate[i], if (pct) 1 else 2), " (", format_stat(k * em$conf.low[i], if (pct) 1 else 2),
+           " to ", format_stat(k * em$conf.high[i], if (pct) 1 else 2), ")") }
+  paste0(em$comparison[1], ", event ", em$event[1], " (", 100 * (1 - alpha), "% CI):\n", f(1, TRUE), " points; ", f(2),
+         "; ", f(3))
 }

@@ -4,7 +4,15 @@
 \alias{testsurvival}
 \title{Kaplan-Meier and log-rank survival workflow}
 \usage{
-testsurvival(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE)
+testsurvival(
+  formula,
+  data,
+  alpha = 0.05,
+  plot = TRUE,
+  na.rm = TRUE,
+  risktable = TRUE,
+  times = NULL
+)
 }
 \arguments{
 \item{formula}{A formula such as \code{Surv(time, status) ~ group}, with a
@@ -17,6 +25,12 @@ two-level grouping factor.}
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{risktable}{Logical; if \code{TRUE} (default) the numbers at risk per
+group are printed under the curves at the x-axis breaks.}
+
+\item{times}{Optional x-axis break times (and risk-table times). Default
+\code{NULL} uses pretty breaks over the follow-up.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_survival}. The object is

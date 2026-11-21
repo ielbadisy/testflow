@@ -1,33 +1,28 @@
 #' Plot a testflow object
 #' @param x A testflow object.
-#' @param title Optional plot title override. Defaults to the stored title.
-#' @param subtitle Optional plot subtitle override. Defaults to the stored
-#' subtitle.
-#' @param caption Optional plot caption override. Defaults to the stored
-#' caption.
+#' @param title,subtitle,caption Optional label overrides. Left out, the
+#'   stored label is kept; a character value replaces it; `NULL` removes it.
 #' @param ... Unused.
-#' @return A `ggplot` object stored in the `testflow` object, with optional
-#' title, subtitle, and caption overrides applied. If the workflow was created
-#' with `plot = FALSE`, returns `NULL`.
+#' @return The `ggplot` object stored in the `testflow` object, with the
+#'   label overrides applied. If the test was run with `plot = FALSE` there is
+#'   no stored plot and `plot()` stops with a message saying so.
 #' @export
-plot.testflow <- function(x, title = NULL, subtitle = NULL, caption = NULL, ...) {
-  customize_plot_labels(x$plot, title = title, subtitle = subtitle, caption = caption)
-}
-
-customize_plot_labels <- function(plot, title = NULL, subtitle = NULL, caption = NULL) {
-  if (is.null(plot)) return(NULL)
-  labels <- list()
-  if (!is.null(title)) labels$title <- title
-  if (!is.null(subtitle)) labels$subtitle <- subtitle
-  if (!is.null(caption)) labels$caption <- caption
-  if (!length(labels)) return(plot)
-  plot + do.call(ggplot2::labs, labels)
+plot.testflow <- function(x, title, subtitle, caption, ...) {
+  if (is.null(x$plot)) stop("No plot stored: the test was run with `plot = FALSE`. Rerun it with `plot = TRUE`.",
+                            call. = FALSE)
+  # Only arguments actually given are applied, so an explicit NULL removes the stored label.
+  lab <- list(); if (!missing(title)) lab["title"] <- list(title)
+  if (!missing(subtitle)) lab["subtitle"] <- list(subtitle); if (!missing(caption)) lab["caption"] <- list(caption)
+  if (length(lab)) x$plot + do.call(ggplot2::labs, lab) else x$plot
 }
 
 # Sober plot palette: greys/black plus two colour-blind-safe accents (Okabe-Ito blue and vermillion).
 TFCOL <- c(ink = "grey15", pt = "grey45", line = "grey75", a1 = "#0072B2", a2 = "#D55E00")
-tfpal <- function(k) c(TFCOL[c("ink", "a1", "a2")], paste0("grey", round(seq(40, 70, length.out = max(k - 3, 0)))))[
-  seq_len(k)]
+OKABE <- c("#000000", "#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#F0E442")
+tfpal <- function(k) unname(if (k <= 3) TFCOL[c("ink", "a1", "a2")][seq_len(k)] else rep(OKABE, length.out = k))
+# Fills for stacked categories: two levels grey and blue (event), more levels a light-to-dark grey ramp.
+tfgrey <- function(k) if (k == 2) unname(c("grey80", TFCOL[["a1"]])) else
+  paste0("grey", round(seq(88, 20, length.out = k)))
 tftheme <- function() ggplot2::theme_minimal() + ggplot2::theme(panel.grid.minor = ggplot2::element_blank(),
   plot.caption = ggplot2::element_text(hjust = 0), legend.position = "right")
 meanci <- function(y) {
@@ -35,6 +30,7 @@ meanci <- function(y) {
   h <- if (n > 1) stats::qt(0.975, n - 1) * stats::sd(y) / sqrt(n) else 0
   data.frame(y = m, ymin = m - h, ymax = m + h)
 }
+wraplab <- function(w) function(x) vapply(x, function(s) paste(strwrap(s, w), collapse = "\n"), "")
 pstr <- function(p) {
   s <- format_p(p)
   if (startsWith(s, "<")) paste("p <", substring(s, 2)) else paste("p =", s)
@@ -61,25 +57,40 @@ make_plot <- function(workflow, data, outcome = NULL, group = NULL, recommended 
   eff <- effstr(effect)
   subtitle <- if (!is.null(recommended) && !is.null(primary)) plot_subtitle(recommended, primary) else NULL
   if (workflow == "one_sample") {
-    mu <- extra$mu %||% 0
+    mu <- extra$mu %||% 0; x <- data[[outcome]]; wil <- grepl("Wilcoxon", recommended %||% "")
+    # Under the Wilcoxon test the plot marks the median and its order-statistic CI, not the mean and Cohen's d.
+    m <- if (wil) extra$median_ci else meanci(x)
+    m <- if (wil) c(m$estimate, m$conf.low, m$conf.high) else unlist(m)
+    cap <- if (wil) paste0("Blue: median and ", format_stat(100 * (extra$median_ci$conf.level %||% 0.95), 1),
+                           "% CI (order statistics); dashed: reference value") else
+      paste(c(eff, "Blue: mean and 95% CI; dashed: reference value"), collapse = "\n")
+    pos <- all(x >= 0)
     return(
       ggplot2::ggplot(data, ggplot2::aes(x = .data[[outcome]])) +
         ggplot2::geom_histogram(ggplot2::aes(y = ggplot2::after_stat(density)), bins = 20, fill = TFCOL[["line"]],
-                                colour = "white") +
-        ggplot2::geom_density(color = TFCOL[["a1"]], linewidth = 0.8) +
-        ggplot2::geom_vline(xintercept = mu, linetype = "dashed") +
-        ggplot2::labs(subtitle = subtitle, caption = eff, x = outcome, y = "Density") +
+                                colour = "white", boundary = if (pos) 0) +
+        # A positive variable gets a boundary-reflected density so the curve does not spill below 0.
+        ggplot2::geom_density(colour = TFCOL[["ink"]], linewidth = 0.6, bounds = if (pos) c(0, Inf) else c(-Inf, Inf)) +
+        ggplot2::geom_vline(xintercept = mu, linetype = "dashed", colour = TFCOL[["ink"]]) +
+        ggplot2::annotate("rect", xmin = m[2], xmax = m[3], ymin = -Inf, ymax = Inf, fill = TFCOL[["a1"]],
+                          alpha = 0.15) +
+        ggplot2::geom_vline(xintercept = m[1], colour = TFCOL[["a1"]], linewidth = 0.8) +
+        ggplot2::labs(subtitle = subtitle, caption = cap, x = outcome, y = "Density") +
         tftheme()
     )
   }
   if (workflow == "two_groups" || workflow == "groups") {
+    # Means and CIs are computed on the data scale, so they stay arithmetic means if a log scale is added.
+    g <- factor(data[[group]], lvls(data[[group]]))
+    mc <- do.call(rbind, lapply(split(data[[outcome]], g), meanci)); mc[[group]] <- factor(levels(g), levels(g))
     return(
       ggplot2::ggplot(data, ggplot2::aes(x = .data[[group]], y = .data[[outcome]])) +
         ggplot2::geom_boxplot(outlier.shape = NA, width = 0.45, colour = TFCOL[["line"]], fill = NA) +
         ggplot2::geom_point(position = ggplot2::position_jitter(width = 0.1, height = 0, seed = 1),
                             colour = TFCOL[["pt"]], alpha = 0.6, size = 1.3) +
-        ggplot2::stat_summary(fun.data = meanci, geom = "pointrange", colour = TFCOL[["a1"]],
-                              position = ggplot2::position_nudge(x = 0.32)) +
+        ggplot2::geom_pointrange(ggplot2::aes(x = .data[[group]], y = .data$y, ymin = .data$ymin, ymax = .data$ymax),
+                                 data = mc, colour = TFCOL[["a1"]], position = ggplot2::position_nudge(x = 0.32),
+                                 inherit.aes = FALSE) +
         ggplot2::labs(subtitle = subtitle, caption = paste(c(eff, MEANCAP), collapse = "\n"), x = group,
                       y = outcome) +
         tftheme()
@@ -100,7 +111,7 @@ make_plot <- function(workflow, data, outcome = NULL, group = NULL, recommended 
   }
   ggplot2::ggplot(data, ggplot2::aes(x = seq_len(nrow(data)))) +
     ggplot2::geom_point(ggplot2::aes(y = 1)) +
-    ggplot2::labs(title = paste("testflow:", workflow), subtitle = subtitle, caption = eff, x = NULL, y = NULL) +
+    ggplot2::labs(subtitle = subtitle, caption = eff, x = NULL, y = NULL) +
     ggplot2::theme_minimal()
 }
 
@@ -128,4 +139,41 @@ profile_plot <- function(df, y, x, z = NULL, id = NULL, subtitle = NULL, caption
     ggplot2::labs(subtitle = subtitle, caption = caption, x = xlab, y = ylab,
                   colour = if (one) NULL else z, shape = if (one) NULL else z) +
     tftheme() + if (one) ggplot2::theme(legend.position = "none")
+}
+
+# Readable term labels: "priorfracYes" -> "priorfrac: Yes"; numeric terms rescaled by `units` get "(per u)".
+termlab <- function(term, vars, units = NULL) vapply(term, function(t) {
+  one <- function(s) {
+    if (s %in% vars) return(if (s %in% names(units)) paste0(s, " (per ", units[[s]], ")") else s)
+    v <- vars[startsWith(s, vars)]
+    if (length(v)) paste0(v <- v[which.max(nchar(v))], ": ", substring(s, nchar(v) + 1)) else s
+  }
+  paste(vapply(strsplit(t, ":", fixed = TRUE)[[1]], one, ""), collapse = " x ")
+}, "", USE.NAMES = FALSE)
+unitof <- function(term, units) { u <- rep(1, length(term)); i <- term %in% names(units); u[i] <- units[term[i]]; u }
+
+# Forest of exp(u * b) with CI from a log-scale table (term, estimate, conf.low, conf.high, optional y.level);
+# `crude` (same layout) is drawn in grey under each adjusted estimate.
+ratio_plot <- function(tab, xlab, vars, units = NULL, crude = NULL, subtitle = NULL, caption = NULL) {
+  prep <- function(d, src) {
+    d <- as.data.frame(d); d <- d[d$term != "(Intercept)", , drop = FALSE]; u <- unitof(d$term, units)
+    data.frame(panel = if (is.null(d$y.level)) "" else as.character(d$y.level), term = d$term,
+               est = exp(u * d$estimate), lo = exp(u * d$conf.low), hi = exp(u * d$conf.high), src = src)
+  }
+  d <- prep(tab, "Adjusted"); tl <- unique(d$term)
+  if (!is.null(crude)) { cr <- prep(crude, "Crude"); d <- rbind(d, cr[cr$term %in% tl, ]) }
+  d$y <- length(tl) + 1 - match(d$term, tl) + ifelse(d$src == "Crude", -0.22, if (is.null(crude)) 0 else 0.22)
+  two <- !is.null(crude)
+  p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$est, y = .data$y, colour = .data$src)) +
+    ggplot2::geom_vline(xintercept = 1, linetype = "dashed", colour = TFCOL[["line"]]) +
+    ggplot2::geom_segment(ggplot2::aes(x = .data$lo, xend = .data$hi, yend = .data$y)) +
+    ggplot2::geom_point(size = 2) +
+    ggplot2::scale_x_log10() +
+    ggplot2::scale_y_continuous(breaks = rev(seq_along(tl)), labels = termlab(tl, vars, units), expand =
+                                  ggplot2::expansion(add = 0.5)) +
+    ggplot2::scale_colour_manual(values = c(Adjusted = TFCOL[["a1"]], Crude = "grey60"), breaks = c("Adjusted", "Crude")) +
+    ggplot2::labs(x = xlab, y = NULL, colour = NULL, subtitle = subtitle, caption = caption) +
+    tftheme() + ggplot2::theme(panel.grid.major.y = ggplot2::element_blank(),
+                               legend.position = if (two) "top" else "none")
+  if (length(unique(d$panel)) > 1) p + ggplot2::facet_wrap(~ panel) else p
 }

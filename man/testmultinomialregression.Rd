@@ -9,7 +9,8 @@ testmultinomialregression(
   data,
   alpha = 0.05,
   plot = TRUE,
-  na.rm = TRUE
+  na.rm = TRUE,
+  units = NULL
 )
 }
 \arguments{
@@ -23,6 +24,9 @@ the outcome is the baseline category.}
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{units}{Optional named numeric vector of plotting units for numeric
+predictors (see \code{\link[=testordinalregression]{testordinalregression()}}).}
 }
 \value{
 A \code{testflow} object with class \code{testflow_multinomial_regression}.

@@ -4,25 +4,20 @@
 \alias{plot.testflow}
 \title{Plot a testflow object}
 \usage{
-\method{plot}{testflow}(x, title = NULL, subtitle = NULL, caption = NULL, ...)
+\method{plot}{testflow}(x, title, subtitle, caption, ...)
 }
 \arguments{
 \item{x}{A testflow object.}
 
-\item{title}{Optional plot title override. Defaults to the stored title.}
-
-\item{subtitle}{Optional plot subtitle override. Defaults to the stored
-subtitle.}
-
-\item{caption}{Optional plot caption override. Defaults to the stored
-caption.}
+\item{title, subtitle, caption}{Optional label overrides. Left out, the
+stored label is kept; a character value replaces it; \code{NULL} removes it.}
 
 \item{...}{Unused.}
 }
 \value{
-A \code{ggplot} object stored in the \code{testflow} object, with optional
-title, subtitle, and caption overrides applied. If the workflow was created
-with \code{plot = FALSE}, returns \code{NULL}.
+The \code{ggplot} object stored in the \code{testflow} object, with the
+label overrides applied. If the test was run with \code{plot = FALSE} there is
+no stored plot and \code{plot()} stops with a message saying so.
 }
 \description{
 Plot a testflow object

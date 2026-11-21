@@ -154,19 +154,30 @@ testequivalence <- function(formula, data, lower, upper, type = c("auto", "means
   ci_level <- if (objective == "equivalence") 1 - 2 * alpha else 1 - alpha
 
   plt <- if (plot) {
-    pd <- data.frame(est = est, lo = if (is.finite(ci[1])) ci[1] else est - 4 * se, hi = if (is.finite(ci[2])) ci[2] else est + 4 * se, y = 1)
-    ggplot2::ggplot(pd, ggplot2::aes(x = .data$est, y = .data$y)) +
-      ggplot2::geom_vline(xintercept = c(lower, upper)[is.finite(c(lower, upper))], linetype = "dashed", colour = "#B23A48") +
-      ggplot2::geom_vline(xintercept = 0, colour = "grey70") +
-      ggplot2::geom_errorbar(ggplot2::aes(xmin = .data$lo, xmax = .data$hi), width = 0.1, orientation = "y") +
-      ggplot2::geom_point(size = 3, colour = "#1F2933") +
+    # Thick bar: the interval the decision uses (90% for TOST at alpha = 0.05); thin bar: the usual two-sided CI.
+    w <- function(q) c(est - q * se, est + q * se); i1 <- w(q); i2 <- w(upper_q(1 - alpha / 2))
+    fb <- c(lower, upper)[is.finite(c(lower, upper))]
+    rng <- range(c(i2, fb, 0)); pad <- diff(rng) * 0.08
+    ggplot2::ggplot() +
+      ggplot2::annotate("rect", xmin = if (is.finite(lower)) lower else rng[1] - pad,
+                        xmax = if (is.finite(upper)) upper else rng[2] + pad, ymin = -Inf, ymax = Inf,
+                        fill = TFCOL[["a1"]], alpha = 0.08) +
+      ggplot2::geom_vline(xintercept = fb, linetype = "dashed", colour = TFCOL[["a1"]]) +
+      ggplot2::geom_vline(xintercept = 0, colour = "grey60") +
+      ggplot2::annotate("segment", x = i2[1], xend = i2[2], y = 1, yend = 1, colour = "grey45", linewidth = 0.5) +
+      ggplot2::annotate("segment", x = i1[1], xend = i1[2], y = 1, yend = 1, colour = TFCOL[["ink"]], linewidth = 1.8) +
+      ggplot2::annotate("point", x = est, y = 1, size = 3, shape = 21, fill = "white", colour = TFCOL[["ink"]]) +
+      ggplot2::scale_y_continuous(limits = c(0.6, 1.4), breaks = NULL) +
+      ggplot2::coord_cartesian(xlim = rng + c(-pad, pad)) +
       ggplot2::labs(
-        title = if (objective == "equivalence") "Equivalence test (TOST)" else "Non-inferiority test",
-        subtitle = paste0(if (objective == "equivalence") "" else "one-sided ", format(100 * ci_level), "% CI vs margin ", bounds_txt, "; p = ", format_p(p_tost)),
+        subtitle = paste0(if (objective == "equivalence") "TOST" else "Non-inferiority", ", margin ", bounds_txt,
+                          ", ", pstr(p_tost)),
+        caption = paste0("Thick: ", format(100 * (1 - 2 * alpha)), "% CI (decision); thin: ",
+                         format(100 * (1 - alpha)), "% CI; dashed: margins."),
         x = paste0(est_name, " (", diff_lab, ")"), y = NULL
       ) +
-      ggplot2::theme_minimal() +
-      ggplot2::theme(axis.text.y = ggplot2::element_blank())
+      tftheme() + ggplot2::theme(panel.grid.major.y = ggplot2::element_blank(),
+                                 panel.grid.minor = ggplot2::element_blank())
   } else NULL
 
   out <- new_testflow(
