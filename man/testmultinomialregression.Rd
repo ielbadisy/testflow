@@ -10,7 +10,9 @@ testmultinomialregression(
   alpha = 0.05,
   plot = TRUE,
   na.rm = TRUE,
-  units = NULL
+  units = NULL,
+  labels = NULL,
+  unitlabels = NULL
 )
 }
 \arguments{
@@ -27,6 +29,9 @@ the outcome is the baseline category.}
 
 \item{units}{Optional named numeric vector of plotting units for numeric
 predictors (see \code{\link[=testordinalregression]{testordinalregression()}}).}
+
+\item{labels, unitlabels}{Optional plot labels, see
+\code{\link[=testlogisticregression]{testlogisticregression()}}.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_multinomial_regression}.

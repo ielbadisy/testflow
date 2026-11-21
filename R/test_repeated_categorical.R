@@ -8,6 +8,9 @@
 #' @param event Level whose proportion is plotted. Default `NULL` uses the
 #'   second level over all measures (the level coded 1 for the test).
 #'   Cochran's Q does not depend on this choice; only the plot changes.
+#' @param event_label Optional words for the plotted level in the y label and
+#'   caption, for example `"good status"` when `event = 1` on 0/1 columns.
+#'   Default `NULL` uses the level itself.
 #' @return A `testflow` object with class `testflow_repeated_categorical`. The
 #' object is a list containing the cleaned repeated categorical data,
 #' descriptive counts, assumption checks, Cochran Q test result with null
@@ -20,7 +23,8 @@
 #' McNemar, Q. (1947). Note on the sampling error of the difference between
 #' correlated proportions or percentages. \emph{Psychometrika}, 12(2), 153-157.
 #' @export
-testrepeatedcategorical <- function(data, measures, id = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE, event = NULL) {
+testrepeatedcategorical <- function(data, measures, id = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE, event = NULL,
+                                    event_label = NULL) {
   measure_nms <- tidyselect_names(data, {{ measures }})
   warn_if_two_measures_repeated(measure_nms)
   for (nm in measure_nms) warn_if_nonbinary(data[[nm]], paste0("`", nm, "`"))
@@ -36,6 +40,7 @@ testrepeatedcategorical <- function(data, measures, id = NULL, alpha = 0.05, plo
     v <- unlist(lapply(df[measure_nms], function(x) as.character(catlev(x))))
     lv <- levels(catlev(unlist(lapply(df[measure_nms], catlev)))); ev <- event %||% lv[min(2, length(lv))]
     if (is.logical(ev)) ev <- c("No", "Yes")[ev + 1]
+    el <- event_label %||% ev
     k <- vapply(df[measure_nms], function(x) sum(as.character(catlev(x)) == ev), 1); n <- nrow(df)
     ci <- t(vapply(k, function(x) wilson_ci(x, n, alpha), numeric(2)))
     pd <- data.frame(time = factor(measure_nms, measure_nms), p = k / n, lo = ci[, 1], hi = ci[, 2])
@@ -44,8 +49,8 @@ testrepeatedcategorical <- function(data, measures, id = NULL, alpha = 0.05, plo
       ggplot2::geom_pointrange(ggplot2::aes(ymin = .data$lo, ymax = .data$hi), colour = TFCOL[["a1"]]) +
       ggplot2::scale_y_continuous(labels = function(b) paste0(100 * b, "%")) +
       ggplot2::labs(subtitle = plot_subtitle("Cochran Q test", test), caption = paste0(
-        "Points: percent with ", ev, " and ", 100 * (1 - alpha), "% Wilson CI (n = ", n, ")."),
-        x = NULL, y = paste0("Percent ", ev)) +
+        "Points: percent with ", el, " and ", 100 * (1 - alpha), "% Wilson CI (n = ", n, ")."),
+        x = NULL, y = paste0("Percent ", el)) +
       tftheme()
   } else NULL
   h0 <- paste0("H0: the success proportions are equal across repeated categorical measures.")

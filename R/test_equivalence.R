@@ -23,6 +23,11 @@
 #'   `1 - alpha` one-sided for non-inferiority.
 #' @param plot Logical; include a ggplot object (CI against the margins).
 #' @param na.rm Logical; remove missing values.
+#' @param xlab Optional x-axis label of the plot. Default `NULL` keeps
+#'   "Mean difference (first - second group level)" (or the risk
+#'   difference).
+#' @param units Optional unit of the outcome added to the default x label,
+#'   for example `units = "kg"` gives "Mean difference (F - M), kg".
 #' @return A `testflow` object with class `testflow_equivalence`. The
 #' primary result is the binding one-sided test (larger p-value), with the
 #' difference CI. `$alternative_tests$one_sided` holds both one-sided tests.
@@ -53,7 +58,8 @@
 #' # non-inferiority: new arm no worse than 5 mmHg higher
 #' testequivalence(sbp ~ arm, d, lower = -Inf, upper = 5, plot = FALSE)
 #' @export
-testequivalence <- function(formula, data, lower, upper, type = c("auto", "means", "proportions"), success = NULL, var.equal = FALSE, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testequivalence <- function(formula, data, lower, upper, type = c("auto", "means", "proportions"), success = NULL, var.equal = FALSE, alpha = 0.05, plot = TRUE, na.rm = TRUE,
+                            xlab = NULL, units = NULL) {
   type <- match.arg(type)
   if (!inherits(formula, "formula")) stop("`formula` must be a formula such as outcome ~ group.", call. = FALSE)
   if (missing(lower) || missing(upper)) stop("Give both `lower` and `upper` (use -Inf or Inf for non-inferiority).", call. = FALSE)
@@ -174,7 +180,7 @@ testequivalence <- function(formula, data, lower, upper, type = c("auto", "means
                           ", ", pstr(p_tost)),
         caption = paste0("Thick: ", format(100 * (1 - 2 * alpha)), "% CI (decision); thin: ",
                          format(100 * (1 - alpha)), "% CI; dashed: margins."),
-        x = paste0(est_name, " (", diff_lab, ")"), y = NULL
+        x = xlab %||% paste0(est_name, " (", diff_lab, ")", if (!is.null(units)) paste0(", ", units)), y = NULL
       ) +
       tftheme() + ggplot2::theme(panel.grid.major.y = ggplot2::element_blank(),
                                  panel.grid.minor = ggplot2::element_blank())

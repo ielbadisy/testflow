@@ -4,12 +4,19 @@
 \alias{plot.sample_size}
 \title{Plot a sample size object}
 \usage{
-\method{plot}{sample_size}(x, type = c("both", "curve", "summary"), ...)
+\method{plot}{sample_size}(x, type = c("both", "curve", "summary"), vary = NULL, ...)
 }
 \arguments{
 \item{x}{A sample-size object returned by \code{samplesize()}.}
 
 \item{type}{Plot style: \code{both}, \code{curve}, or \code{summary}.}
+
+\item{vary}{Optional named list with one planning input of the design and
+the values to try, for example \code{list(delta = c(2, 3, 4))}, \code{list(p1 = c(0.25, 0.30))} or \code{list(hr = c(0.6, 0.7, 0.8))}. The design is rerun for
+each value and one power curve per value is drawn against the total size
+before dropout, with the size needed for the planned power marked. Power is
+exact (noncentral t) for \code{method = "t"} and follows the design's own
+formula otherwise. Default \code{NULL} draws the single planned curve.}
 
 \item{...}{Unused.}
 }
@@ -25,5 +32,6 @@ exact curve use the normal approximation scaled to the computed size:
 since \eqn{n \propto (z_{1-lpha/2} + z_{1-eta})^2}, power at \eqn{n}
 is \eqn{\Phi(\sqrt{n / n_0}(z_{1-lpha/2} + z_{1-eta}) - z_{1-lpha/2})},
 with \eqn{n_0} the unrounded total. Designs without a power target
-(precision) show the summary bars only.
+(precision) show the summary bars only. Under \code{method = "t"} the curve
+is the exact noncentral-t power.
 }

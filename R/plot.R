@@ -97,7 +97,9 @@ make_plot <- function(workflow, data, outcome = NULL, group = NULL, recommended 
     )
   }
   if (workflow == "paired") {
-    return(
+    gr <- extra$group
+    if (!is.null(gr)) data[[gr]] <- factor(data[[gr]], lvls(data[[gr]]))
+    p <- (
       ggplot2::ggplot(data, ggplot2::aes(x = .data$time, y = .data$value)) +
         ggplot2::geom_line(ggplot2::aes(group = .data$row_id), colour = TFCOL[["line"]]) +
         ggplot2::geom_point(colour = TFCOL[["pt"]], size = 1.3) +
@@ -108,6 +110,7 @@ make_plot <- function(workflow, data, outcome = NULL, group = NULL, recommended 
                       x = extra$x %||% "Measurement", y = extra$y %||% "Value") +
         tftheme()
     )
+    return(if (is.null(gr)) p else p + ggplot2::facet_wrap(gr))
   }
   ggplot2::ggplot(data, ggplot2::aes(x = seq_len(nrow(data)))) +
     ggplot2::geom_point(ggplot2::aes(y = 1)) +
@@ -142,11 +145,20 @@ profile_plot <- function(df, y, x, z = NULL, id = NULL, subtitle = NULL, caption
 }
 
 # Readable term labels: "priorfracYes" -> "priorfrac: Yes"; numeric terms rescaled by `units` get "(per u)".
-termlab <- function(term, vars, units = NULL) vapply(term, function(t) {
+# `labels` maps a coefficient name (whole label) or a variable name (variable part) to a label; `unitlabels`
+# adds a unit word to numeric terms ("(per 10 years)").
+termlab <- function(term, vars, units = NULL, labels = NULL, unitlabels = NULL) vapply(term, function(t) {
+  if (t %in% names(labels)) return(labels[[t]])
   one <- function(s) {
-    if (s %in% vars) return(if (s %in% names(units)) paste0(s, " (per ", units[[s]], ")") else s)
+    if (s %in% names(labels) && !s %in% vars) return(labels[[s]])
+    if (s %in% vars) {
+      per <- trimws(paste(if (s %in% names(units)) units[[s]] else "", if (s %in% names(unitlabels)) unitlabels[[s]] else ""))
+      return(paste0(if (s %in% names(labels)) labels[[s]] else s, if (nzchar(per)) paste0(" (per ", per, ")")))
+    }
     v <- vars[startsWith(s, vars)]
-    if (length(v)) paste0(v <- v[which.max(nchar(v))], ": ", substring(s, nchar(v) + 1)) else s
+    if (!length(v)) return(s)
+    v <- v[which.max(nchar(v))]
+    paste0(if (v %in% names(labels)) labels[[v]] else v, ": ", substring(s, nchar(v) + 1))
   }
   paste(vapply(strsplit(t, ":", fixed = TRUE)[[1]], one, ""), collapse = " x ")
 }, "", USE.NAMES = FALSE)
@@ -154,22 +166,25 @@ unitof <- function(term, units) { u <- rep(1, length(term)); i <- term %in% name
 
 # Forest of exp(u * b) with CI from a log-scale table (term, estimate, conf.low, conf.high, optional y.level);
 # `crude` (same layout) is drawn in grey under each adjusted estimate.
-ratio_plot <- function(tab, xlab, vars, units = NULL, crude = NULL, subtitle = NULL, caption = NULL) {
+ratio_plot <- function(tab, xlab, vars, units = NULL, crude = NULL, subtitle = NULL, caption = NULL, labels = NULL,
+                       unitlabels = NULL) {
   prep <- function(d, src) {
     d <- as.data.frame(d); d <- d[d$term != "(Intercept)", , drop = FALSE]; u <- unitof(d$term, units)
     data.frame(panel = if (is.null(d$y.level)) "" else as.character(d$y.level), term = d$term,
                est = exp(u * d$estimate), lo = exp(u * d$conf.low), hi = exp(u * d$conf.high), src = src)
   }
   d <- prep(tab, "Adjusted"); tl <- unique(d$term)
+  # Panels follow the outcome levels as fitted (factor order), not the alphabet.
+  pl <- unique(d$panel)
   if (!is.null(crude)) { cr <- prep(crude, "Crude"); d <- rbind(d, cr[cr$term %in% tl, ]) }
   d$y <- length(tl) + 1 - match(d$term, tl) + ifelse(d$src == "Crude", -0.22, if (is.null(crude)) 0 else 0.22)
-  two <- !is.null(crude)
+  d$panel <- factor(d$panel, pl); two <- !is.null(crude)
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$est, y = .data$y, colour = .data$src)) +
     ggplot2::geom_vline(xintercept = 1, linetype = "dashed", colour = TFCOL[["line"]]) +
     ggplot2::geom_segment(ggplot2::aes(x = .data$lo, xend = .data$hi, yend = .data$y)) +
     ggplot2::geom_point(size = 2) +
     ggplot2::scale_x_log10() +
-    ggplot2::scale_y_continuous(breaks = rev(seq_along(tl)), labels = termlab(tl, vars, units), expand =
+    ggplot2::scale_y_continuous(breaks = rev(seq_along(tl)), labels = termlab(tl, vars, units, labels, unitlabels), expand =
                                   ggplot2::expansion(add = 0.5)) +
     ggplot2::scale_colour_manual(values = c(Adjusted = TFCOL[["a1"]], Crude = "grey60"), breaks = c("Adjusted", "Crude")) +
     ggplot2::labs(x = xlab, y = NULL, colour = NULL, subtitle = subtitle, caption = caption) +

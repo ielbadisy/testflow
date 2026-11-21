@@ -14,6 +14,9 @@
 #' @param times Optional labels for the measures on the plot x axis, one per
 #'   measure in order (for example `0:4` months); the axis is then titled
 #'   "Time". Only the plot changes.
+#' @param xlab,ylab,legendtitle Optional plot labels for the x axis, the y
+#'   axis and the legend of the `between` groups. Left out, the defaults are
+#'   kept; a character value replaces them; `NULL` removes them.
 #' @return A `testflow` object with class `testflow_repeated`. The object is a
 #' list containing long-form repeated-measures data, numeric descriptives,
 #' assumption checks, recommended repeated-measures ANOVA or Friedman test,
@@ -50,7 +53,7 @@
 #' designs. \emph{Journal of Educational Statistics}, 1(1), 69-82.
 #' @export
 testrepeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE,
-                         times = NULL) {
+                         times = NULL, xlab, ylab, legendtitle) {
   measure_nms <- tidyselect_names(data, {{ measures }})
   warn_if_two_measures_repeated(measure_nms)
   id_nm <- if (missing(id) || is.null(substitute(id))) ".testflow_id" else rlang::as_name(rlang::ensym(id))
@@ -63,7 +66,15 @@ testrepeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.05
   if (!is.null(times) && !is.null(out$plot))
     out$plot <- out$plot + ggplot2::scale_x_discrete(labels = stats::setNames(as.character(times), measure_nms)) +
       ggplot2::labs(x = "Time")
+  out$plot <- relabel(out$plot, if (!missing(xlab)) list(x = xlab), if (!missing(ylab)) list(y = ylab),
+                      if (!missing(legendtitle)) list(colour = legendtitle, shape = legendtitle))
   out
+}
+
+# Apply only the label overrides given (an explicit NULL removes the label).
+relabel <- function(p, ...) {
+  lab <- c(...)
+  if (is.null(p) || !length(lab)) p else p + do.call(ggplot2::labs, lab)
 }
 
 #' Run a repeated-measures workflow from long data
@@ -80,6 +91,9 @@ testrepeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.05
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param xlab,ylab,legendtitle Optional plot labels for the x axis, the y
+#'   axis and the legend of the `between` groups. Left out, the defaults are
+#'   kept; a character value replaces them; `NULL` removes them.
 #' @return A `testflow` object with class `testflow_repeated`. The object is a
 #' list containing the cleaned long-format data, numeric descriptives,
 #' assumption checks, recommended repeated-measures ANOVA or Friedman test,
@@ -96,12 +110,17 @@ testrepeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.05
 #' term and the interaction (epsilon from the pooled within-group covariance;
 #' `NA` for the between term).
 #' @export
-testrepeatedlong <- function(data, outcome, within, id, between = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testrepeatedlong <- function(data, outcome, within, id, between = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE,
+                             xlab, ylab, legendtitle) {
   outcome_nm <- rlang::as_name(rlang::ensym(outcome))
   within_nm <- rlang::as_name(rlang::ensym(within))
   id_nm <- rlang::as_name(rlang::ensym(id))
   between_nm <- if (is.null(substitute(between))) NULL else rlang::as_name(rlang::ensym(between))
-  repeated_core(data, outcome_nm, within_nm, id_nm, outcome_label = outcome_nm, display_by_within = FALSE, alpha = alpha, plot = plot, na.rm = na.rm, call = match.call(), between_nm = between_nm)
+  out <- repeated_core(data, outcome_nm, within_nm, id_nm, outcome_label = outcome_nm, display_by_within = FALSE,
+                       alpha = alpha, plot = plot, na.rm = na.rm, call = match.call(), between_nm = between_nm)
+  out$plot <- relabel(out$plot, if (!missing(xlab)) list(x = xlab), if (!missing(ylab)) list(y = ylab),
+                      if (!missing(legendtitle)) list(colour = legendtitle, shape = legendtitle))
+  out
 }
 
 repeated_core <- function(data, outcome_nm, within_nm, id_nm, outcome_label = NULL, display_by_within = FALSE, alpha = 0.05, plot = TRUE, na.rm = TRUE, call = NULL, between_nm = NULL) {

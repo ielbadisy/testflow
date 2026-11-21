@@ -11,7 +11,8 @@ testrepeatedcategorical(
   alpha = 0.05,
   plot = TRUE,
   na.rm = TRUE,
-  event = NULL
+  event = NULL,
+  event_label = NULL
 )
 }
 \arguments{
@@ -30,6 +31,10 @@ testrepeatedcategorical(
 \item{event}{Level whose proportion is plotted. Default \code{NULL} uses the
 second level over all measures (the level coded 1 for the test).
 Cochran's Q does not depend on this choice; only the plot changes.}
+
+\item{event_label}{Optional words for the plotted level in the y label and
+caption, for example \code{"good status"} when \code{event = 1} on 0/1 columns.
+Default \code{NULL} uses the level itself.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_repeated_categorical}. The

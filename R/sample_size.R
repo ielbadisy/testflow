@@ -100,7 +100,7 @@ samplesizecontinuous <- function(
     sd_a <- sd * sqrt(1 - baseline_cor^2)
     res <- samplesizecontinuous(design, objective, delta, sd_a, sd_diff, expected_difference, margin, alpha, power,
                                 allocation, dropout, n_time, correlation, method)
-    res$method <- paste0(res$method, ", ANCOVA on baseline")
+    res$method <- paste0(res$method, ", ANCOVA on baseline"); res$inputs <- ssinputs(samplesizecontinuous, environment())
     res$assumptions <- rbind(res$assumptions, sample_size_assumptions(paste0(
       "ANCOVA: baseline-outcome correlation = ", format_sample_value(baseline_cor), ", SD ", format_sample_value(sd),
       " reduced to ", format_sample_value(sd_a), "."))[1, ])
@@ -1179,6 +1179,34 @@ samplesizeclusteradjust <- function(n_ind, m, rho, cv_m = NULL) {
   sample_size_round(n_ind * design_effect)
 }
 
+#' Plot the cluster-adjusted sample size against the ICC
+#'
+#' Draws [samplesizeclusteradjust()] over a range of intracluster
+#' correlations, one line per average cluster size, for a sensitivity figure
+#' of a cluster randomized trial.
+#'
+#' @inheritParams samplesizeclusteradjust
+#' @param m Average cluster size(s); one line per value.
+#' @param rho Intracluster correlations on the x axis.
+#' @return A `ggplot` object; its data (`rho`, `m`, `n`, `clusters`) hold the
+#'   adjusted total size and the number of clusters, `ceiling(n / m)`.
+#' @examples
+#' plotclusteradjust(120, m = c(10, 20, 40), rho = seq(0, 0.1, by = 0.01))
+#' @export
+plotclusteradjust <- function(n_ind, m, rho = seq(0, 0.1, by = 0.01), cv_m = NULL) {
+  d <- expand.grid(rho = rho, m = m)
+  d$n <- mapply(function(r, k) samplesizeclusteradjust(n_ind, k, r, cv_m), d$rho, d$m); d$clusters <- ceiling(d$n / d$m)
+  lev <- format(m); d$mf <- factor(format(d$m), lev)
+  ggplot2::ggplot(d, ggplot2::aes(x = .data$rho, y = .data$n, colour = .data$mf)) +
+    ggplot2::geom_hline(yintercept = n_ind, linetype = "dashed", colour = "grey55") +
+    ggplot2::geom_line(linewidth = 0.9) + ggplot2::geom_point(size = 1.4) +
+    ggplot2::scale_colour_manual(values = tfpal(length(lev))) +
+    ggplot2::labs(x = "Intracluster correlation", y = "Total sample size", colour = "Cluster size",
+                  caption = paste0("Dashed: individually randomized size (", n_ind, "). Design effect ", if (is.null(cv_m))
+                                     "1 + (m - 1) ICC." else paste0("1 + ((1 + CV^2) m - 1) ICC, CV = ", cv_m, "."))) +
+    tftheme() + ggplot2::theme(legend.position = "top")
+}
+
 #' Sample size for confidence-interval precision
 #'
 #' @param endpoint Endpoint family: `continuous` or `binary`.
@@ -1741,18 +1769,27 @@ sample_size_binomial_required_n <- function(p, width, alpha, method, criterion, 
 #'
 #' @param x A sample-size object returned by `samplesize()`.
 #' @param type Plot style: `both`, `curve`, or `summary`.
+#' @param vary Optional named list with one planning input of the design and
+#'   the values to try, for example `list(delta = c(2, 3, 4))`, `list(p1 =
+#'   c(0.25, 0.30))` or `list(hr = c(0.6, 0.7, 0.8))`. The design is rerun for
+#'   each value and one power curve per value is drawn against the total size
+#'   before dropout, with the size needed for the planned power marked. Power is
+#'   exact (noncentral t) for `method = "t"` and follows the design's own
+#'   formula otherwise. Default `NULL` draws the single planned curve.
 #' @param ... Unused.
 #' @details The curve shows power against sample size. Designs without an
 #'   exact curve use the normal approximation scaled to the computed size:
 #'   since \eqn{n \propto (z_{1-lpha/2} + z_{1-eta})^2}, power at \eqn{n}
 #'   is \eqn{\Phi(\sqrt{n / n_0}(z_{1-lpha/2} + z_{1-eta}) - z_{1-lpha/2})},
 #'   with \eqn{n_0} the unrounded total. Designs without a power target
-#'   (precision) show the summary bars only.
+#'   (precision) show the summary bars only. Under `method = "t"` the curve
+#'   is the exact noncentral-t power.
 #' @return A `ggplot2` object, or a combined patchwork object when `type =
 #'   "both"`.
 #' @export
-plot.sample_size <- function(x, type = c("both", "curve", "summary"), ...) {
+plot.sample_size <- function(x, type = c("both", "curve", "summary"), vary = NULL, ...) {
   type <- match.arg(type)
+  if (!is.null(vary)) return(ssfamily(x, vary))
   summary_plot <- NULL
   curve_plot <- NULL
   pd <- x$plot_data; sub <- paste0(x$objective, ", ", x$method)
@@ -1774,6 +1811,10 @@ plot.sample_size <- function(x, type = c("both", "curve", "summary"), ...) {
 
   cd <- x$curve_data
   pd <- x$plot_data
+  if (!is.null(x$powerfun)) {
+    tn <- sum(pd$value[pd$type == "adjusted"]); ng <- sample_size_curve_grid(tn, length.out = 60)
+    cd <- sample_size_curve_bundle(tn, x$power, ng, vapply(ng, x$powerfun, 0), sslab(pd), "noncentral t")
+  }
   if ((is.null(cd) || !nrow(cd)) && length(x$power) == 1 && length(x$alpha) == 1 && !is.null(pd) && nrow(pd)) {
     # Normal approximation: n is proportional to (z_alpha + z_beta)^2, so power at n follows from the computed n.
     raw <- sum(pd$value[pd$type == "raw"]); adj <- sum(pd$value[pd$type == "adjusted"])
@@ -1782,9 +1823,7 @@ plot.sample_size <- function(x, type = c("both", "curve", "summary"), ...) {
     zb <- stats::qnorm(if (eq) (1 + x$power) / 2 else x$power)
     ng <- sample_size_curve_grid(adj, length.out = 60)
     pw <- stats::pnorm(sqrt(ng / raw) * (za + zb) - za); if (eq) pw <- pmax(2 * pw - 1, 0)
-    lb <- if (sum(pd$type == "raw") > 1) "Total sample size" else sub("^Required ", "", pd$label[1])
-    cd <- sample_size_curve_bundle(adj, x$power, ng, pw, paste0(toupper(substr(lb, 1, 1)), substring(lb, 2)),
-                                   "normal approximation")
+    cd <- sample_size_curve_bundle(adj, x$power, ng, pw, sslab(pd), "normal approximation")
   }
   if (type != "summary" && !is.null(cd) && is.data.frame(cd) && nrow(cd)) {
     tn <- cd$target_n[1]; pt <- cd$power_target[1]
@@ -1796,8 +1835,9 @@ plot.sample_size <- function(x, type = c("both", "curve", "summary"), ...) {
       ggplot2::annotate("text", x = tn, y = 0.05, hjust = -0.08, vjust = 0, size = 3,
                         label = paste0("planned n = ", format_sample_count(tn))) +
       ggplot2::scale_y_continuous(labels = function(b) paste0(100 * b, "%"), limits = c(0, 1)) +
-      ggplot2::labs(subtitle = sub, caption = if (identical(cd$power_label[1], "normal approximation"))
-                      "Power curve: normal approximation scaled to the computed sample size.",
+      ggplot2::labs(subtitle = sub, caption = switch(cd$power_label[1],
+                      "normal approximation" = "Power curve: normal approximation scaled to the computed sample size.",
+                      "noncentral t" = "Power curve: exact noncentral t."),
                     x = cd$n_label[1], y = "Power") +
       tftheme()
   }
@@ -1812,6 +1852,46 @@ plot.sample_size <- function(x, type = c("both", "curve", "summary"), ...) {
     return(curve_plot)
   }
   curve_plot %||% summary_plot
+}
+
+# x-axis label of the power curve: total size for two arms, else the planned unit ("Pairs", "Total sample size").
+sslab <- function(pd) {
+  lb <- if (sum(pd$type == "raw") > 1) "Total sample size" else sub("^Required ", "", pd$label[1])
+  paste0(toupper(substr(lb, 1, 1)), substring(lb, 2))
+}
+
+# One power curve per value of a planning input: rerun the design at that value over a grid of target powers
+# (each run gives a point (n, power) on the design's own curve), or use its exact power function.
+ssfamily <- function(x, vary) {
+  if (is.null(x$fun) || is.null(x$power) || length(vary) != 1 || is.null(names(vary)))
+    stop("`vary` needs a named list with one planning input, on a design with a power target.", call. = FALSE)
+  nm <- names(vary); a <- x$inputs; if ("dropout" %in% names(a)) a$dropout <- 0
+  run <- function(v, p) { a[[nm]] <- v; a$power <- p; do.call(x$fun, a) }
+  tot <- function(r) sum(r$plot_data$value[r$plot_data$type == "raw"])
+  rs <- lapply(vary[[1]], run, p = x$power); tn <- vapply(rs, tot, 0); xmax <- 1.35 * max(tn)
+  lev <- format(vary[[1]]); ps <- seq(0.1, 0.99, by = 0.01)
+  cv <- do.call(rbind, lapply(seq_along(rs), function(i) {
+    d <- if (!is.null(rs[[i]]$powerfun)) {
+      ng <- seq(2, xmax, length.out = 80); data.frame(n = ng, power = vapply(ng, rs[[i]]$powerfun, 0))
+    } else data.frame(n = vapply(ps, function(p) tot(run(vary[[1]][i], p)), 0), power = ps)
+    d$v <- lev[i]; d[d$n <= xmax, ]
+  }))
+  cv$v <- factor(cv$v, lev); tg <- data.frame(n = tn, power = x$power, v = factor(lev, lev))
+  ex <- !is.null(rs[[1]]$powerfun)
+  ggplot2::ggplot(cv, ggplot2::aes(x = .data$n, y = .data$power, colour = .data$v)) +
+    ggplot2::geom_hline(yintercept = x$power, linetype = "dashed", colour = "grey55") +
+    ggplot2::geom_line(linewidth = 0.9) +
+    ggplot2::geom_point(data = tg, size = 2.3) +
+    ggplot2::geom_text(ggplot2::aes(label = format(ceiling(.data$n), big.mark = ",")), data = tg, vjust = -0.9, size = 3,
+                       show.legend = FALSE) +
+    ggplot2::scale_colour_manual(values = tfpal(length(lev))) +
+    ggplot2::scale_y_continuous(labels = function(b) paste0(100 * b, "%"), limits = c(0, 1)) +
+    ggplot2::scale_x_continuous(limits = c(0, xmax)) +
+    ggplot2::labs(subtitle = paste0(x$objective, ", ", x$method), x = paste0(sslab(x$plot_data), ", before dropout"),
+                  y = "Power", colour = nm, caption = paste0(
+                    if (ex) "Exact noncentral t power. " else "Power from the design formula. ",
+                    "Points: size for ", 100 * x$power, "% power.")) +
+    tftheme() + ggplot2::theme(legend.position = "top")
 }
 
 #' Print a sample size object
@@ -1996,8 +2076,19 @@ sample_size_result <- function(endpoint, design, objective, method, n, n_adjuste
   pf <- parent.frame()
   x$alpha <- get0("alpha", pf, mode = "numeric", inherits = FALSE)
   x$power <- get0("power", pf, mode = "numeric", inherits = FALSE)
+  # The calling function and its inputs let plot(vary = ) rerun the design under other assumptions;
+  # `powerfun` (exact power against the total n) is set where the design has one (noncentral t).
+  x$fun <- sys.function(-1); x$inputs <- ssinputs(x$fun, pf)
+  x$powerfun <- attr(n, "powerfun"); attr(x$n, "powerfun") <- NULL
   class(x) <- c("sample_size", "testflow_sample_size")
   x
+}
+
+# Arguments given to (or defaulted in) a samplesize*() call, as their current values; missing ones are left out.
+ssinputs <- function(fn, env) {
+  nm <- setdiff(names(formals(fn)), "...")
+  nm <- nm[!vapply(nm, function(v) eval(call("missing", as.name(v)), env) && is.symbol(formals(fn)[[v]]), TRUE)]
+  mget(nm, envir = env)
 }
 
 sample_size_plot_frame <- function(labels, raw_values, adjusted_values) {
@@ -2127,7 +2218,8 @@ sample_size_continuous_t <- function(n_start, objective, d, sd, alpha, power, pa
   }
   n <- max(2, floor(n_start))
   while (power_at(n) < power) n <- n + 1
-  n
+  # Exact power against the total size (pairs, or both arms), kept for the power curve.
+  structure(n, powerfun = function(N) power_at(if (paired) N else N / (1 + allocation)))
 }
 
 sample_size_round <- function(x) {

@@ -11,7 +11,9 @@ testcox(
   plot = TRUE,
   na.rm = TRUE,
   units = NULL,
-  crude = FALSE
+  crude = FALSE,
+  labels = NULL,
+  unitlabels = NULL
 )
 }
 \arguments{
@@ -25,14 +27,20 @@ testcox(
 
 \item{na.rm}{Logical; remove missing values.}
 
-\item{units}{Optional named numeric vector of plotting units for numeric
-predictors, for example \code{c(age = 10)} to plot the hazard ratio per 10
-years. Only the plot changes; tables stay per unit.}
+\item{units}{Optional named numeric vector of units for numeric
+predictors, for example \code{c(age = 10)} for the hazard ratio per 10
+years. The plot, the printed table and \verb{$alternative_tests$hazard_ratios}
+(and \code{crude}) are rescaled, with a \code{per} column giving the unit;
+\verb{$alternative_tests$coefficients} stays on the log scale per raw unit.}
 
 \item{crude}{Logical; if \code{TRUE}, the plot adds the crude hazard ratio of
 each predictor (one univariable Cox model per predictor, same rows) in
 grey under the adjusted one. The crude table is stored in
-\verb{$alternative_tests$crude}. Default \code{FALSE}.}
+\verb{$alternative_tests$crude} on the hazard-ratio scale (\code{estimate},
+\code{conf.low}, \code{conf.high}). Default \code{FALSE}.}
+
+\item{labels, unitlabels}{Optional plot labels, see
+\code{\link[=testlogisticregression]{testlogisticregression()}}.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_cox}. The object is a
