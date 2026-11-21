@@ -4,7 +4,14 @@
 \alias{plot.sample_size}
 \title{Plot a sample size object}
 \usage{
-\method{plot}{sample_size}(x, type = c("both", "curve", "summary"), vary = NULL, ...)
+\method{plot}{sample_size}(
+  x,
+  type = c("both", "curve", "summary"),
+  vary = NULL,
+  what = c("n", "events"),
+  varylabels = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{A sample-size object returned by \code{samplesize()}.}
@@ -16,7 +23,17 @@ the values to try, for example \code{list(delta = c(2, 3, 4))}, \code{list(p1 = 
 each value and one power curve per value is drawn against the total size
 before dropout, with the size needed for the planned power marked. Power is
 exact (noncentral t) for \code{method = "t"} and follows the design's own
-formula otherwise. Default \code{NULL} draws the single planned curve.}
+formula otherwise. Default \code{NULL} draws the single planned curve. For
+survival designs, varying \code{hr} recomputes the experimental-arm survival as
+\code{survival_a^hr} (proportional hazards) when \code{survival_a} is given.}
+
+\item{what}{With \code{vary}, the x axis: \code{"n"} (total patients, default) or
+\code{"events"} (total events, survival designs only).}
+
+\item{varylabels}{With \code{vary}, legend text for the values: a character
+vector in the order of the values, or named by the values (for example
+\code{c("0.7" = "HR 0.7")}). Default \code{NULL} prints the values to 3 significant
+digits.}
 
 \item{...}{Unused.}
 }

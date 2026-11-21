@@ -133,7 +133,9 @@ testlinearregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm
 #' @param labels Optional named character vector of plot labels. A name that
 #'   is a coefficient (for example `"smokeYes"`) replaces that whole label; a
 #'   name that is a variable (for example `"smoke"`) replaces the variable part
-#'   (`"Smoking: Yes"`). Default `NULL` keeps the column names.
+#'   (`"Smoking: Yes"`). A numeric predictor keeps its "(per 10 years)" suffix
+#'   from `units`/`unitlabels` unless its label already contains "per ".
+#'   Default `NULL` keeps the column names.
 #' @param unitlabels Optional named character vector of unit words for numeric
 #'   predictors, for example `c(age = "years")` to label the term
 #'   "age (per 10 years)" with `units = c(age = 10)`. Only the plot changes.
