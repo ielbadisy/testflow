@@ -1,3 +1,11 @@
+# testflow 1.1.13
+
+* `testgroups()` gains `posthoc = "conover"` (Conover-Iman test on pooled ranks, t with N - k df, any `p.adjust.method`) and `posthoc = "dscf"` (Dwass-Steel-Critchlow-Fligner test, pairwise re-ranking, studentized-range p, Hodges-Lehmann shift as estimate). Both correct for ties. Formulas in `?testgroups`.
+* `testrepeated()` and `testrepeatedlong()` gain `posthoc = c("auto", "t", "wilcoxon", "nemenyi", "conover", "none")` and `p.adjust.method = "BH"`. `"auto"` keeps the previous choice (paired t after the ANOVA, paired Wilcoxon after Friedman). `"nemenyi"` and `"conover"` are the all-pairs tests on within-subject ranks after a Friedman test. Formulas in `?testrepeated`.
+* New `plot()` methods for `testgroups()` and `testrepeated()` results: `type = "posthoc"` draws one row per pair with the estimate (and simultaneous 95% CI for Tukey and Games-Howell), or the adjusted p-value when the method gives no estimate; pairs below `alpha` in vermillion. `plot(x)` is unchanged.
+* Dunn, Conover-Iman, DSCF, Games-Howell, Friedman Nemenyi and Friedman Conover are validated against `PMCMRplus` to 1e-8 (1e-6 for Games-Howell) with ties, unequal group sizes, missing values and several `p.adjust.method` values.
+* Bug fix: `testgroups()` stopped with a singleton group (Bartlett and Welch ANOVA need two values per group). The Bartlett check is now "not checked", the Welch ANOVA row is `NA`, and the rank and Tukey post hoc tests run; pairwise Welch t tests stop with a clear message. Unused factor levels of `group` are dropped.
+
 # testflow 1.1.12
 
 * Bug fix (plot): `plot.sample_size(vary = list(hr = ))` on a survival design kept `survival_b` at the planned value, so the patient totals were wrong. Each hazard ratio now sets `survival_b = survival_a^hr` (proportional hazards) and the totals match separate `samplesizesurvival()` calls.

@@ -7,11 +7,14 @@
 #'   the recommended omnibus test: Tukey HSD after one-way ANOVA, pairwise
 #'   Welch t tests after Welch ANOVA, pairwise Wilcoxon rank-sum tests after
 #'   Kruskal-Wallis. `"tukey"`, `"gameshowell"` (Games-Howell, unequal
-#'   variances), `"welch"`, `"wilcoxon"` or `"dunn"` (Dunn's test on pooled
-#'   ranks, see [testdunn()]) fixes the method; `"none"` (or `FALSE`) skips it.
-#' @param p.adjust.method Multiplicity adjustment for the `"welch"`,
-#'   `"wilcoxon"` and `"dunn"` post hoc tests (Tukey and Games-Howell carry
-#'   their own studentized-range adjustment).
+#'   variances), `"welch"`, `"wilcoxon"`, `"dunn"` (Dunn's test on pooled
+#'   ranks, see [testdunn()]), `"conover"` (Conover-Iman test on pooled ranks)
+#'   or `"dscf"` (Dwass-Steel-Critchlow-Fligner test) fixes the method;
+#'   `"none"` (or `FALSE`) skips it. See Details for the rank tests.
+#' @param p.adjust.method Multiplicity adjustment passed to
+#'   [stats::p.adjust()] for the `"welch"`, `"wilcoxon"`, `"dunn"` and
+#'   `"conover"` post hoc tests (Tukey, Games-Howell and DSCF carry their own
+#'   studentized-range adjustment).
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
 #' @return A `testflow` object with class `testflow_groups`. The object is a
@@ -23,15 +26,57 @@
 #' `$posthoc` is a list with `method`, `result` (a `TukeyHSD` or
 #' `pairwise.htest` object), `p.adjust.method` and `table`, a tidy table with
 #' one row per pair: `group1`, `group2`, `estimate` (group2 minus group1: mean
-#' difference, or mean rank difference for Dunn), `statistic`, `conf.low`,
+#' difference, mean rank difference for Dunn and Conover-Iman, Hodges-Lehmann shift
+#' for DSCF), `statistic`, `conf.low`,
 #' `conf.high`, `p`, `p.adj` and `p.adjust.method` (`NA` where a method does
 #' not give the quantity).
 #'
 #' After a Kruskal-Wallis test, `$effect_size` has two rows:
 #' `eta^2_H = (H - k + 1) / (n - k)` and `epsilon^2_H = H / (n - 1)`.
+#' @details
+#' Rank post hoc tests. Let \eqn{r} be the ranks of all \eqn{N} values (ties
+#' get mid-ranks), \eqn{\bar R_j} and \eqn{n_j} the mean rank and size of
+#' group \eqn{j}, and \eqn{k} the number of groups. Unequal group sizes enter
+#' through \eqn{n_i} and \eqn{n_j}.
+#'
+#' Conover-Iman (1979): with the rank variance
+#' \eqn{S^2 = (\sum r^2 - N(N+1)^2/4)/(N-1)} and \eqn{H} the tie-corrected
+#' Kruskal-Wallis statistic,
+#' \deqn{t_{ij} = \frac{\bar R_j - \bar R_i}{\sqrt{S^2 \frac{N-1-H}{N-k}
+#'   \left(\frac{1}{n_i} + \frac{1}{n_j}\right)}},}
+#' referred to a t distribution with \eqn{N-k} df, then adjusted by
+#' `p.adjust.method`. \eqn{S^2} uses the observed ranks, which corrects for
+#' ties. `estimate` is \eqn{\bar R_j - \bar R_i}.
+#'
+#' Dwass-Steel-Critchlow-Fligner (Critchlow and Fligner 1991): each pair is
+#' ranked on its own. With \eqn{U_j} the Mann-Whitney count of group \eqn{j}
+#' over group \eqn{i}, \eqn{s = n_i + n_j} and \eqn{t} the tie sizes in the
+#' pair,
+#' \deqn{W_{ij} = \sqrt{2}\,\frac{U_j - n_i n_j / 2}{\sqrt{\frac{n_i n_j}{s(s-1)}
+#'   \left(\frac{s^3 - s}{12} - \sum \frac{t^3 - t}{12}\right)}},}
+#' with p from the studentized range with \eqn{k} means and infinite df
+#' (single step, `p.adj = p`). `estimate` is the Hodges-Lehmann shift, the
+#' median of all differences between group2 and group1 values.
+#'
+#' The Dunn, Conover-Iman, DSCF and Games-Howell tables match
+#' `PMCMRplus::kwAllPairsDunnTest()`, `kwAllPairsConoverTest()`,
+#' `dscfAllPairsTest()` and `gamesHowellTest()`. Games-Howell needs two
+#' values per group (pairs with a singleton group are `NA`); pairwise Welch t
+#' tests stop in that case. Use `plot(x, type = "posthoc")` to draw the table.
+#' @references
+#' Conover, W. J., and Iman, R. L. (1979). On multiple-comparisons procedures.
+#' Technical Report LA-7677-MS, Los Alamos Scientific Laboratory.
+#'
+#' Critchlow, D. E., and Fligner, M. A. (1991). On distribution-free multiple
+#' comparisons in the one-way analysis of variance. \emph{Communications in
+#' Statistics - Theory and Methods}, 20(1), 127-139.
+#'
+#' Dunn, O. J. (1964). Multiple comparisons using rank sums.
+#' \emph{Technometrics}, 6(3), 241-252.
 #' @export
 testgroups <- function(formula, data, group = NULL, alpha = 0.05,
-                       posthoc = c("auto", "tukey", "gameshowell", "welch", "wilcoxon", "dunn", "none"),
+                       posthoc = c("auto", "tukey", "gameshowell", "welch", "wilcoxon", "dunn", "conover", "dscf",
+                                   "none"),
                        plot = TRUE, na.rm = TRUE, p.adjust.method = "BH") {
   posthoc <- if (isTRUE(posthoc)) "auto" else if (isFALSE(posthoc)) "none" else match.arg(posthoc)
   vars <- resolve_formula_pair(tf_formula_arg(substitute(formula), parent.frame()), tf_formula_arg(substitute(data), parent.frame()), substitute(group), missing(group))
@@ -39,7 +84,7 @@ testgroups <- function(formula, data, group = NULL, alpha = 0.05,
   group_nm <- vars$group
   data_obj <- resolve_data_first_or_formula(formula, data)
   df <- drop_missing(data_obj, c(outcome_nm, group_nm), na.rm = na.rm)
-  df[[group_nm]] <- as.factor(df[[group_nm]])
+  df[[group_nm]] <- droplevels(as.factor(df[[group_nm]]))
   if (length(unique(df[[group_nm]])) < 3) stop("`group` must contain at least three groups.", call. = FALSE)
   normality <- check_normality(df, outcome_nm, group_nm, alpha)
   levene <- check_variance_homogeneity(df, outcome_nm, group_nm, alpha)
@@ -53,7 +98,11 @@ testgroups <- function(formula, data, group = NULL, alpha = 0.05,
   aov_test <- aov_full[1, , drop = FALSE]
   aov_test$num.df <- aov_full$df[1]
   aov_test$den.df <- aov_full$df[nrow(aov_full)]
-  welch <- stats::oneway.test(formula, data = df, var.equal = FALSE)
+  # Welch ANOVA needs a variance in every group; with a singleton group it is reported as NA.
+  welch <- if (all(table(df[[group_nm]]) > 1)) stats::oneway.test(formula, data = df, var.equal = FALSE) else
+    structure(list(statistic = c(F = NA_real_), parameter = c("num df" = NA_real_, "denom df" = NA_real_),
+                   p.value = NA_real_, method = "One-way analysis of means (not assuming equal variances)",
+                   data.name = deparse(formula)), class = "htest")
   kruskal <- stats::kruskal.test(formula, data = df)
   primary <- switch(recommendation, "One-way ANOVA" = list_obj_from_tidy(aov_test, "One-way ANOVA"), "Welch ANOVA" = welch, "Kruskal-Wallis test" = kruskal)
   h0 <- h0_mean_equal(outcome_nm, group_nm)

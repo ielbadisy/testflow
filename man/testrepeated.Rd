@@ -15,7 +15,9 @@ testrepeated(
   times = NULL,
   xlab,
   ylab,
-  legendtitle
+  legendtitle,
+  posthoc = c("auto", "t", "wilcoxon", "nemenyi", "conover", "none"),
+  p.adjust.method = "BH"
 )
 }
 \arguments{
@@ -45,6 +47,17 @@ measure in order (for example \code{0:4} months); the axis is then titled
 \item{xlab, ylab, legendtitle}{Optional plot labels for the x axis, the y
 axis and the legend of the \code{between} groups. Left out, the defaults are
 kept; a character value replaces them; \code{NULL} removes them.}
+
+\item{posthoc}{Post-hoc method. \code{"auto"} (default) keeps paired t tests
+after the repeated-measures ANOVA and paired Wilcoxon signed-rank tests
+after the Friedman test. \code{"t"} or \code{"wilcoxon"} fixes them; \code{"nemenyi"}
+and \code{"conover"} give the all-pairs tests on within-subject ranks that
+follow a Friedman test (see Details); \code{"none"} skips post hoc tests. All
+use the subjects with every measure.}
+
+\item{p.adjust.method}{Multiplicity adjustment passed to \code{\link[stats:p.adjust]{stats::p.adjust()}}
+for the \code{"t"}, \code{"wilcoxon"} and \code{"conover"} post hoc tests (Nemenyi
+carries its own studentized-range adjustment).}
 }
 \value{
 A \code{testflow} object with class \code{testflow_repeated}. The object is a
@@ -65,6 +78,26 @@ term and the interaction (epsilon from the pooled within-group covariance;
 \description{
 Run a repeated-measures workflow from wide data
 }
+\details{
+Rank post hoc tests. Each subject's \eqn{k} measures are ranked (ties get
+mid-ranks); \eqn{R_j} is the rank sum and \eqn{\bar R_j = R_j / n} the mean
+rank of condition \eqn{j} over the \eqn{n} complete subjects. \code{estimate} is
+\eqn{\bar R_j - \bar R_i} (group2 minus group1).
+
+Nemenyi (1963): \deqn{q_{ij} = \sqrt{2}\,\frac{\bar R_j - \bar R_i}{\sqrt{k(k+1)/(6n)}},}
+with p from the studentized range with \eqn{k} means and infinite df
+(single step, \code{p.adj = p}). The variance is the untied one, so with many
+within-subject ties the test is conservative.
+
+Conover (1999): with \eqn{A = \sum r^2} over all ranks,
+\deqn{t_{ij} = \frac{R_j - R_i}{\sqrt{2 (n A - \sum_j R_j^2) / ((n-1)(k-1))}},}
+referred to a t distribution with \eqn{(n-1)(k-1)} df, then adjusted by
+\code{p.adjust.method}. \eqn{A} is computed from the observed ranks, which
+corrects for ties.
+
+Both match \code{PMCMRplus::frdAllPairsNemenyiTest()} and
+\code{PMCMRplus::frdAllPairsConoverTest()}.
+}
 \references{
 Fisher, R. A. (1925). \emph{Statistical Methods for Research Workers}.
 Oliver and Boyd.
@@ -84,4 +117,10 @@ profile data. \emph{Psychometrika}, 24(2), 95-112.
 Huynh, H., and Feldt, L. S. (1976). Estimation of the Box correction for
 degrees of freedom from sample data in randomized block and split-plot
 designs. \emph{Journal of Educational Statistics}, 1(1), 69-82.
+
+Nemenyi, P. (1963). \emph{Distribution-free Multiple Comparisons}. PhD
+thesis, Princeton University.
+
+Conover, W. J. (1999). \emph{Practical Nonparametric Statistics} (3rd ed.).
+Wiley.
 }

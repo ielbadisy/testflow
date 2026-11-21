@@ -194,3 +194,82 @@ ratio_plot <- function(tab, xlab, vars, units = NULL, crude = NULL, subtitle = N
                                legend.position = if (two) "top" else "none")
   if (length(unique(d$panel)) > 1) p + ggplot2::facet_wrap(~ panel) else p
 }
+
+# Post hoc table drawn as one row per pair: estimate (with simultaneous CI when the method gives one), or the
+# adjusted p-value on a log scale when the method gives no estimate. Vermillion: adjusted p < alpha.
+posthoc_plot <- function(tb, method, subtitle = NULL, alpha = 0.05, xlab = "Estimate") {
+  d <- as.data.frame(tb); lab <- paste(d$group2, "-", d$group1)
+  d$pair <- factor(lab, rev(lab)); d$sig <- !is.na(d$p.adj) & d$p.adj < alpha
+  d$lab <- vapply(d$p.adj, function(p) if (is.na(p)) "" else sub("^p", "adj. p", pstr(p)), "")
+  est <- !is.null(d$estimate) && any(!is.na(d$estimate)); ci <- est && any(!is.na(d$conf.low))
+  cap <- paste0(method, ". Vermillion: adjusted p < ", alpha, if (ci) "; bars: simultaneous 95% CI" else "", ".")
+  p <- if (est) {
+    ggplot2::ggplot(d, ggplot2::aes(x = .data$estimate, y = .data$pair)) +
+      ggplot2::geom_vline(xintercept = 0, linetype = "dashed", colour = TFCOL[["line"]]) +
+      (if (ci) ggplot2::geom_segment(ggplot2::aes(x = .data$conf.low, xend = .data$conf.high, yend = .data$pair),
+                                     colour = ifelse(d$sig, TFCOL[["a2"]], TFCOL[["pt"]]))) +
+      ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0.12)) + ggplot2::labs(x = xlab)
+  } else {
+    ggplot2::ggplot(d, ggplot2::aes(x = .data$p.adj, y = .data$pair)) +
+      ggplot2::geom_vline(xintercept = alpha, linetype = "dashed", colour = TFCOL[["line"]]) +
+      ggplot2::scale_x_log10(expand = ggplot2::expansion(mult = 0.12)) +
+      ggplot2::labs(x = "Adjusted p-value (log scale)")
+  }
+  p + ggplot2::geom_point(size = 2.2, colour = ifelse(d$sig, TFCOL[["a2"]], TFCOL[["ink"]])) +
+    ggplot2::geom_text(ggplot2::aes(label = .data$lab), vjust = -0.9, size = 3, colour = "grey35") +
+    ggplot2::labs(y = NULL, subtitle = subtitle, caption = paste(strwrap(cap, 90), collapse = "\n")) +
+    ggplot2::coord_cartesian(clip = "off") +
+    tftheme() + ggplot2::theme(panel.grid.major.y = ggplot2::element_blank())
+}
+
+POSTHOC_XLAB <- c(Tukey = "Mean difference", "Games-Howell" = "Mean difference", Dunn = "Mean rank difference",
+                  "Conover" = "Mean rank difference", Dwass = "Hodges-Lehmann shift",
+                  Nemenyi = "Mean rank difference")
+
+# Axis label from the method name; the pair labels on the y axis read "group2 - group1".
+phlab <- function(method) {
+  hit <- names(POSTHOC_XLAB)[vapply(names(POSTHOC_XLAB), grepl, NA, x = method, fixed = TRUE)]
+  if (length(hit)) POSTHOC_XLAB[[hit[1]]] else "Estimate"
+}
+
+noph <- function(x) if (is.null(x$posthoc))
+  stop("No post hoc table stored: rerun with `posthoc` other than \"none\".", call. = FALSE)
+
+#' Plot a comparison of more than two groups or of repeated measures
+#'
+#' @param x A `testflow_groups` object from [testgroups()] or a
+#'   `testflow_repeated` object from [testrepeated()] or [testrepeatedlong()].
+#' @param type `"data"` (default) draws the stored plot; `"posthoc"` draws the
+#'   post hoc table, one row per pair (group2 minus group1): the estimate with
+#'   its simultaneous 95% CI where the method gives one (Tukey, Games-Howell),
+#'   the estimate alone for the rank tests (mean rank difference, or the
+#'   Hodges-Lehmann shift for DSCF), or the adjusted p-value on a log scale
+#'   when the method gives no estimate. Pairs with adjusted p below `alpha`
+#'   are vermillion.
+#' @param alpha Threshold for highlighting pairs in the post hoc plot.
+#' @param ... Passed to [plot.testflow()] (`title`, `subtitle`, `caption`).
+#' @return A `ggplot` object.
+#' @examples
+#' x <- testgroups(len ~ dose, data = transform(ToothGrowth, dose = factor(dose)), posthoc = "dscf")
+#' plot(x, type = "posthoc")
+#' @export
+plot.testflow_groups <- function(x, ..., type = c("data", "posthoc"), alpha = 0.05) {
+  if (match.arg(type) == "posthoc") {
+    noph(x)
+    x$plot <- posthoc_plot(x$posthoc$table, x$posthoc$method, plot_subtitle(x$recommended$test, x$primary_test),
+                           alpha, phlab(x$posthoc$method))
+  }
+  plot.testflow(x, ...)
+}
+
+#' @rdname plot.testflow_groups
+#' @export
+plot.testflow_repeated <- function(x, ..., type = c("data", "posthoc"), alpha = 0.05) {
+  if (match.arg(type) == "posthoc") {
+    noph(x)
+    m <- x$posthoc$method[1]; a <- x$posthoc$p.adjust.method[1]
+    x$plot <- posthoc_plot(x$posthoc, if (a == "Nemenyi") m else paste0(m, " (", a, "-adjusted)"),
+                           plot_subtitle(x$recommended$test, x$primary_test[1, ]), alpha, phlab(m))
+  }
+  plot.testflow(x, ...)
+}
