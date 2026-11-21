@@ -37,14 +37,14 @@ testoutliers <- function(formula, data, group = NULL, method = c("iqr", "mahalan
     }
     fences <- iqr_fences(df, vars)
     ggplot2::ggplot(long, ggplot2::aes(x = .data$variable, y = .data$value)) +
-      ggplot2::geom_hline(data = fences, ggplot2::aes(yintercept = .data$lower_fence), linetype = "dashed", color = "#B23A48") +
-      ggplot2::geom_hline(data = fences, ggplot2::aes(yintercept = .data$upper_fence), linetype = "dashed", color = "#B23A48") +
-      ggplot2::geom_boxplot(fill = "#D9E2EC", color = "#334E68", width = 0.38, outlier.shape = NA) +
+      ggplot2::geom_hline(data = fences, ggplot2::aes(yintercept = .data$lower_fence), linetype = "dashed", color = TFCOL[["a2"]]) +
+      ggplot2::geom_hline(data = fences, ggplot2::aes(yintercept = .data$upper_fence), linetype = "dashed", color = TFCOL[["a2"]]) +
+      ggplot2::geom_boxplot(fill = "grey92", color = "grey30", width = 0.38, outlier.shape = NA) +
       ggplot2::geom_jitter(ggplot2::aes(color = .data$is_outlier), width = 0.08, alpha = 0.7, size = 1.6, na.rm = TRUE) +
-      ggplot2::scale_color_manual(values = c(`FALSE` = "#52606D", `TRUE` = "#D64545"), breaks = c(FALSE, TRUE), labels = c("inside fence", "IQR outlier"), na.translate = FALSE) +
+      ggplot2::scale_color_manual(values = c(`FALSE` = "grey55", `TRUE` = TFCOL[["a2"]]), breaks = c(FALSE, TRUE), labels = c("inside fence", "IQR outlier"), na.translate = FALSE) +
       ggplot2::facet_wrap(~variable, scales = "free_y", nrow = 1) +
-      ggplot2::labs(title = "Outlier screening", subtitle = "Dashed lines mark Q1 - 1.5 x IQR and Q3 + 1.5 x IQR", x = NULL, y = NULL, color = NULL) +
-      ggplot2::theme_minimal() +
+      ggplot2::labs(subtitle = "Dashed lines mark Q1 - 1.5 x IQR and Q3 + 1.5 x IQR", x = NULL, y = NULL, color = NULL) +
+      tftheme() +
       ggplot2::theme(axis.text.x = ggplot2::element_blank(), panel.grid.major.x = ggplot2::element_blank())
   } else NULL
   out <- new_testflow("outliers", "outlier screening", paste(vars, collapse = ", "), group_nm, data = df, descriptives = descriptives_numeric(df, vars, group_nm), assumptions = assumptions, recommended = list(test = method_label), primary_test = primary, alternative_tests = list(iqr = iqr, mahalanobis = mahal), effect_size = .bt(name = "Outlier count", estimate = primary$statistic[1], magnitude = NA_character_), plot = plt, call = match.call(), subclass = "outliers")

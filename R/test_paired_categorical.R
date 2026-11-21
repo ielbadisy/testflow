@@ -24,11 +24,21 @@ testpairedcategorical <- function(data, before, after, alpha = 0.05, plot = TRUE
   disc <- .bt(before_only = if (all(dim(tab) == 2)) tab[2, 1] else NA_integer_, after_only = if (all(dim(tab) == 2)) tab[1, 2] else NA_integer_)
   effect <- .bt(name = "Discordant pairs", estimate = sum(disc, na.rm = TRUE), magnitude = NA_character_)
   plt <- if (plot) {
-    long <- .pivot_longer_simple(df, c(before_nm, after_nm), "time", "value")
-    ggplot2::ggplot(long, ggplot2::aes(x = .data$time, fill = .data$value)) +
-      ggplot2::geom_bar(position = "fill") +
-      ggplot2::labs(title = "Paired categorical workflow", subtitle = plot_subtitle("McNemar test", test), x = NULL, y = "Proportion") +
-      ggplot2::theme_minimal()
+    # The 2 x 2 table of pairs: McNemar's test uses only the two off-diagonal (discordant) cells.
+    td <- as.data.frame(tab, stringsAsFactors = FALSE); names(td) <- c("b", "a", "n")
+    td$b <- factor(td$b, rev(rownames(tab))); td$a <- factor(td$a, colnames(tab))
+    td$cell <- ifelse(as.character(td$b) == as.character(td$a), "same", ifelse(as.integer(factor(td$b, rownames(tab))) <
+                      as.integer(td$a), "up", "down"))
+    ggplot2::ggplot(td, ggplot2::aes(x = .data$a, y = .data$b, fill = .data$cell)) +
+      ggplot2::geom_tile(colour = "white", linewidth = 1) +
+      ggplot2::geom_text(ggplot2::aes(label = .data$n, colour = .data$cell == "same"), size = 4.5) +
+      ggplot2::scale_fill_manual(values = c(same = "grey92", up = TFCOL[["a1"]], down = TFCOL[["a2"]]), guide = "none") +
+      ggplot2::scale_colour_manual(values = c(`TRUE` = "grey15", `FALSE` = "white"), guide = "none") +
+      ggplot2::coord_fixed() +
+      ggplot2::labs(subtitle = plot_subtitle("McNemar test", test),
+                    caption = "Coloured cells: discordant pairs (the only ones McNemar's test uses).",
+                    x = after_nm, y = before_nm) +
+      tftheme() + ggplot2::theme(panel.grid = ggplot2::element_blank())
   } else NULL
   discordant_message <- if (is.na(discordant)) {
     "Discordant pairs could not be counted."

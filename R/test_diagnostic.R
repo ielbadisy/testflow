@@ -101,13 +101,19 @@ testdiagnostic <- function(data, test, reference, alpha = 0.05, plot = TRUE, na.
   effect <- .bt(name = "Accuracy", estimate = accuracy, magnitude = NA_character_)
 
   plt <- if (plot) {
-    pd <- diagnostic_table[diagnostic_table$metric %in% c("Sensitivity", "Specificity", "Positive predictive value", "Negative predictive value", "Accuracy"), ]
-    ggplot2::ggplot(pd, ggplot2::aes(x = .data$metric, y = .data$estimate)) +
-      ggplot2::geom_pointrange(ggplot2::aes(ymin = .data$conf.low, ymax = .data$conf.high), color = "#4C78A8") +
-      ggplot2::scale_y_continuous(limits = c(0, 1), labels = function(x) paste0(formatC(100 * x, format = "f", digits = 0), "%")) +
-      ggplot2::labs(title = "Diagnostic accuracy workflow", subtitle = paste0("Accuracy = ", format_stat(accuracy * 100), "%, vs. no-information rate ", format_stat(nir * 100), "%"), x = NULL, y = NULL) +
-      ggplot2::coord_flip() +
-      ggplot2::theme_minimal()
+    pd <- diagnostic_table[1:5, ]; pd$metric <- factor(pd$metric, rev(pd$metric))
+    pd$key <- pd$metric %in% c("Sensitivity", "Specificity")
+    ggplot2::ggplot(pd, ggplot2::aes(x = .data$estimate, y = .data$metric, colour = .data$key)) +
+      ggplot2::geom_pointrange(ggplot2::aes(xmin = .data$conf.low, xmax = .data$conf.high)) +
+      ggplot2::geom_text(ggplot2::aes(label = paste0(round(100 * .data$estimate), "%")), vjust = -0.9, size = 3,
+                         show.legend = FALSE) +
+      ggplot2::scale_colour_manual(values = c(`TRUE` = TFCOL[["a1"]], `FALSE` = TFCOL[["ink"]]), guide = "none") +
+      ggplot2::scale_x_continuous(limits = c(0, 1), labels = function(x) paste0(100 * x, "%")) +
+      ggplot2::labs(subtitle = paste0("Accuracy ", round(100 * accuracy, 1), "% vs no-information rate ",
+                                      round(100 * nir, 1), "%, ", pstr(acc_test$p.value)),
+                    caption = paste0(100 * (1 - alpha), "% CIs. TP ", tp, ", FP ", fp, ", FN ", fn, ", TN ", tn, "."),
+                    x = NULL, y = NULL) +
+      tftheme() + ggplot2::theme(panel.grid.major.y = ggplot2::element_blank())
   } else NULL
 
   out <- new_testflow(
@@ -263,17 +269,20 @@ testroc <- function(data, predictor, outcome, alpha = 0.05, plot = TRUE, na.rm =
   h0 <- paste0("H0: AUC = 0.5 (", predictor_nm, " does not discriminate between levels of ", outcome_nm, ").")
 
   plt <- if (plot) {
+    # Ties move sensitivity and 1 - specificity together, so the empirical ROC is a path, not a step.
     ggplot2::ggplot(roc_curve, ggplot2::aes(x = 1 - .data$specificity, y = .data$sensitivity)) +
-      ggplot2::geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "#8A8F98") +
-      ggplot2::geom_step(color = "#4C78A8", linewidth = 0.8) +
-      ggplot2::geom_point(data = optimal, ggplot2::aes(x = 1 - .data$specificity, y = .data$sensitivity), color = "#F58518", size = 2.5) +
+      ggplot2::geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = "grey60") +
+      ggplot2::geom_path(colour = TFCOL[["a1"]], linewidth = 0.8) +
+      ggplot2::geom_point(data = optimal, colour = TFCOL[["a2"]], size = 2.5) +
+      ggplot2::annotate("text", x = 1 - optimal$specificity + 0.03, y = optimal$sensitivity - 0.03, hjust = 0, vjust = 1,
+                        size = 3, label = paste0("Youden cut-off ", format_stat(optimal$threshold), "\nSe ",
+                                                 round(100 * optimal$sensitivity), "%, Sp ",
+                                                 round(100 * optimal$specificity), "%")) +
       ggplot2::coord_equal() +
-      ggplot2::labs(
-        title = "ROC curve workflow",
-        subtitle = paste0("AUC = ", format_stat(auc), " (", effect$magnitude[1], ")"),
-        x = "1 - Specificity", y = "Sensitivity"
-      ) +
-      ggplot2::theme_minimal()
+      ggplot2::labs(subtitle = paste0("AUC = ", format_stat(auc), " (", 100 * (1 - alpha), "% CI ", format_stat(auc_ci[1]),
+                                      " to ", format_stat(min(auc_ci[2], 1)), "), ", pstr(p_value)),
+                    x = "1 - Specificity", y = "Sensitivity") +
+      tftheme()
   } else NULL
 
   out <- new_testflow(

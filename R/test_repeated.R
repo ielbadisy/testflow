@@ -11,6 +11,9 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param times Optional labels for the measures on the plot x axis, one per
+#'   measure in order (for example `0:4` months); the axis is then titled
+#'   "Time". Only the plot changes.
 #' @return A `testflow` object with class `testflow_repeated`. The object is a
 #' list containing long-form repeated-measures data, numeric descriptives,
 #' assumption checks, recommended repeated-measures ANOVA or Friedman test,
@@ -46,7 +49,8 @@
 #' degrees of freedom from sample data in randomized block and split-plot
 #' designs. \emph{Journal of Educational Statistics}, 1(1), 69-82.
 #' @export
-testrepeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testrepeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.05, plot = TRUE, na.rm = TRUE,
+                         times = NULL) {
   measure_nms <- tidyselect_names(data, {{ measures }})
   warn_if_two_measures_repeated(measure_nms)
   id_nm <- if (missing(id) || is.null(substitute(id))) ".testflow_id" else rlang::as_name(rlang::ensym(id))
@@ -54,7 +58,12 @@ testrepeated <- function(data, measures, id = NULL, between = NULL, alpha = 0.05
   if (id_nm == ".testflow_id") df[[id_nm]] <- seq_len(nrow(df))
   long <- .pivot_longer_simple(df, measure_nms, "time", "value")
   between_nm <- if (is.null(substitute(between))) NULL else rlang::as_name(rlang::ensym(between))
-  repeated_core(long, "value", "time", id_nm, outcome_label = paste(measure_nms, collapse = ", "), display_by_within = TRUE, alpha = alpha, plot = plot, na.rm = na.rm, call = match.call(), between_nm = between_nm)
+  if (!is.null(times) && length(times) != length(measure_nms)) stop("`times` needs one label per measure.", call. = FALSE)
+  out <- repeated_core(long, "value", "time", id_nm, outcome_label = paste(measure_nms, collapse = ", "), display_by_within = TRUE, alpha = alpha, plot = plot, na.rm = na.rm, call = match.call(), between_nm = between_nm)
+  if (!is.null(times) && !is.null(out$plot))
+    out$plot <- out$plot + ggplot2::scale_x_discrete(labels = stats::setNames(as.character(times), measure_nms)) +
+      ggplot2::labs(x = "Time")
+  out
 }
 
 #' Run a repeated-measures workflow from long data

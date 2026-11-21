@@ -67,13 +67,30 @@ testtrend <- function(formula, data, scores = NULL, outcome_scores = NULL, alpha
   h0 <- paste0("H0: no linear trend in ", y_nm, " across the ordered levels of ", x_nm, ".")
   primary <- .bt(method = method, estimate = r, statistic = trend, parameter = 1, p.value = pt)
   plt <- if (plot) {
-    pd <- data.frame(score = by_level$score, y = if (binary) by_level$proportion else by_level$mean_outcome_score)
+    yy <- if (binary) as.numeric(oc$f == oc$lv[2]) else oc$s
+    ci <- if (binary) t(mapply(wilson_ci, by_level$events, by_level$n, MoreArgs = list(alpha = alpha))) else
+      t(vapply(split(yy, ex$f), function(v)
+      mean(v) + c(-1, 1) * stats::qt(1 - alpha / 2, max(length(v) - 1, 1)) * stats::sd(v) / sqrt(length(v)), numeric(2)))
+    pd <- data.frame(score = by_level$score, n = by_level$n, y = as.vector(tapply(yy, ex$f, mean)),
+                     lo = ci[, 1], hi = ci[, 2])
+    # The test is the least-squares slope of outcome on exposure scores over individuals.
+    cf <- stats::coef(stats::lm(yy ~ ex$s)); fl <- data.frame(score = range(ex$sc))
+    fl$y <- cf[1] + cf[2] * fl$score
+    pc <- if (binary) function(b) paste0(100 * b, "%") else ggplot2::waiver()
     ggplot2::ggplot(pd, ggplot2::aes(x = .data$score, y = .data$y)) +
-      ggplot2::geom_point(size = 3, colour = "#4C78A8") + ggplot2::geom_line(colour = "#4C78A8") +
+      ggplot2::geom_line(data = fl, colour = TFCOL[["a1"]], linewidth = 0.8) +
+      ggplot2::geom_pointrange(ggplot2::aes(ymin = .data$lo, ymax = .data$hi), colour = TFCOL[["ink"]]) +
+      ggplot2::geom_text(ggplot2::aes(y = .data$hi, label = paste0("n=", .data$n)), vjust = -0.6, size = 2.8,
+                         colour = TFCOL[["pt"]]) +
       ggplot2::scale_x_continuous(breaks = by_level$score, labels = by_level$level) +
-      ggplot2::labs(title = "Trend workflow", subtitle = paste0(method, ", p = ", format_p(pt)), x = x_nm,
-                    y = if (binary) paste0("Proportion ", y_nm, " = ", oc$lv[2]) else paste0("Mean score of ", y_nm)) +
-      ggplot2::theme_minimal()
+      ggplot2::scale_y_continuous(labels = pc, expand = ggplot2::expansion(c(0.05, 0.12))) +
+      ggplot2::labs(subtitle = paste0(method, ", ", pstr(pt), "; departure from linearity ",
+                                      if (dep_df > 0) pstr(trend_table$p.value[2]) else "not tested"),
+                    caption = paste0("Points: ", if (binary) "percent" else "mean score", " with ",
+                                     100 * (1 - alpha), "% ", if (binary) "Wilson " else "", "CI; ",
+                                     "blue: fitted linear trend on the scores."),
+                    x = x_nm, y = if (binary) paste0("Percent ", y_nm, " = ", oc$lv[2]) else paste0("Mean score of ", y_nm)) +
+      tftheme() + ggplot2::theme(panel.grid.minor.x = ggplot2::element_blank())
   } else NULL
   out <- new_testflow("trend", "ordered exposure and categorical outcome", y_nm, x_nm, data = df,
                       descriptives = descriptives_categorical(df, c(y_nm, x_nm)),
@@ -184,17 +201,25 @@ teststratified <- function(formula, data, event = NULL, correct = TRUE, alpha = 
   stratum_or <- .bt(stratum = dimnames(arr)[[3]], n = as.vector(apply(arr, 3, sum)), events_exposed = as.vector(a),
                     odds_ratio = so[1, ], conf.low = so[2, ], conf.high = so[3, ])
   plt <- if (plot) {
-    pd <- rbind(data.frame(stratum = stratum_or$stratum, or = so[1, ], lo = so[2, ], hi = so[3, ]),
-                data.frame(stratum = "MH pooled", or = psi, lo = mh$conf.int[1], hi = mh$conf.int[2]))
-    pd$stratum <- factor(pd$stratum, rev(pd$stratum))
-    ggplot2::ggplot(pd, ggplot2::aes(x = .data$or, y = .data$stratum)) +
-      ggplot2::geom_vline(xintercept = 1, linetype = "dashed") +
-      ggplot2::geom_pointrange(ggplot2::aes(xmin = .data$lo, xmax = .data$hi), colour = "#4C78A8") +
-      ggplot2::scale_x_log10() +
-      ggplot2::labs(title = "Stratified 2 x 2 workflow", subtitle = paste0("CMH p = ", format_p(mh$p.value),
-                    "; Breslow-Day p = ", format_p(bdp)),
-                    x = paste0("Odds ratio (", cmp, ")"), y = s_nm) +
-      ggplot2::theme_minimal()
+    zc <- apply(arr, 3, function(t) any(t == 0)) & inf
+    lab <- paste0(dimnames(arr)[[3]], " (n=", stratum_or$n, ")", ifelse(zc, " *", ""))
+    pd <- data.frame(row = c(lab, "Crude", "MH pooled"), or = c(so[1, ], cr[1], psi), lo = c(so[2, ], cr[2], mh$conf.int[1]),
+                     hi = c(so[3, ], cr[3], mh$conf.int[2]), kind = c(rep("s", K), "c", "p"), ok = c(inf, TRUE, TRUE))
+    pd$row <- factor(pd$row, rev(pd$row)); ok <- pd[pd$ok, ]
+    ggplot2::ggplot(ok, ggplot2::aes(x = .data$or, y = .data$row, colour = .data$kind)) +
+      ggplot2::geom_vline(xintercept = 1, linetype = "dashed", colour = "grey50") +
+      ggplot2::geom_hline(yintercept = 2.5, colour = "grey85") +
+      ggplot2::geom_pointrange(ggplot2::aes(xmin = .data$lo, xmax = .data$hi, shape = .data$kind), fill = "white") +
+      ggplot2::geom_text(data = pd[!pd$ok, ], ggplot2::aes(x = 1, y = .data$row), label = "not estimable (zero margin)",
+                         colour = TFCOL[["pt"]], size = 3, hjust = 0.5) +
+      ggplot2::scale_colour_manual(values = c(s = TFCOL[["ink"]], c = "grey60", p = TFCOL[["a1"]]), guide = "none") +
+      ggplot2::scale_shape_manual(values = c(s = 16, c = 16, p = 18), guide = "none") +
+      ggplot2::scale_y_discrete(drop = FALSE) + ggplot2::scale_x_log10() +
+      ggplot2::labs(subtitle = paste0("CMH ", pstr(mh$p.value), "; Breslow-Day ", if (is.na(bdp)) "not computed" else pstr(bdp)),
+                    caption = paste(c(paste0("Woolf ", 100 * (1 - alpha), "% CIs per stratum; crude = strata collapsed."),
+                                      if (any(zc)) "* zero cell: 0.5 added to every cell."), collapse = " "),
+                    x = paste0("Odds ratio, ", cmp, " (log scale)"), y = s_nm) +
+      tftheme() + ggplot2::theme(panel.grid.major.y = ggplot2::element_blank())
   } else NULL
   out <- new_testflow("stratified", "two binary variables within strata", y_nm, x_nm, data = df,
                       descriptives = descriptives_categorical(df, c(y_nm, x_nm, s_nm)),

@@ -96,17 +96,23 @@ testblandaltman <- function(data, method1, method2, alpha = 0.05, plot = TRUE, n
   effect <- .bt(name = "Bias (mean difference)", estimate = bias, magnitude = NA_character_)
 
   plt <- if (plot) {
+    lim <- limits; lim$col <- unname(TFCOL[c("a1", "a2", "a2")])
+    lim$txt <- paste0(c("Bias ", "Lower LoA ", "Upper LoA "), format_stat(lim$estimate))
     ggplot2::ggplot(df, ggplot2::aes(x = .data$.mean, y = .data$.diff)) +
-      ggplot2::geom_hline(yintercept = c(lower, upper), linetype = "dashed", colour = "#B23A48") +
-      ggplot2::geom_hline(yintercept = bias, colour = "#1F2933") +
-      ggplot2::geom_hline(yintercept = 0, colour = "grey70") +
-      ggplot2::geom_point(alpha = 0.8, colour = "#3E6A9E") +
-      ggplot2::labs(
-        title = "Bland-Altman plot",
-        subtitle = paste0("Bias ", format_stat(bias), "; limits of agreement [", format_stat(lower), ", ", format_stat(upper), "]"),
-        x = paste0("Mean of ", m1, " and ", m2), y = paste0(m1, " - ", m2)
-      ) +
-      ggplot2::theme_minimal()
+      ggplot2::geom_rect(data = lim, ggplot2::aes(xmin = -Inf, xmax = Inf, ymin = .data$conf.low, ymax = .data$conf.high,
+                                                  fill = .data$col), inherit.aes = FALSE, alpha = 0.15) +
+      ggplot2::geom_hline(yintercept = 0, colour = "grey60") +
+      ggplot2::geom_hline(data = lim, ggplot2::aes(yintercept = .data$estimate, colour = .data$col),
+                          linetype = c("solid", "dashed", "dashed")) +
+      ggplot2::geom_point(alpha = 0.7, colour = TFCOL[["pt"]]) +
+      ggplot2::geom_text(data = lim, ggplot2::aes(x = Inf, y = .data$estimate, label = .data$txt, colour = .data$col),
+                         hjust = 1.05, vjust = -0.4, size = 3) +
+      ggplot2::scale_fill_identity() + ggplot2::scale_colour_identity() +
+      ggplot2::labs(subtitle = paste0("Bias ", format_stat(bias), ", ", pstr(ttest$p.value), "; limits of agreement ",
+                                      format_stat(lower), " to ", format_stat(upper)),
+                    caption = paste0("Bands: ", 100 * (1 - alpha), "% CIs of the bias and of each limit of agreement."),
+                    x = paste0("Mean of ", m1, " and ", m2), y = paste0(m1, " - ", m2)) +
+      tftheme()
   } else NULL
 
   out <- new_testflow(

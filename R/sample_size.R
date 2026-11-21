@@ -1742,6 +1742,12 @@ sample_size_binomial_required_n <- function(p, width, alpha, method, criterion, 
 #' @param x A sample-size object returned by `samplesize()`.
 #' @param type Plot style: `both`, `curve`, or `summary`.
 #' @param ... Unused.
+#' @details The curve shows power against sample size. Designs without an
+#'   exact curve use the normal approximation scaled to the computed size:
+#'   since \eqn{n \propto (z_{1-lpha/2} + z_{1-eta})^2}, power at \eqn{n}
+#'   is \eqn{\Phi(\sqrt{n / n_0}(z_{1-lpha/2} + z_{1-eta}) - z_{1-lpha/2})},
+#'   with \eqn{n_0} the unrounded total. Designs without a power target
+#'   (precision) show the summary bars only.
 #' @return A `ggplot2` object, or a combined patchwork object when `type =
 #'   "both"`.
 #' @export
@@ -1749,49 +1755,59 @@ plot.sample_size <- function(x, type = c("both", "curve", "summary"), ...) {
   type <- match.arg(type)
   summary_plot <- NULL
   curve_plot <- NULL
+  pd <- x$plot_data; sub <- paste0(x$objective, ", ", x$method)
 
-  if (type != "curve" && !is.null(x$plot_data) && nrow(x$plot_data)) {
-    summary_plot <- ggplot2::ggplot(x$plot_data, ggplot2::aes(x = .data$label, y = .data$value, fill = .data$type)) +
-      ggplot2::geom_col(width = 0.7, color = "white", position = ggplot2::position_dodge(width = 0.75)) +
-      ggplot2::geom_text(ggplot2::aes(label = .data$display), vjust = -0.35, size = 3.6, position = ggplot2::position_dodge(width = 0.75)) +
-      ggplot2::labs(
-        title = paste0("Sample size planning: ", x$endpoint, " / ", x$design),
-        subtitle = paste0(x$objective, " using ", x$method),
-        x = NULL,
-        y = "Sample size"
-      ) +
-      ggplot2::scale_fill_manual(values = c(raw = "#4C78A8", adjusted = "#F58518")) +
-      ggplot2::theme_minimal() +
-      ggplot2::theme(legend.position = "none")
+  if (type != "curve" && !is.null(pd) && nrow(pd)) {
+    # Raw sizes are fractional; label them to one decimal so the bar and its label agree.
+    pd$display <- ifelse(pd$type == "raw", formatC(pd$value, format = "f", digits = 1), pd$display)
+    pd$type <- factor(pd$type, c("raw", "adjusted"), c("Raw", "Planned"))
+    summary_plot <- ggplot2::ggplot(pd, ggplot2::aes(x = .data$label, y = .data$value, fill = .data$type)) +
+      ggplot2::geom_col(width = 0.7, colour = "white", position = ggplot2::position_dodge(width = 0.75)) +
+      ggplot2::geom_text(ggplot2::aes(label = .data$display), vjust = -0.35, size = 3.3,
+                         position = ggplot2::position_dodge(width = 0.75)) +
+      ggplot2::scale_fill_manual(values = c("grey75", TFCOL[["a1"]])) +
+      ggplot2::scale_y_continuous(expand = ggplot2::expansion(c(0, 0.12))) +
+      ggplot2::labs(subtitle = sub, x = NULL, y = "Sample size",
+                    fill = NULL) +
+      tftheme() + ggplot2::theme(legend.position = "top", panel.grid.major.x = ggplot2::element_blank())
   }
 
-  if (type != "summary" && !is.null(x$curve_data) && is.data.frame(x$curve_data) && nrow(x$curve_data)) {
-    label_target_n <- x$curve_data$target_n[1]
-    label_y <- max(x$curve_data$power, na.rm = TRUE) * 0.18
-    label_text <- paste0("optimal sample size\nn = ", format_sample_count(label_target_n))
-    label_df <- .bt(x = label_target_n, y = label_y, label = label_text)
-    curve_plot <- ggplot2::ggplot(x$curve_data, ggplot2::aes(x = .data$n, y = .data$power)) +
-      ggplot2::geom_line(color = "#4C78A8", linewidth = 1.0) +
-      ggplot2::geom_point(color = "#1f1f1f", size = 1.9) +
-      ggplot2::geom_vline(xintercept = x$curve_data$target_n[1], linetype = "dotted", color = "#5B5BD6", linewidth = 0.9) +
-      ggplot2::geom_label(data = label_df, ggplot2::aes(x = .data$x, y = .data$y, label = .data$label), inherit.aes = FALSE, hjust = 0, vjust = 0, linewidth = 0, fill = "white", alpha = 0.85, color = "#5B5BD6") +
-      ggplot2::geom_hline(yintercept = x$curve_data$power_target[1], linetype = "dashed", color = "#F58518", linewidth = 0.7) +
-      ggplot2::scale_y_continuous(labels = function(x) paste0(formatC(100 * x, format = "f", digits = 0), "%"), limits = c(0, 1.05)) +
-      ggplot2::labs(
-        title = paste0("Sample size planning: ", x$endpoint, " / ", x$design),
-        subtitle = paste0(x$objective, " using ", x$method, " | ", x$curve_data$power_label[1]),
-        x = x$curve_data$n_label[1],
-        y = "test power = 1 - beta"
-      ) +
-      ggplot2::theme_minimal() +
-      ggplot2::theme(panel.grid.minor = ggplot2::element_blank())
+  cd <- x$curve_data
+  pd <- x$plot_data
+  if ((is.null(cd) || !nrow(cd)) && length(x$power) == 1 && length(x$alpha) == 1 && !is.null(pd) && nrow(pd)) {
+    # Normal approximation: n is proportional to (z_alpha + z_beta)^2, so power at n follows from the computed n.
+    raw <- sum(pd$value[pd$type == "raw"]); adj <- sum(pd$value[pd$type == "adjusted"])
+    za <- stats::qnorm(1 - x$alpha / 2); eq <- identical(x$objective, "equivalence")
+    if (eq) za <- stats::qnorm(1 - x$alpha)
+    zb <- stats::qnorm(if (eq) (1 + x$power) / 2 else x$power)
+    ng <- sample_size_curve_grid(adj, length.out = 60)
+    pw <- stats::pnorm(sqrt(ng / raw) * (za + zb) - za); if (eq) pw <- pmax(2 * pw - 1, 0)
+    lb <- if (sum(pd$type == "raw") > 1) "Total sample size" else sub("^Required ", "", pd$label[1])
+    cd <- sample_size_curve_bundle(adj, x$power, ng, pw, paste0(toupper(substr(lb, 1, 1)), substring(lb, 2)),
+                                   "normal approximation")
+  }
+  if (type != "summary" && !is.null(cd) && is.data.frame(cd) && nrow(cd)) {
+    tn <- cd$target_n[1]; pt <- cd$power_target[1]
+    curve_plot <- ggplot2::ggplot(cd, ggplot2::aes(x = .data$n, y = .data$power)) +
+      ggplot2::geom_hline(yintercept = pt, linetype = "dashed", colour = "grey55") +
+      ggplot2::geom_vline(xintercept = tn, linetype = "dashed", colour = "grey55") +
+      ggplot2::geom_line(colour = TFCOL[["a1"]], linewidth = 0.9) +
+      ggplot2::annotate("point", x = tn, y = pt, colour = TFCOL[["a2"]], size = 2.5) +
+      ggplot2::annotate("text", x = tn, y = 0.05, hjust = -0.08, vjust = 0, size = 3,
+                        label = paste0("planned n = ", format_sample_count(tn))) +
+      ggplot2::scale_y_continuous(labels = function(b) paste0(100 * b, "%"), limits = c(0, 1)) +
+      ggplot2::labs(subtitle = sub, caption = if (identical(cd$power_label[1], "normal approximation"))
+                      "Power curve: normal approximation scaled to the computed sample size.",
+                    x = cd$n_label[1], y = "Power") +
+      tftheme()
   }
 
   if (type == "summary") return(summary_plot)
   if (type == "curve") return(curve_plot %||% summary_plot)
   if (!is.null(curve_plot) && !is.null(summary_plot)) {
     if (requireNamespace("patchwork", quietly = TRUE)) {
-      return(patchwork::wrap_plots(curve_plot, summary_plot, ncol = 1))
+      return(patchwork::wrap_plots(curve_plot, summary_plot + ggplot2::labs(subtitle = NULL), ncol = 2,
+                                   widths = c(3, 2)))
     }
     return(curve_plot)
   }
@@ -1976,6 +1992,10 @@ sample_size_result <- function(endpoint, design, objective, method, n, n_adjuste
     curve_data = curve_data,
     diagnostics = diagnostics
   )
+  # Planning inputs of the calling samplesize*() function, kept so plot() can draw a power curve for any design.
+  pf <- parent.frame()
+  x$alpha <- get0("alpha", pf, mode = "numeric", inherits = FALSE)
+  x$power <- get0("power", pf, mode = "numeric", inherits = FALSE)
   class(x) <- c("sample_size", "testflow_sample_size")
   x
 }

@@ -10,7 +10,8 @@ testrepeatedcategorical(
   id = NULL,
   alpha = 0.05,
   plot = TRUE,
-  na.rm = TRUE
+  na.rm = TRUE,
+  event = NULL
 )
 }
 \arguments{
@@ -25,6 +26,10 @@ testrepeatedcategorical(
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{event}{Level whose proportion is plotted. Default \code{NULL} uses the
+second level over all measures (the level coded 1 for the test).
+Cochran's Q does not depend on this choice; only the plot changes.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_repeated_categorical}. The

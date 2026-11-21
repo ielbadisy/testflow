@@ -4,7 +4,15 @@
 \alias{testcox}
 \title{Cox proportional hazards regression workflow}
 \usage{
-testcox(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE)
+testcox(
+  formula,
+  data,
+  alpha = 0.05,
+  plot = TRUE,
+  na.rm = TRUE,
+  units = NULL,
+  crude = FALSE
+)
 }
 \arguments{
 \item{formula}{A formula such as \code{Surv(time, status) ~ x1 + x2}.}
@@ -16,6 +24,15 @@ testcox(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE)
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{units}{Optional named numeric vector of plotting units for numeric
+predictors, for example \code{c(age = 10)} to plot the hazard ratio per 10
+years. Only the plot changes; tables stay per unit.}
+
+\item{crude}{Logical; if \code{TRUE}, the plot adds the crude hazard ratio of
+each predictor (one univariable Cox model per predictor, same rows) in
+grey under the adjusted one. The crude table is stored in
+\verb{$alternative_tests$crude}. Default \code{FALSE}.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_cox}. The object is a

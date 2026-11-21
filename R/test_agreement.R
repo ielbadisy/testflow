@@ -146,15 +146,24 @@ testagreement <- function(data, rater1, rater2, alpha = 0.05, plot = TRUE, na.rm
   h0 <- "H0: agreement beyond chance is zero (kappa = 0)."
 
   plt <- if (plot) {
-    hm <- as.data.frame(tab)
-    names(hm) <- c(rater1_nm, rater2_nm, "n")
-    ggplot2::ggplot(hm, ggplot2::aes(x = .data[[rater1_nm]], y = .data[[rater2_nm]], fill = .data$n)) +
-      ggplot2::geom_tile(color = "white", linewidth = 0.6) +
-      ggplot2::geom_text(ggplot2::aes(label = .data$n), color = "white") +
-      ggplot2::scale_fill_gradient(low = "#A9BEDB", high = "#1F2933") +
+    hm <- as.data.frame(tab, stringsAsFactors = FALSE); names(hm) <- c("r1", "r2", "n")
+    lv <- rownames(tab); wr <- wraplab(12)
+    hm$r1 <- factor(hm$r1, lv); hm$r2 <- factor(hm$r2, lv); hm$diag <- as.character(hm$r1) == as.character(hm$r2)
+    hm$sh <- ifelse(hm$diag, "d", ifelse(hm$n > 0, "o", "z"))
+    ggplot2::ggplot(hm, ggplot2::aes(x = .data$r1, y = .data$r2, fill = .data$sh)) +
+      ggplot2::geom_tile(colour = "white", linewidth = 0.8) +
+      ggplot2::geom_text(ggplot2::aes(label = .data$n, colour = .data$diag), size = 3.6) +
+      ggplot2::scale_fill_manual(values = c(d = TFCOL[["a1"]], o = "grey80", z = "grey95"), guide = "none") +
+      ggplot2::scale_colour_manual(values = c(`TRUE` = "white", `FALSE` = "grey15"), guide = "none") +
+      ggplot2::scale_y_discrete(labels = wr) +
       ggplot2::coord_equal() +
-      ggplot2::labs(title = "Inter-rater agreement workflow", subtitle = paste0(kappa_name, " = ", format_stat(kappa), " (", effect$magnitude[1], ")"), x = rater1_nm, y = rater2_nm, fill = "n") +
-      ggplot2::theme_minimal()
+      ggplot2::labs(subtitle = paste0(kappa_name, " = ", format_stat(kappa), " (", 100 * (1 - alpha), "% CI ",
+                                      format_stat(kappa_ci[1]), " to ", format_stat(kappa_ci[2]), ")"),
+                    caption = paste0("Blue diagonal: agreement, ", sum(diag(tab)), " of ", sum(tab), " (",
+                                     round(100 * sum(diag(tab)) / sum(tab)), "%)."),
+                    x = rater1_nm, y = rater2_nm) +
+      tftheme() + ggplot2::theme(panel.grid = ggplot2::element_blank(),
+                                 axis.text.x = ggplot2::element_text(angle = 30, hjust = 1, vjust = 1))
   } else NULL
 
   out <- new_testflow(
@@ -296,12 +305,17 @@ testicc <- function(data, measures, alpha = 0.05, plot = TRUE, na.rm = TRUE) {
   h0 <- "H0: ICC(2,1) = 0 (no reliability beyond chance)."
 
   plt <- if (plot) {
-    ggplot2::ggplot(icc_table, ggplot2::aes(x = .data$method, y = .data$estimate)) +
-      ggplot2::geom_pointrange(ggplot2::aes(ymin = .data$conf.low, ymax = .data$conf.high), color = "#4C78A8") +
-      ggplot2::scale_y_continuous(limits = c(min(0, icc_table$conf.low, na.rm = TRUE), 1)) +
-      ggplot2::labs(title = "Intraclass correlation workflow", subtitle = paste0("ICC(2,1) = ", format_stat(icc2), " (", effect$magnitude[1], ")"), x = NULL, y = "ICC") +
-      ggplot2::coord_flip() +
-      ggplot2::theme_minimal()
+    lb <- c("ICC(1,1)\none-way random", "ICC(2,1)\nabsolute agreement", "ICC(3,1)\nconsistency")
+    pd <- transform(icc_table, lab = factor(lb, rev(lb)), key = c(FALSE, TRUE, FALSE))
+    ggplot2::ggplot(pd, ggplot2::aes(x = .data$estimate, y = .data$lab, colour = .data$key)) +
+      ggplot2::geom_vline(xintercept = 0, colour = "grey60") +
+      ggplot2::geom_pointrange(ggplot2::aes(xmin = .data$conf.low, xmax = .data$conf.high)) +
+      ggplot2::scale_colour_manual(values = c(`TRUE` = TFCOL[["a1"]], `FALSE` = TFCOL[["ink"]]), guide = "none") +
+      ggplot2::scale_x_continuous(limits = c(min(0, icc_table$conf.low, na.rm = TRUE), 1)) +
+      ggplot2::labs(subtitle = paste0("ICC(2,1) = ", format_stat(icc2), " (", 100 * (1 - alpha), "% CI ",
+                                      format_stat(icc2_ci[1]), " to ", format_stat(icc2_ci[2]), "), ", pstr(icc2_p)),
+                    caption = paste0(n, " subjects, ", k, " raters."), x = "ICC", y = NULL) +
+      tftheme() + ggplot2::theme(panel.grid.major.y = ggplot2::element_blank())
   } else NULL
 
   out <- new_testflow(

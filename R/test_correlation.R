@@ -82,6 +82,23 @@ testcorrelation <- function(formula, data, y = NULL, method = c("auto", "pearson
     out$recommended$test <- lab
     out$effect_size <- .bt(name = paste0(lab, " r"), estimate = unname(pc$estimate),
                            magnitude = magnitude_cramers_v(abs(unname(pc$estimate))))
+    if (plot) {
+      # Added-variable view: the partial correlation is the correlation of these two residual sets.
+      rk <- function(v) if (chosen == "spearman") rank(v) else v
+      Z <- stats::model.matrix(~ ., data.frame(lapply(df[covariates], function(v) if (is.numeric(v)) rk(v) else v)))
+      rd <- data.frame(rx = stats::lm.fit(Z, rk(df[[x_nm]]))$residuals, ry = stats::lm.fit(Z, rk(df[[y_nm]]))$residuals)
+      cv <- paste(covariates, collapse = ", "); rl <- if (chosen == "spearman") "rank of " else ""
+      out$plot <- ggplot2::ggplot(rd, ggplot2::aes(x = .data$rx, y = .data$ry)) +
+        ggplot2::geom_point(alpha = 0.6, colour = TFCOL[["pt"]]) +
+        ggplot2::geom_smooth(method = "lm", formula = y ~ x, se = TRUE, colour = TFCOL[["a1"]], fill = TFCOL[["a1"]],
+                             alpha = 0.15) +
+        ggplot2::labs(subtitle = paste0("Partial ", c(pearson = "r", spearman = "rho")[[chosen]], " = ",
+                                        format_stat(pc$estimate), " (", 100 * (1 - alpha), "% CI ", format_stat(pc$conf.int[1]), " to ",
+                                        format_stat(pc$conf.int[2]), "), ", pstr(pc$p.value)),
+                      caption = paste0("Residuals after regressing each variable on ", cv, "; marginal r in $alternative_tests."),
+                      x = paste0(rl, x_nm, ", residual given ", cv), y = paste0(rl, y_nm, ", residual given ", cv)) +
+        tftheme()
+    }
   }
   out$interpretation <- make_report(out, alpha)
   out
@@ -183,11 +200,11 @@ testcorrelationmatrix <- function(data, vars, method = c("spearman", "pearson", 
     ggplot2::ggplot(hm, ggplot2::aes(x = .data$Var1, y = .data$Var2, fill = .data$Freq)) +
       ggplot2::geom_tile(color = "white", linewidth = 0.6) +
       ggplot2::geom_text(ggplot2::aes(label = .data$label, color = .data$text_color), size = 4) +
-      ggplot2::scale_fill_gradient2(limits = c(-1, 1)) +
-      ggplot2::scale_color_manual(values = c(dark = "#1F2933", light = "white"), guide = "none") +
+      ggplot2::scale_fill_gradient2(low = TFCOL[["a2"]], mid = "white", high = TFCOL[["a1"]], limits = c(-1, 1)) +
+      ggplot2::scale_color_manual(values = c(dark = "grey15", light = "white"), guide = "none") +
       ggplot2::coord_equal() +
-      ggplot2::labs(title = "Correlation matrix", x = NULL, y = NULL, fill = "r") +
-      ggplot2::theme_minimal()
+      ggplot2::labs(x = NULL, y = NULL, fill = "r") +
+      tftheme()
   } else NULL
   method_label <- title_case_method(paste(method, "correlation matrix"))
   primary <- .bt(method = method_label, statistic = NA_real_, parameter = NA_real_, p.value = min(long$p, na.rm = TRUE))
