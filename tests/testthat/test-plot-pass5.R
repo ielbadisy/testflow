@@ -68,7 +68,7 @@ test_that("testcox crude = TRUE stores univariable HRs matching coxph and draws 
   x <- testcox(survival::Surv(time, status) ~ age + sex, data = lung, crude = TRUE, units = c(age = 10))
   cr <- x$alternative_tests$crude
   ref <- stats::coef(survival::coxph(survival::Surv(time, status) ~ age, data = lung))
-  expect_equal(cr$estimate[grepl("^age", cr$term)], unname(ref), tolerance = 1e-6)
+  expect_equal(cr$estimate[grepl("^age", cr$term)], exp(10 * unname(ref)), tolerance = 1e-6)
   expect_true(all(c("Adjusted", "Crude") %in% unlist(lapply(ggplot2::ggplot_build(plot(x))$plot$scales$scales,
                                                                 function(s) s$get_breaks()))))
   x0 <- testcox(survival::Surv(time, status) ~ age + sex, data = lung)

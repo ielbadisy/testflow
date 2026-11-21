@@ -1,3 +1,19 @@
+# testflow 1.1.11
+
+* Bug fix: `testcox(units = )` now rescales the printed hazard-ratio table and `$alternative_tests$hazard_ratios` (hazard ratio, CI and SE per unit, new `per` column), not only the forest. `$alternative_tests$coefficients` stays on the log scale per raw unit.
+* Bug fix: `testcox(crude = TRUE)` stores `$alternative_tests$crude` on the hazard-ratio scale (`estimate`, `conf.low`, `conf.high` are hazard ratios, per `units`), so it matches the plot. Column names are unchanged; `per` is added when `units` is given.
+* Bug fix (plot): the `testcox()` forest puts the likelihood-ratio test in the caption, so a plot without title has nothing in the title slot. The text is unchanged; remove it with `caption = NULL`.
+* Bug fix (plot): `testmultinomialregression()` panels follow the order of the outcome levels instead of the alphabet.
+* Bug fix (plot): under `method = "t"`, the power curve of `plot.sample_size()` is the exact noncentral-t power instead of the scaled normal approximation.
+* `testlogisticregression()`, `testordinalregression()`, `testmultinomialregression()` and `testcox()` gain `labels` (named vector: a coefficient name replaces the whole label, a variable name the variable part) and `unitlabels` (unit words, e.g. `c(age = "years")` gives "age (per 10 years)").
+* `plot.sample_size()` gains `vary`, a named list with one planning input and its values (e.g. `list(delta = c(2, 3, 4))`, `list(hr = c(0.6, 0.7, 0.8))`): one power curve per value against the total size before dropout, with the size for the planned power marked.
+* New `plotclusteradjust()`: cluster-adjusted total size against the ICC, one line per cluster size.
+* New `plot()` method for `testcategorical()` results: `type = "residuals"` draws the adjusted standardised residual of each cell (bold beyond +-1.96).
+* `testequivalence()` gains `xlab` and `units` for the plot x label.
+* `testpaired()` gains `group`: the plot is faceted by group (the tests stay on all pairs).
+* `testrepeatedcategorical()` gains `event_label` for the y label and caption.
+* `testrepeated()` and `testrepeatedlong()` gain `xlab`, `ylab` and `legendtitle` (`NULL` removes the label).
+
 # testflow 1.1.10
 
 * Bug fix (plots): `plot(x, title = NULL)` (and `subtitle = NULL`, `caption = NULL`) now removes the label; before, `NULL` was ignored.

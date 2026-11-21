@@ -14,7 +14,9 @@ testequivalence(
   var.equal = FALSE,
   alpha = 0.05,
   plot = TRUE,
-  na.rm = TRUE
+  na.rm = TRUE,
+  xlab = NULL,
+  units = NULL
 )
 }
 \arguments{
@@ -44,6 +46,13 @@ has level \code{1 - 2 * alpha} for equivalence (90\% at 0.05) and
 \item{plot}{Logical; include a ggplot object (CI against the margins).}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{xlab}{Optional x-axis label of the plot. Default \code{NULL} keeps
+"Mean difference (first - second group level)" (or the risk
+difference).}
+
+\item{units}{Optional unit of the outcome added to the default x label,
+for example \code{units = "kg"} gives "Mean difference (F - M), kg".}
 }
 \value{
 A \code{testflow} object with class \code{testflow_equivalence}. The

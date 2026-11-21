@@ -130,6 +130,13 @@ testlinearregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm
 #' @param units Optional named numeric vector of plotting units for numeric
 #'   predictors, for example `c(age = 10)` to plot the odds ratio per 10
 #'   years. Only the plot changes; tables stay per unit.
+#' @param labels Optional named character vector of plot labels. A name that
+#'   is a coefficient (for example `"smokeYes"`) replaces that whole label; a
+#'   name that is a variable (for example `"smoke"`) replaces the variable part
+#'   (`"Smoking: Yes"`). Default `NULL` keeps the column names.
+#' @param unitlabels Optional named character vector of unit words for numeric
+#'   predictors, for example `c(age = "years")` to label the term
+#'   "age (per 10 years)" with `units = c(age = 10)`. Only the plot changes.
 #' @return A `testflow` object with class `testflow_logistic_regression`. The
 #' object is a list containing the cleaned data, descriptive statistics,
 #' multicollinearity/influential-point assumption checks, the likelihood-ratio
@@ -155,7 +162,8 @@ testlinearregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm
 #' Hosmer DW, Lemeshow S, Sturdivant RX. *Applied Logistic Regression* (3rd
 #' ed.). Wiley; 2013.
 #' @export
-testlogisticregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE, units = NULL) {
+testlogisticregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE, units = NULL,
+                                   labels = NULL, unitlabels = NULL) {
   formula_obj <- stats::as.formula(paste(deparse(formula), collapse = " "))
   outcome_nm <- all.vars(formula_obj[[2]])[1]
   predictor_nms <- all.vars(formula_obj[[3]])
@@ -201,7 +209,8 @@ testlogisticregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.
   h0 <- paste0("H0: none of ", paste(predictor_nms, collapse = ", "), " are associated with ", outcome_nm, " (all log-odds slopes equal 0).")
 
   plt <- if (plot) ratio_plot(coefs_log_odds, "Odds ratio, 95% profile CI (log scale)", predictor_nms, units,
-                              subtitle = paste0("Likelihood-ratio test, ", pstr(lr_p))) else NULL
+                              subtitle = paste0("Likelihood-ratio test, ", pstr(lr_p)), labels = labels,
+                              unitlabels = unitlabels) else NULL
 
   out <- new_testflow(
     "logistic_regression",

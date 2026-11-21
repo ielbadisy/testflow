@@ -12,7 +12,10 @@ testrepeated(
   alpha = 0.05,
   plot = TRUE,
   na.rm = TRUE,
-  times = NULL
+  times = NULL,
+  xlab,
+  ylab,
+  legendtitle
 )
 }
 \arguments{
@@ -38,6 +41,10 @@ the within-subject test (repeated-measures ANOVA or Friedman).}
 \item{times}{Optional labels for the measures on the plot x axis, one per
 measure in order (for example \code{0:4} months); the axis is then titled
 "Time". Only the plot changes.}
+
+\item{xlab, ylab, legendtitle}{Optional plot labels for the x axis, the y
+axis and the legend of the \code{between} groups. Left out, the defaults are
+kept; a character value replaces them; \code{NULL} removes them.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_repeated}. The object is a

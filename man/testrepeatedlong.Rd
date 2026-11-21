@@ -12,7 +12,10 @@ testrepeatedlong(
   between = NULL,
   alpha = 0.05,
   plot = TRUE,
-  na.rm = TRUE
+  na.rm = TRUE,
+  xlab,
+  ylab,
+  legendtitle
 )
 }
 \arguments{
@@ -36,6 +39,10 @@ the within-subject test (repeated-measures ANOVA or Friedman).}
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{xlab, ylab, legendtitle}{Optional plot labels for the x axis, the y
+axis and the legend of the \code{between} groups. Left out, the defaults are
+kept; a character value replaces them; \code{NULL} removes them.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_repeated}. The object is a

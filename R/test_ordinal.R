@@ -54,6 +54,8 @@ wald_tab <- function(term, est, se, alpha, ename, extra = NULL) {
 #' @param units Optional named numeric vector of plotting units for numeric
 #'   predictors, for example `c(age = 10)` to plot the odds ratio per 10
 #'   years, \eqn{e^{10\beta}}. Only the plot changes; tables stay per unit.
+#' @param labels,unitlabels Optional plot labels, see
+#'   [testlogisticregression()].
 #' @return A `testflow` object with class `testflow_ordinal_regression`.
 #'   `$primary_test` is the LR test of all slopes (`statistic`, `parameter`,
 #'   `p.value`). `$alternative_tests` has `coefficients` (log odds, Wald
@@ -83,7 +85,7 @@ wald_tab <- function(term, est, se, alpha, ename, extra = NULL) {
 #' }
 #' @export
 testordinalregression <- function(formula, data, potest = c("brant", "lr"), alpha = 0.05, plot = TRUE, na.rm = TRUE,
-                                  units = NULL) {
+                                  units = NULL, labels = NULL, unitlabels = NULL) {
   if (!requireNamespace("MASS", quietly = TRUE)) stop("Package `MASS` is required.", call. = FALSE)
   potest <- match.arg(potest); v <- reg_vars(formula)
   df <- drop_missing(data, c(v$y, v$x), na.rm = na.rm)
@@ -111,7 +113,8 @@ testordinalregression <- function(formula, data, potest = c("brant", "lr"), alph
                  p.value = stats::pchisq(lr, p, lower.tail = FALSE))
   h0 <- paste0("H0: none of ", paste(v$x, collapse = ", "), " are associated with ", v$y, " (all cumulative log-odds slopes equal 0).")
   plt <- if (plot) ratio_plot(wt$log, paste0("Cumulative odds ratio, ", 100 * (1 - alpha), "% CI (log scale)"), v$x, units,
-                              subtitle = paste0("Likelihood-ratio test, ", pstr(primary$p.value))) else NULL
+                              subtitle = paste0("Likelihood-ratio test, ", pstr(primary$p.value)), labels = labels,
+                              unitlabels = unitlabels) else NULL
   out <- new_testflow("ordinal_regression", "ordinal logistic regression", v$y, paste(v$x, collapse = ", "), data = df,
                       descriptives = descriptives_categorical(df, v$y),
                       assumptions = assumption_checks(check_independence_note(), po_check, check_multicollinearity(fit)),
@@ -139,6 +142,8 @@ testordinalregression <- function(formula, data, potest = c("brant", "lr"), alph
 #' @param na.rm Logical; remove missing values.
 #' @param units Optional named numeric vector of plotting units for numeric
 #'   predictors (see [testordinalregression()]).
+#' @param labels,unitlabels Optional plot labels, see
+#'   [testlogisticregression()].
 #' @return A `testflow` object with class `testflow_multinomial_regression`.
 #'   `$primary_test` is the LR test of all slopes. `$alternative_tests` has
 #'   `coefficients` (log scale, one row per `y.level` and `term`, Wald SE,
@@ -159,7 +164,8 @@ testordinalregression <- function(formula, data, potest = c("brant", "lr"), alph
 #'   testmultinomialregression(Species ~ Sepal.Width, iris, plot = FALSE)
 #' }
 #' @export
-testmultinomialregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE, units = NULL) {
+testmultinomialregression <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE, units = NULL,
+                                      labels = NULL, unitlabels = NULL) {
   if (!requireNamespace("nnet", quietly = TRUE)) stop("Package `nnet` is required.", call. = FALSE)
   v <- reg_vars(formula)
   df <- drop_missing(data, c(v$y, v$x), na.rm = na.rm)
@@ -177,7 +183,8 @@ testmultinomialregression <- function(formula, data, alpha = 0.05, plot = TRUE, 
   rrr <- wt$exp[wt$exp$term != "(Intercept)", ]
   plt <- if (plot) ratio_plot(wt$log, paste0("Relative risk ratio vs ", levels(df[[v$y]])[1], ", ", 100 * (1 - alpha),
                                             "% CI (log scale)"), v$x, units,
-                              subtitle = paste0("Likelihood-ratio test, ", pstr(primary$p.value))) else NULL
+                              subtitle = paste0("Likelihood-ratio test, ", pstr(primary$p.value)), labels = labels,
+                              unitlabels = unitlabels) else NULL
   out <- new_testflow("multinomial_regression", "multinomial logistic regression", v$y, paste(v$x, collapse = ", "), data = df,
                       descriptives = descriptives_categorical(df, v$y),
                       assumptions = assumption_checks(check_independence_note(), assumption_check(

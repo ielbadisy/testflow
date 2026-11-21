@@ -6,6 +6,9 @@
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
+#' @param group Optional name of a grouping column (for example the trial
+#'   arm). The plot is then faceted by group, with the mean and 95% CI per
+#'   group; the tests stay on all pairs. Default `NULL` (one panel).
 #' @return A `testflow` object with class `testflow_paired`. The object is a
 #' list containing the cleaned paired data, paired difference, descriptive
 #' statistics, assumption checks, recommended paired test, primary test result
@@ -17,7 +20,8 @@
 #' rank-biserial correlation r_c = (T+ - T-) / (T+ + T-) (ranks of the
 #' non-zero |after - before|), the effect size that matches that test.
 #' @export
-testpaired <- function(formula, data, after = NULL, alternative = c("two.sided", "less", "greater"), alpha = 0.05, plot = TRUE, na.rm = TRUE) {
+testpaired <- function(formula, data, after = NULL, alternative = c("two.sided", "less", "greater"), alpha = 0.05, plot = TRUE, na.rm = TRUE,
+                       group = NULL) {
   alternative <- match.arg(alternative)
   first_expr <- tf_formula_arg(substitute(formula), parent.frame())
   second_expr <- tf_formula_arg(substitute(data), parent.frame())
@@ -34,7 +38,7 @@ testpaired <- function(formula, data, after = NULL, alternative = c("two.sided",
     after_nm <- vars$group
   }
   data_obj <- resolve_data_first_or_formula(formula, data)
-  df <- drop_missing(data_obj, c(before_nm, after_nm), na.rm = na.rm)
+  df <- drop_missing(data_obj, c(before_nm, after_nm, group), na.rm = na.rm)
   df$row_id <- seq_len(nrow(df))
   df$diff <- df[[after_nm]] - df[[before_nm]]
   normality <- check_normality(df, "diff", alpha = alpha)
@@ -52,7 +56,8 @@ testpaired <- function(formula, data, after = NULL, alternative = c("two.sided",
   }
   long <- .pivot_longer_simple(df, c(before_nm, after_nm), "time", "value")
   long$time <- factor(long$time, c(before_nm, after_nm))
-  plt <- if (plot) make_plot("paired", long, paste(after_nm, "-", before_nm), recommended = recommendation, primary = primary, effect = effect) else NULL
+  plt <- if (plot) make_plot("paired", long, paste(after_nm, "-", before_nm), recommended = recommendation, primary = primary, effect = effect,
+                              extra = list(group = group)) else NULL
   h0 <- paste0("H0: the mean or median paired difference (", after_nm, " - ", before_nm, ") equals 0.")
   out <- new_testflow("paired", "paired measurements", paste(after_nm, "-", before_nm), id = "row_id", data = df, descriptives = descriptives_numeric(df, c(before_nm, after_nm, "diff")), assumptions = assumption_checks(check_independence_note("Paired observations from the same subjects are assumed by design."), normality, symmetry, outliers), recommended = list(test = recommendation, rationale = recommend_rationale(recommendation, normality, alpha = alpha, subject = "the paired differences")), primary_test = add_null_hypothesis(safe_tidy_htest(primary, recommendation), h0), alternative_tests = list(paired_t_test = add_null_hypothesis(safe_tidy_htest(ttest, "Paired t-test"), h0), wilcox = add_null_hypothesis(safe_tidy_htest(wilcox, "Wilcoxon signed-rank test"), h0), sign = add_null_hypothesis(safe_tidy_htest(signs, "Sign test"), "H0: positive and negative paired differences are equally likely.")), effect_size = effect, plot = plt, call = match.call(), subclass = "paired")
   out$interpretation <- make_report(out, alpha)

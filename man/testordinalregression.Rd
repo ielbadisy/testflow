@@ -11,7 +11,9 @@ testordinalregression(
   alpha = 0.05,
   plot = TRUE,
   na.rm = TRUE,
-  units = NULL
+  units = NULL,
+  labels = NULL,
+  unitlabels = NULL
 )
 }
 \arguments{
@@ -34,6 +36,9 @@ relaxes every slope).}
 \item{units}{Optional named numeric vector of plotting units for numeric
 predictors, for example \code{c(age = 10)} to plot the odds ratio per 10
 years, \eqn{e^{10\beta}}. Only the plot changes; tables stay per unit.}
+
+\item{labels, unitlabels}{Optional plot labels, see
+\code{\link[=testlogisticregression]{testlogisticregression()}}.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_ordinal_regression}.

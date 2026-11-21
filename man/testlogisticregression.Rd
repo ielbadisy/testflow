@@ -10,7 +10,9 @@ testlogisticregression(
   alpha = 0.05,
   plot = TRUE,
   na.rm = TRUE,
-  units = NULL
+  units = NULL,
+  labels = NULL,
+  unitlabels = NULL
 )
 }
 \arguments{
@@ -28,6 +30,15 @@ testlogisticregression(
 \item{units}{Optional named numeric vector of plotting units for numeric
 predictors, for example \code{c(age = 10)} to plot the odds ratio per 10
 years. Only the plot changes; tables stay per unit.}
+
+\item{labels}{Optional named character vector of plot labels. A name that
+is a coefficient (for example \code{"smokeYes"}) replaces that whole label; a
+name that is a variable (for example \code{"smoke"}) replaces the variable part
+(\code{"Smoking: Yes"}). Default \code{NULL} keeps the column names.}
+
+\item{unitlabels}{Optional named character vector of unit words for numeric
+predictors, for example \code{c(age = "years")} to label the term
+"age (per 10 years)" with \code{units = c(age = 10)}. Only the plot changes.}
 }
 \value{
 A \code{testflow} object with class \code{testflow_logistic_regression}. The

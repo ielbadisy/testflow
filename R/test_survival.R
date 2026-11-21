@@ -122,13 +122,18 @@ testsurvival <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE,
 #' @param alpha Significance level.
 #' @param plot Logical; include a ggplot object.
 #' @param na.rm Logical; remove missing values.
-#' @param units Optional named numeric vector of plotting units for numeric
-#'   predictors, for example `c(age = 10)` to plot the hazard ratio per 10
-#'   years. Only the plot changes; tables stay per unit.
+#' @param units Optional named numeric vector of units for numeric
+#'   predictors, for example `c(age = 10)` for the hazard ratio per 10
+#'   years. The plot, the printed table and `$alternative_tests$hazard_ratios`
+#'   (and `crude`) are rescaled, with a `per` column giving the unit;
+#'   `$alternative_tests$coefficients` stays on the log scale per raw unit.
 #' @param crude Logical; if `TRUE`, the plot adds the crude hazard ratio of
 #'   each predictor (one univariable Cox model per predictor, same rows) in
 #'   grey under the adjusted one. The crude table is stored in
-#'   `$alternative_tests$crude`. Default `FALSE`.
+#'   `$alternative_tests$crude` on the hazard-ratio scale (`estimate`,
+#'   `conf.low`, `conf.high`). Default `FALSE`.
+#' @param labels,unitlabels Optional plot labels, see
+#'   [testlogisticregression()].
 #' @return A `testflow` object with class `testflow_cox`. The object is a
 #' list containing the cleaned data, descriptive statistics, proportional-
 #' hazards assumption checks (the global `cox.zph()` test, then one row per
@@ -157,7 +162,8 @@ testsurvival <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE,
 #' Grambsch PM, Therneau TM. Proportional hazards tests and diagnostics
 #' based on weighted residuals. *Biometrika*. 1994;81(3):515-526.
 #' @export
-testcox <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE, units = NULL, crude = FALSE) {
+testcox <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE, units = NULL, crude = FALSE,
+                    labels = NULL, unitlabels = NULL) {
   formula_obj <- stats::as.formula(paste(deparse(formula), collapse = " "))
   lhs <- formula_obj[[2]]
   time_nm <- deparse(lhs[[2]])
@@ -202,8 +208,12 @@ testcox <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE, unit
 
   cr <- if (crude) .map_dfr(attr(stats::terms(fit), "term.labels"), function(tm) broom::tidy(survival::coxph(
     stats::reformulate(tm, formula_obj[[2]]), data = df), conf.int = TRUE))
+  # The test sits in the caption, so a plot without title has nothing in the title slot.
   plt <- if (plot) ratio_plot(coefs_log, "Hazard ratio, 95% CI (log scale)", predictor_nms, units, crude = cr,
-                              subtitle = paste0("Likelihood-ratio test, ", pstr(unname(logtest["pvalue"])))) else NULL
+                              caption = paste0("Likelihood-ratio test, ", pstr(unname(logtest["pvalue"]))),
+                              labels = labels, unitlabels = unitlabels) else NULL
+  coefs_hr <- perunit(coefs_hr, units, "hazard_ratio")
+  if (crude) { for (v in c("estimate", "conf.low", "conf.high")) cr[[v]] <- exp(cr[[v]]); cr <- perunit(cr, units, "estimate") }
 
   out <- new_testflow(
     "cox",
@@ -223,6 +233,14 @@ testcox <- function(formula, data, alpha = 0.05, plot = TRUE, na.rm = TRUE, unit
   )
   out$interpretation <- make_report(out, alpha)
   out
+}
+
+# Ratio table (exp scale) per `units` of each numeric term: exp(u * b), SE u * se, plus a `per` column.
+perunit <- function(tab, units, est) {
+  if (is.null(units)) return(tab)
+  u <- unitof(tab$term, units)
+  for (v in c(est, "conf.low", "conf.high")) tab[[v]] <- tab[[v]]^u
+  tab$std.error <- u * tab$std.error; tab$per <- u; tab
 }
 
 # Kaplan-Meier curves with stepped CI bands from (0, 1) and, below the axis, the numbers at risk per group.

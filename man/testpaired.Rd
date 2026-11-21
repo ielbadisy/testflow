@@ -11,7 +11,8 @@ testpaired(
   alternative = c("two.sided", "less", "greater"),
   alpha = 0.05,
   plot = TRUE,
-  na.rm = TRUE
+  na.rm = TRUE,
+  group = NULL
 )
 }
 \arguments{
@@ -28,6 +29,10 @@ testpaired(
 \item{plot}{Logical; include a ggplot object.}
 
 \item{na.rm}{Logical; remove missing values.}
+
+\item{group}{Optional name of a grouping column (for example the trial
+arm). The plot is then faceted by group, with the mean and 95\% CI per
+group; the tests stay on all pairs. Default \code{NULL} (one panel).}
 }
 \value{
 A \code{testflow} object with class \code{testflow_paired}. The object is a

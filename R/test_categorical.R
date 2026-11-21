@@ -150,3 +150,33 @@ emstr <- function(em, alpha = 0.05) {
   paste0(em$comparison[1], ", event ", em$event[1], " (", 100 * (1 - alpha), "% CI):\n", f(1, TRUE), " points; ", f(2),
          "; ", f(3))
 }
+
+#' Plot a categorical association test
+#'
+#' @param x A `testflow_categorical` object from [testcategorical()].
+#' @param type `"bars"` (default) draws the stored plot (percent within each
+#'   group); `"residuals"` draws the adjusted standardised residual of every
+#'   cell (`$posthoc$stdres`), blue below and vermillion above expectation,
+#'   with cells beyond +-1.96 in bold. Useful for r x c tables.
+#' @param ... Passed to [plot.testflow()] (`title`, `subtitle`, `caption`).
+#' @return A `ggplot` object.
+#' @export
+plot.testflow_categorical <- function(x, type = c("bars", "residuals"), ...) {
+  if (match.arg(type) == "residuals") {
+    r <- as.data.frame(x$posthoc); d <- x$data
+    # Same level order as table() used for the test.
+    r$row <- factor(r$row, rev(levels(as.factor(d[[x$outcome]])))); r$column <- factor(r$column, levels(as.factor(d[[x$group]])))
+    lim <- max(2.5, abs(r$stdres)); sig <- abs(r$stdres) > stats::qnorm(0.975)
+    x$plot <- ggplot2::ggplot(r, ggplot2::aes(x = .data$column, y = .data$row, fill = .data$stdres)) +
+      ggplot2::geom_tile(colour = "white", linewidth = 0.8) +
+      ggplot2::geom_text(ggplot2::aes(label = formatC(.data$stdres, format = "f", digits = 1)), size = 3.3,
+                         fontface = ifelse(sig, "bold", "plain"),
+                         colour = ifelse(abs(r$stdres) > 0.6 * lim, "white", ifelse(sig, "black", "grey35"))) +
+      ggplot2::scale_fill_gradient2(low = TFCOL[["a1"]], mid = "white", high = TFCOL[["a2"]], limits = c(-lim, lim)) +
+      ggplot2::scale_x_discrete(labels = wraplab(14), position = "top") +
+      ggplot2::labs(subtitle = plot_subtitle(x$recommended$test, x$primary_test), x = x$group, y = x$outcome,
+                    fill = "Residual", caption = "Adjusted standardised residuals; bold: |z| > 1.96 (unadjusted).") +
+      tftheme() + ggplot2::theme(panel.grid = ggplot2::element_blank())
+  }
+  plot.testflow(x, ...)
+}
