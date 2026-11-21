@@ -142,14 +142,6 @@ repeated_core <- function(data, outcome_nm, within_nm, id_nm, outcome_label = NU
   }
   posthoc_method <- if (recommendation == "Friedman test") "wilcox" else "t"
   posthoc_tests <- paired_posthoc_numeric(complete, method = posthoc_method, p.adjust.method = "BH")
-  plt <- if (plot) {
-    ggplot2::ggplot(df, ggplot2::aes(x = .data[[within_nm]], y = .data[[outcome_nm]], group = .data[[id_nm]])) +
-      ggplot2::geom_line(alpha = 0.25) +
-      ggplot2::geom_point(alpha = 0.45) +
-      ggplot2::stat_summary(ggplot2::aes(group = 1), fun = mean, geom = "line", linewidth = 1.1, color = "#F58518") +
-      ggplot2::labs(title = "Repeated-measures workflow", subtitle = paste0(recommendation, ", p = ", format_p(primary$p.value[1])), x = within_nm, y = outcome_nm) +
-      ggplot2::theme_minimal()
-  } else NULL
   alt <- list(anova = add_null_hypothesis(anova, h0), friedman = add_null_hypothesis(safe_tidy_htest(friedman, "Friedman test"), h0))
   if (!is.null(between_nm)) {
     bw <- df[[between_nm]][match(wide[[id_nm]][cc], df[[id_nm]])]
@@ -158,6 +150,12 @@ repeated_core <- function(data, outcome_nm, within_nm, id_nm, outcome_label = NU
     eb <- sphericity_eps(as.matrix(complete), bw)
     alt$mixed_anova <- add_eps(m, eb, df2 = m$den.df, rows = m$term != between_nm)
   }
+  plt <- if (plot) {
+    sub <- if (is.null(between_nm)) plot_subtitle(recommendation, primary[1, ]) else termp("Mixed ANOVA", alt$mixed_anova)
+    lab <- if (display_by_within) c("Measurement", "Value") else c(within_nm, outcome_nm)
+    profile_plot(df, outcome_nm, within_nm, between_nm, id_nm, subtitle = sub, xlab = lab[1], ylab = lab[2],
+                 caption = "Faint lines: subjects; bold: mean and 95% CI.")
+  } else NULL
   out <- new_testflow("repeated", "repeated numeric measurements", outcome_label, within_nm, id_nm, df, descriptives_numeric(df, outcome_nm, within_nm), assumption_checks(check_independence_note("Repeated measurements from the same subjects are assumed by design."), normality, sphericity), list(test = recommendation, rationale = recommend_rationale(recommendation, normality, alpha = alpha)), primary, alt, posthoc = posthoc_tests, effect_size = effect, plot = plt, call = call, subclass = "repeated")
   out$interpretation <- make_report(out, alpha)
   if (recommendation == "Repeated-measures ANOVA" && ncol(complete) > 2) {
