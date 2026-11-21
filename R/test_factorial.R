@@ -97,11 +97,8 @@ testfactorial <- function(formula, data, factors = NULL, alpha = 0.05, type = 2,
     den.df = rep(resid_df, nrow(keep_rows))
   )
   plt <- if (plot && length(factor_nms) >= 2) {
-    ggplot2::ggplot(df, ggplot2::aes(x = .data[[factor_nms[1]]], y = .data[[outcome_nm]], color = .data[[factor_nms[2]]], group = .data[[factor_nms[2]]])) +
-      ggplot2::stat_summary(fun = mean, geom = "line") +
-      ggplot2::stat_summary(fun = mean, geom = "point", size = 2) +
-      ggplot2::labs(title = "Factorial ANOVA workflow", subtitle = plot_subtitle("Factorial ANOVA", list(p.value = min(primary$p.value, na.rm = TRUE))), x = factor_nms[1], y = outcome_nm, color = factor_nms[2]) +
-      ggplot2::theme_minimal()
+    profile_plot(df, outcome_nm, factor_nms[1], factor_nms[2], subtitle = termp("Factorial ANOVA", primary),
+                 caption = "Points: observations; lines and bars: mean and 95% CI.")
   } else if (plot) make_plot("groups", df, outcome_nm, factor_nms[1], "Factorial ANOVA", list(p.value = min(primary$p.value, na.rm = TRUE)), effect) else NULL
   h0 <- h0_factorial_terms(outcome_nm, primary$term)
   out <- new_testflow("factorial", "factorial design", outcome_nm, paste(factor_nms, collapse = ", "), data = df, descriptives = descriptives_numeric(df, outcome_nm, factor_nms[1]), assumptions = assumption_checks(check_independence_note(), normality, levene, balanced), recommended = list(test = "Factorial ANOVA", rationale = "Primary workflow for factorial numeric outcomes."), primary_test = add_null_hypothesis(primary, h0), alternative_tests = list(anova_table = tab), effect_size = effect, plot = plt, call = match.call(), subclass = "factorial")

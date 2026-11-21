@@ -51,6 +51,7 @@ testpaired <- function(formula, data, after = NULL, alternative = c("two.sided",
     effect <- .rbind_rows(list(effect, rank_biserial_paired(df[[before_nm]], df[[after_nm]])))
   }
   long <- .pivot_longer_simple(df, c(before_nm, after_nm), "time", "value")
+  long$time <- factor(long$time, c(before_nm, after_nm))
   plt <- if (plot) make_plot("paired", long, paste(after_nm, "-", before_nm), recommended = recommendation, primary = primary, effect = effect) else NULL
   h0 <- paste0("H0: the mean or median paired difference (", after_nm, " - ", before_nm, ") equals 0.")
   out <- new_testflow("paired", "paired measurements", paste(after_nm, "-", before_nm), id = "row_id", data = df, descriptives = descriptives_numeric(df, c(before_nm, after_nm, "diff")), assumptions = assumption_checks(check_independence_note("Paired observations from the same subjects are assumed by design."), normality, symmetry, outliers), recommended = list(test = recommendation, rationale = recommend_rationale(recommendation, normality, alpha = alpha, subject = "the paired differences")), primary_test = add_null_hypothesis(safe_tidy_htest(primary, recommendation), h0), alternative_tests = list(paired_t_test = add_null_hypothesis(safe_tidy_htest(ttest, "Paired t-test"), h0), wilcox = add_null_hypothesis(safe_tidy_htest(wilcox, "Wilcoxon signed-rank test"), h0), sign = add_null_hypothesis(safe_tidy_htest(signs, "Sign test"), "H0: positive and negative paired differences are equally likely.")), effect_size = effect, plot = plt, call = match.call(), subclass = "paired")

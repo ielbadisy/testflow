@@ -59,10 +59,14 @@ testcorrelation <- function(formula, data, y = NULL, method = c("auto", "pearson
   effect <- .bt(name = paste0(chosen_label, " r"), estimate = unname(primary$estimate), magnitude = magnitude_cramers_v(abs(unname(primary$estimate))))
   plt <- if (plot) {
     ggplot2::ggplot(df, ggplot2::aes(x = .data[[x_nm]], y = .data[[y_nm]])) +
-      ggplot2::geom_point(alpha = 0.75, color = "#4C78A8") +
-      ggplot2::geom_smooth(method = "lm", se = TRUE, color = "#F58518") +
-      ggplot2::labs(title = "Correlation workflow", subtitle = plot_subtitle(chosen_label, primary), caption = paste0(effect$name[1], " = ", format_stat(effect$estimate[1]), ", ", effect$magnitude[1]), x = x_nm, y = y_nm) +
-      ggplot2::theme_minimal()
+      ggplot2::geom_point(alpha = 0.6, colour = TFCOL[["pt"]]) +
+      ggplot2::geom_smooth(method = "lm", formula = y ~ x, se = TRUE, colour = TFCOL[["a1"]],
+                           fill = TFCOL[["line"]]) +
+      ggplot2::labs(subtitle = paste0(effstr(.bt(name = c(pearson = "Pearson r", spearman = "Spearman rho", kendall = "Kendall tau")[[chosen]],
+                                                 estimate = effect$estimate[1], conf.low = primary$conf.int[1] %||% NA,
+                                                 conf.high = primary$conf.int[2] %||% NA)), ", ", pstr(primary$p.value)),
+                    caption = "Line: least-squares fit with 95% band.", x = x_nm, y = y_nm) +
+      tftheme()
   } else NULL
   h0 <- h0_no_correlation(x_nm, y_nm)
   corr_assumptions <- switch(chosen, pearson = assumption_checks(linearity, normality, outliers), spearman = assumption_checks(monotonicity, outliers, assumption_check("Normality", "not required", "Normality is not required for Spearman correlation.")), kendall = assumption_checks(monotonicity, outliers, assumption_check("Normality", "not required", "Normality is not required for Kendall correlation.")))

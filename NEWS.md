@@ -1,3 +1,13 @@
+# testflow 1.1.9
+
+* Bug fix (plots): the default plots of `testgroups()`, `testtwogroups()`, `testpaired()`, `testfactorial()`, `testrepeated()`, `testrepeatedlong()` and `testcorrelation()` were redrawn. They use greys plus two colour-blind-safe accents (Okabe-Ito blue and vermillion), drop the "workflow" titles, label both axes, and show the observations with the mean and 95% CI. Results are unchanged.
+* Bug fix: the `testpaired()` plot put the second measure first (alphabetical order); it now draws the first (reference) measure, then the second, with one line per subject.
+* Bug fix: the `testrepeated()` plot ordered the measures alphabetically and ignored `between`; measures now keep their given order, and with `between` each arm gets its own colour and mean profile with 95% CI. The subtitle gives the mixed ANOVA p-values.
+* `testtwogroups()` and `testgroups()` plot captions give the effect size with its 95% CI (when available) instead of the verbal magnitude label ("small").
+* `testcorrelation()` plot: the coefficient with its CI and the p-value sit in one subtitle (no caption next to the axis title), and `geom_smooth()` no longer prints its formula message.
+* `testfactorial()` plot: dodged means with 95% CI per level of the second factor over jittered observations; the subtitle lists the p-value of each term.
+* Plot subtitles print "p < 0.001" instead of "p = <0.001".
+
 # testflow 1.1.8
 
 * Bug fix: `testpaireddiagnostic()` `$primary_test` repeated the sensitivity difference in `effect_size` and `effect_size_name` on the Specificity row; each row now carries its own difference.
