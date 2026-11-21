@@ -218,6 +218,10 @@ check_variance_two_groups <- function(data, outcome, group, alpha = 0.05) {
 #' Check Bartlett homogeneity
 #' @noRd
 check_bartlett <- function(data, outcome, group, alpha = 0.05) {
+  if (any(table(droplevels(as.factor(data[[group]]))) < 2))
+    return(.bt(name = "Bartlett test", method = "Bartlett test",
+               message = "Not computed: a group has fewer than 2 observations.", statistic = NA_real_,
+               df = NA_real_, p = NA_real_, status = "not checked"))
   test <- stats::bartlett.test(tf_formula(outcome, group), data = data)
   .bt(
     name = "Bartlett test",
