@@ -616,6 +616,8 @@ samplesizebinary <- function(
 #' @param upper Upper equivalence bound on the hazard-ratio scale.
 #' @param survival_a Survival probability in arm A at the planning horizon.
 #' @param survival_b Survival probability in arm B at the planning horizon.
+#'   Default `NULL` uses `survival_a^hr` (proportional hazards) when `survival_a`
+#'   is given; with neither, the size is the number of events.
 #' @param alpha Type I error rate.
 #' @param power Target power.
 #' @param allocation Allocation ratio `n_B / n_A`.
@@ -693,6 +695,8 @@ samplesizesurvival <- function(
     stop("Survival sample size currently assumes equal allocation.", call. = FALSE)
   }
   sample_size_validate_positive(hr, "hr")
+  # Without survival_b the experimental arm follows proportional hazards; before, n silently equalled the events.
+  if (!is.null(survival_a) && is.null(survival_b)) survival_b <- survival_a^hr
 
   z_power <- stats::qnorm(power)
   z_alpha_two <- stats::qnorm(1 - alpha / 2)
@@ -1775,7 +1779,15 @@ sample_size_binomial_required_n <- function(p, width, alpha, method, criterion, 
 #'   each value and one power curve per value is drawn against the total size
 #'   before dropout, with the size needed for the planned power marked. Power is
 #'   exact (noncentral t) for `method = "t"` and follows the design's own
-#'   formula otherwise. Default `NULL` draws the single planned curve.
+#'   formula otherwise. Default `NULL` draws the single planned curve. For
+#'   survival designs, varying `hr` recomputes the experimental-arm survival as
+#'   `survival_a^hr` (proportional hazards) when `survival_a` is given.
+#' @param what With `vary`, the x axis: `"n"` (total patients, default) or
+#'   `"events"` (total events, survival designs only).
+#' @param varylabels With `vary`, legend text for the values: a character
+#'   vector in the order of the values, or named by the values (for example
+#'   `c("0.7" = "HR 0.7")`). Default `NULL` prints the values to 3 significant
+#'   digits.
 #' @param ... Unused.
 #' @details The curve shows power against sample size. Designs without an
 #'   exact curve use the normal approximation scaled to the computed size:
@@ -1787,9 +1799,10 @@ sample_size_binomial_required_n <- function(p, width, alpha, method, criterion, 
 #' @return A `ggplot2` object, or a combined patchwork object when `type =
 #'   "both"`.
 #' @export
-plot.sample_size <- function(x, type = c("both", "curve", "summary"), vary = NULL, ...) {
+plot.sample_size <- function(x, type = c("both", "curve", "summary"), vary = NULL, what = c("n", "events"),
+                             varylabels = NULL, ...) {
   type <- match.arg(type)
-  if (!is.null(vary)) return(ssfamily(x, vary))
+  if (!is.null(vary)) return(ssfamily(x, vary, match.arg(what), varylabels))
   summary_plot <- NULL
   curve_plot <- NULL
   pd <- x$plot_data; sub <- paste0(x$objective, ", ", x$method)
@@ -1862,14 +1875,20 @@ sslab <- function(pd) {
 
 # One power curve per value of a planning input: rerun the design at that value over a grid of target powers
 # (each run gives a point (n, power) on the design's own curve), or use its exact power function.
-ssfamily <- function(x, vary) {
+ssfamily <- function(x, vary, what = "n", varylabels = NULL) {
   if (is.null(x$fun) || is.null(x$power) || length(vary) != 1 || is.null(names(vary)))
     stop("`vary` needs a named list with one planning input, on a design with a power target.", call. = FALSE)
+  ev <- what == "events"
+  if (ev && is.null(x$required_events)) stop("`what = \"events\"` needs a survival design.", call. = FALSE)
   nm <- names(vary); a <- x$inputs; if ("dropout" %in% names(a)) a$dropout <- 0
-  run <- function(v, p) { a[[nm]] <- v; a$power <- p; do.call(x$fun, a) }
-  tot <- function(r) sum(r$plot_data$value[r$plot_data$type == "raw"])
+  # Under proportional hazards the experimental-arm survival moves with the hazard ratio.
+  ph <- nm == "hr" && !is.null(a$survival_a)
+  run <- function(v, p) { a[[nm]] <- v; a$power <- p; if (ph) a$survival_b <- a$survival_a^v; do.call(x$fun, a) }
+  tot <- function(r) if (ev) r$required_events else sum(r$plot_data$value[r$plot_data$type == "raw"])
   rs <- lapply(vary[[1]], run, p = x$power); tn <- vapply(rs, tot, 0); xmax <- 1.35 * max(tn)
-  lev <- format(vary[[1]]); ps <- seq(0.1, 0.99, by = 0.01)
+  val <- as.character(signif(vary[[1]], 3)); ps <- seq(0.1, 0.99, by = 0.01)
+  lev <- if (is.null(varylabels)) val else if (is.null(names(varylabels))) as.character(varylabels) else
+    ifelse(val %in% names(varylabels), varylabels[val], val)
   cv <- do.call(rbind, lapply(seq_along(rs), function(i) {
     d <- if (!is.null(rs[[i]]$powerfun)) {
       ng <- seq(2, xmax, length.out = 80); data.frame(n = ng, power = vapply(ng, rs[[i]]$powerfun, 0))
@@ -1887,7 +1906,8 @@ ssfamily <- function(x, vary) {
     ggplot2::scale_colour_manual(values = tfpal(length(lev))) +
     ggplot2::scale_y_continuous(labels = function(b) paste0(100 * b, "%"), limits = c(0, 1)) +
     ggplot2::scale_x_continuous(limits = c(0, xmax)) +
-    ggplot2::labs(subtitle = paste0(x$objective, ", ", x$method), x = paste0(sslab(x$plot_data), ", before dropout"),
+    ggplot2::labs(subtitle = paste0(x$objective, ", ", x$method),
+                  x = if (ev) "Total events" else paste0(sslab(x$plot_data), ", before dropout"),
                   y = "Power", colour = nm, caption = paste0(
                     if (ex) "Exact noncentral t power. " else "Power from the design formula. ",
                     "Points: size for ", 100 * x$power, "% power.")) +

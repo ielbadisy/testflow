@@ -146,14 +146,16 @@ profile_plot <- function(df, y, x, z = NULL, id = NULL, subtitle = NULL, caption
 
 # Readable term labels: "priorfracYes" -> "priorfrac: Yes"; numeric terms rescaled by `units` get "(per u)".
 # `labels` maps a coefficient name (whole label) or a variable name (variable part) to a label; `unitlabels`
-# adds a unit word to numeric terms ("(per 10 years)").
+# adds a unit word to numeric terms ("(per 10 years)"); the "(per u)" suffix stays on relabelled numeric terms.
 termlab <- function(term, vars, units = NULL, labels = NULL, unitlabels = NULL) vapply(term, function(t) {
-  if (t %in% names(labels)) return(labels[[t]])
+  if (t %in% names(labels) && !t %in% vars) return(labels[[t]])
   one <- function(s) {
     if (s %in% names(labels) && !s %in% vars) return(labels[[s]])
     if (s %in% vars) {
       per <- trimws(paste(if (s %in% names(units)) units[[s]] else "", if (s %in% names(unitlabels)) unitlabels[[s]] else ""))
-      return(paste0(if (s %in% names(labels)) labels[[s]] else s, if (nzchar(per)) paste0(" (per ", per, ")")))
+      lb <- if (s %in% names(labels)) labels[[s]] else s
+      # A custom label that already states its unit ("Age per decade") keeps no extra suffix.
+      return(paste0(lb, if (nzchar(per) && !grepl("per ", lb, fixed = TRUE)) paste0(" (per ", per, ")")))
     }
     v <- vars[startsWith(s, vars)]
     if (!length(v)) return(s)

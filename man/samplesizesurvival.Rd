@@ -37,7 +37,9 @@ samplesizesurvival(
 
 \item{survival_a}{Survival probability in arm A at the planning horizon.}
 
-\item{survival_b}{Survival probability in arm B at the planning horizon.}
+\item{survival_b}{Survival probability in arm B at the planning horizon.
+Default \code{NULL} uses \code{survival_a^hr} (proportional hazards) when \code{survival_a}
+is given; with neither, the size is the number of events.}
 
 \item{alpha}{Type I error rate.}
 

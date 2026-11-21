@@ -34,7 +34,9 @@ years. Only the plot changes; tables stay per unit.}
 \item{labels}{Optional named character vector of plot labels. A name that
 is a coefficient (for example \code{"smokeYes"}) replaces that whole label; a
 name that is a variable (for example \code{"smoke"}) replaces the variable part
-(\code{"Smoking: Yes"}). Default \code{NULL} keeps the column names.}
+(\code{"Smoking: Yes"}). A numeric predictor keeps its "(per 10 years)" suffix
+from \code{units}/\code{unitlabels} unless its label already contains "per ".
+Default \code{NULL} keeps the column names.}
 
 \item{unitlabels}{Optional named character vector of unit words for numeric
 predictors, for example \code{c(age = "years")} to label the term

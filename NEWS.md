@@ -1,3 +1,10 @@
+# testflow 1.1.12
+
+* Bug fix (plot): `plot.sample_size(vary = list(hr = ))` on a survival design kept `survival_b` at the planned value, so the patient totals were wrong. Each hazard ratio now sets `survival_b = survival_a^hr` (proportional hazards) and the totals match separate `samplesizesurvival()` calls.
+* Bug fix: `samplesizesurvival()` with `survival_a` but no `survival_b` returned the number of events as the sample size; `survival_b` now defaults to `survival_a^hr`. Without `survival_a` the size is still the number of events.
+* `plot.sample_size()` gains `what = c("n", "events")` (with `vary`, `"events"` plots total events for survival designs) and `varylabels` (legend text, positional or named by value). The default legend prints the values to 3 significant digits.
+* Forest plots: a custom `labels =` entry for a numeric predictor keeps the "(per 10 years)" suffix from `units`/`unitlabels`, unless the label already contains "per ".
+
 # testflow 1.1.11
 
 * Bug fix: `testcox(units = )` now rescales the printed hazard-ratio table and `$alternative_tests$hazard_ratios` (hazard ratio, CI and SE per unit, new `per` column), not only the forest. `$alternative_tests$coefficients` stays on the log scale per raw unit.
